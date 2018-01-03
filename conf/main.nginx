@@ -1,0 +1,28 @@
+#user  nobody;
+worker_processes auto;
+error_log  logs/error.log;
+
+events {
+    worker_connections 1024;
+}
+
+lua_code_cache off;
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-For $remote_addr;
+
+server {
+    listen 80;
+
+    location / {
+        proxy_pass http://auto.deploy.com;
+    }
+
+}
+
+upstream auto.deploy.com {
+    server 127.0.0.1:8001;
+}
+
