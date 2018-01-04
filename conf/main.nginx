@@ -1,28 +1,51 @@
 #user  nobody;
 worker_processes auto;
-error_log  logs/error.log;
+error_log logs/error.log info;
 
 events {
     worker_connections 1024;
 }
+http{
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_http_version 1.1;
 
-lua_code_cache off;
-proxy_http_version 1.1;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection "upgrade";
-proxy_set_header Host $host;
-proxy_set_header X-Forwarded-For $remote_addr;
+    lua_code_cache off;
+    lua_package_path '../lua/?.lua;../lib/?.lua;;';
 
-server {
-    listen 80;
-
-    location / {
-        proxy_pass http://auto.deploy.com;
-    }
-
+    init_by_lua_block {
+    PHI = require 'Phi'
+        PHI.init();
 }
 
-upstream auto.deploy.com {
-    server 127.0.0.1:8001;
+    init_worker_by_lua_block {
+    PHI.init_worker();
+}
+
+    server {
+        server_name phi
+        listen 80;
+
+        location / {
+            set $backend '';
+            rewrite_by_lua_block {
+            PHI.rewrite()
+        }
+
+            access_by_lua_block {
+            PHI.access()
+        }
+
+            proxy_pass         http://$backend;
+
+            log_by_lua_block {
+            PHI.log()
+        }
+        }
+
+    }
+
 }
 
