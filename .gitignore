@@ -2,3 +2,4 @@
 *_temp
 *.log
 *.pid
+.iml
