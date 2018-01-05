@@ -13,7 +13,7 @@ http{
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_http_version 1.1;
 
-    lua_package_path '../phi/?.lua;../lib/?.lua;../lib/?.so;;';
+    lua_package_path '../phi/?.lua;../lib/?.lua;;';
     lua_code_cache off;
 
     init_by_lua_block {
