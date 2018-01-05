@@ -16,7 +16,8 @@ server {
             local utils = require "kong.utils";
             local cjson = require "cjson.safe";
             local uuidstr = utils.uuid();
-            ngx.say("this is the fake backend peer... listen port 8888" .. uuidstr);
+            local json = cjson.encode({name="z杭三",age=12})
+            ngx.say("this is the fake backend peer... listen port 8888" .. uuidstr .. json);
         }
     }
 }
