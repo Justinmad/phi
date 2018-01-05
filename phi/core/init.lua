@@ -6,4 +6,4 @@
 -- To change this template use File | Settings | File Templates.
 --
 
-local constants = require "lua.core.constants"
+local constants = require "phi.core.constants"

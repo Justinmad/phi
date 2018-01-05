@@ -1,0 +1,52 @@
+server {
+    listen 9999;
+
+    location / {
+        content_by_lua_block {
+        ngx.say("this is the fake backend peer... listen port 9999");
+    }
+    }
+}
+
+server {
+    listen 8888;
+
+    location  / {
+        content_by_lua_block{
+            local utils = require "kong.utils";
+            local cjson = require "cjson.safe";
+            local uuidstr = utils.uuid();
+            ngx.say("this is the fake backend peer... listen port 8888" .. uuidstr);
+        }
+    }
+}
+
+server {
+    listen 7777;
+
+    location  / {
+        content_by_lua_block{
+            ngx.say("this is the fake backend peer... listen port 7777");
+    }
+    }
+}
+
+server {
+    listen 6666;
+
+    location  / {
+        content_by_lua_block{
+            ngx.say("this is the fake backend peer... listen port 6666");
+    }
+    }
+}
+
+server {
+    listen 5555;
+
+    location  / {
+        content_by_lua_block{
+            ngx.say("this is the fake backend peer... listen port 5555");
+    }
+    }
+}

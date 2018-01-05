@@ -17,12 +17,24 @@ function PHI.init_worker()
 end
 
 function PHI.balancer()
-    print("this is balancer by lua block");
+    local balancer = require "ngx.balancer"
+
+    -- well, usually we calculate the peer's host and port
+    -- according to some balancing policies instead of using
+    -- hard-coded values like below
+    local host = "127.0.0.1"
+    local port = 8888
+
+    local ok, err = balancer.set_current_peer(host, port)
+    if not ok then
+        ngx.log(ngx.ERR, "failed to set the current peer: ", err)
+        return ngx.exit(500)
+    end
 end
 
 function PHI.rewrite()
     print("this is rewrite by lua block");
-    ngx.var.backend = '127.0.0.1:8001';
+    ngx.var.backend = 'phi_upstream';
 end
 
 function PHI.access()

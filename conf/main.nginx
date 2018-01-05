@@ -1,10 +1,11 @@
-#user  nobody;
+#user  yangyang.zhang;
 worker_processes auto;
 error_log logs/error.log info;
 
 events {
     worker_connections 1024;
 }
+
 http{
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -12,17 +13,17 @@ http{
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_http_version 1.1;
 
+    lua_package_path '../phi/?.lua;../lib/?.lua;../lib/?.so;;';
     lua_code_cache off;
-    lua_package_path '../lua/?.lua;../lib/?.lua;;';
 
     init_by_lua_block {
-    PHI = require 'Phi'
+        PHI = require 'Phi'
         PHI.init();
-}
+    }
 
     init_worker_by_lua_block {
-    PHI.init_worker();
-}
+        PHI.init_worker();
+    }
 
     server {
         server_name phi
@@ -31,21 +32,29 @@ http{
         location / {
             set $backend '';
             rewrite_by_lua_block {
-            PHI.rewrite()
-        }
+                PHI.rewrite()
+            }
 
             access_by_lua_block {
-            PHI.access()
-        }
+                PHI.access()
+            }
 
-            proxy_pass         http://$backend;
+            proxy_pass http://$backend;
 
             log_by_lua_block {
-            PHI.log()
-        }
+                PHI.log()
+            }
         }
 
     }
 
+    upstream phi_upstream {
+        server 0.0.0.1;   # just an invalid address as a place holder
+        balancer_by_lua_block {
+            PHI.balancer();
+        }
+        keepalive 20;
+    }
+    include vhost.nginx;
 }
 
