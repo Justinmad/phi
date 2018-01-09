@@ -5,7 +5,7 @@
 -- Output:
 --   "hello=world foo=bar, baz=hello,world"
 
-local utils = require "kong.tools.utils"
+local utils = require "kong.utils"
 
 local printable_mt = {}
 

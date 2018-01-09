@@ -1,4 +1,4 @@
-local Object = require "lib.classic"
+local Object = require "classic"
 
 local BaseComponent = Object:extend()
 

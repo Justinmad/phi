@@ -15,8 +15,10 @@ server {
         content_by_lua_block{
             local utils = require "kong.utils";
             local cjson = require "cjson.safe";
+            local printable = require "kong.printable";
+
             local uuidstr = utils.uuid();
-            ngx.say("this is the fake backend peer... listen port 8888" .. uuidstr);
+            ngx.say("this is the fake backend peer... listen port 8888"  .."-------".. uuidstr .. ".............." .. ngx.var.request_uri);
         }
     }
 }
