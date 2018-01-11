@@ -6,6 +6,7 @@
 -- 定义了运行阶段的整体流程和生命周期,每个方法分别对应openresty中的lua执行阶段
 --
 local router = require "core.router"
+local balancer = require "core.balancer"
 local meta = require "meta"
 
 local PHI = {}
@@ -33,19 +34,7 @@ function _M.init_worker()
 end
 
 function _M.balancer()
-    local balancer = require "ngx.balancer"
-
-    -- well, usually we calculate the peer's host and port
-    -- according to some balancing policies instead of using
-    -- hard-coded values like below
-    local host = "127.0.0.1"
-    local port = 8888
-
-    local ok, err = balancer.set_current_peer(host, port)
-    if not ok then
-        ngx.log(ngx.ERR, "failed to set the current peer: ", err)
-        return ngx.exit(500)
-    end
+    balancer.exectue()
 end
 
 function _M.rewrite()
@@ -68,4 +57,4 @@ end
 
 setmetatable(PHI, { __index = _M })
 
-return PHI;
+return PHI
