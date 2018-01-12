@@ -18,7 +18,10 @@ server {
             local printable = require "kong.printable";
 
             local uuidstr = utils.uuid();
-            ngx.say("this is the fake backend peer... listen port 8888"  .."-------".. uuidstr .. ".............." .. ngx.var.request_uri);
+
+            local str = cjson.encode(ngx.config.subsystem);
+            ngx.say("this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." .. ngx.var.request_uri);
+            ngx.say(str);
         }
     }
 }

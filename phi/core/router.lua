@@ -8,7 +8,9 @@
 local router = {};
 
 function router.access()
-    print("this is router access ==============================>");
+    PHI.dao.set("abc", "asdasd");
+    local data = PHI.dao.get("abc");
+    ngx.say("this is access by lua block : " .. data)
 end
 
 return router;

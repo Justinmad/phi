@@ -7,8 +7,17 @@
 --
 
 local version = setmetatable({
+    ------------------------
+    -- 大版本
+    ------------------------
     major = 0,
+    ------------------------
+    -- 常用版本
+    ------------------------
     minor = 0,
+    ------------------------
+    -- 补丁版本
+    ------------------------
     patch = 1,
 }, {
     __tostring = function(t)
@@ -18,7 +27,7 @@ local version = setmetatable({
 })
 
 return {
-    _NAME = "phi",
+    _NAME = "PHI",
     _VERSION = tostring(version),
     _VERSION_TABLE = version,
     -- 以下版本号是我在开发时使用的版本

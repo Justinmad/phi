@@ -2,30 +2,46 @@
 -- to be licensed under the same terms as the rest of the code.
 
 
+local base = require "resty.core.base"
+base.allows_subsystem('http')
+
+
 local ffi = require 'ffi'
 local bit = require "bit"
-local base = require "resty.core.base"
 local core_regex = require "resty.core.regex"
 
 
 local C = ffi.C
+local ffi_str = ffi.string
 local sub = string.sub
+local error = error
 local type = type
 local band = bit.band
 local new_tab = base.new_tab
 local tostring = tostring
 local math_max = math.max
 local math_min = math.min
+local is_regex_cache_empty = core_regex.is_regex_cache_empty
 local re_match_compile = core_regex.re_match_compile
 local destroy_compiled_regex = core_regex.destroy_compiled_regex
+local get_string_buf = base.get_string_buf
+local get_size_ptr = base.get_size_ptr
+local FFI_OK = base.FFI_OK
 
 
+local MAX_ERR_MSG_LEN        = 128
 local FLAG_DFA               = 0x02
 local PCRE_ERROR_NOMATCH     = -1
 local DEFAULT_SPLIT_RES_SIZE = 4
 
 
 local split_ctx = new_tab(0, 1)
+
+
+ffi.cdef[[
+int ngx_http_lua_ffi_set_jit_stack_size(int size, unsigned char *errstr,
+    size_t *errstr_size);
+]]
 
 
 local _M = { version = base.version }
@@ -40,9 +56,6 @@ local function re_split_helper(subj, compiled, compile_once, flags, ctx)
     end
 
     if rc == PCRE_ERROR_NOMATCH then
-        if not compile_once then
-            destroy_compiled_regex(compiled)
-        end
         return nil, nil, nil
     end
 
@@ -55,6 +68,9 @@ local function re_split_helper(subj, compiled, compile_once, flags, ctx)
 
     if rc == 0 then
         if band(flags, FLAG_DFA) == 0 then
+            if not compile_once then
+                destroy_compiled_regex(compiled)
+            end
             return nil, nil, nil, "capture size too small"
         end
 
@@ -64,13 +80,17 @@ local function re_split_helper(subj, compiled, compile_once, flags, ctx)
     local caps = compiled.captures
     local ncaps = compiled.ncaptures
 
-    local from = caps[0] + 1
+    local from = caps[0]
     local to = caps[1]
 
     if from < 0 or to < 0 then
         return nil, nil, nil
     end
 
+    -- convert to Lua string indexes
+
+    from = from + 1
+    to = to + 1
     ctx.pos = to + 1
 
     -- retrieve the first sub-match capture if any
@@ -112,32 +132,12 @@ function _M.split(subj, regex, opts, ctx, max, res)
         res = new_tab(narr, 0)
 
     elseif type(res) ~= "table" then
-        return error("res is not a table", 2)
+        error("res is not a table", 2)
     end
 
     local len = #subj
     if ctx.pos > len then
         res[1] = nil
-        return res
-    end
-
-    if regex == "" then
-        local pos = ctx.pos
-        local last = len
-        if max > 0 then
-            last = math_min(len, pos + max - 1)
-        end
-
-        local res_idx = 1
-        while pos < last do
-            res[res_idx] = sub(subj, pos, pos)
-            res_idx = res_idx + 1
-            pos = pos + 1
-        end
-
-        res[res_idx] = sub(subj, pos)
-        res[res_idx + 1] = nil
-
         return res
     end
 
@@ -151,6 +151,7 @@ function _M.split(subj, regex, opts, ctx, max, res)
 
     local sub_idx = ctx.pos
     local res_idx = 0
+    local last_empty_match
 
     -- splitting: with and without a max limiter
 
@@ -168,21 +169,29 @@ function _M.split(subj, regex, opts, ctx, max, res)
                 break
             end
 
-            count = count + 1
-            res_idx = res_idx + 1
-            res[res_idx] = sub(subj, sub_idx, from - 1)
-
-            if capture then
-                res_idx = res_idx + 1
-                res[res_idx] = capture
+            if last_empty_match then
+                sub_idx = last_empty_match
             end
 
-            sub_idx = to + 1
-        end
+            if from == to then
+                last_empty_match = from
+            end
 
-        if count == max then
-            if not compile_once then
-                destroy_compiled_regex(compiled)
+            if from > sub_idx or not last_empty_match then
+                count = count + 1
+                res_idx = res_idx + 1
+                res[res_idx] = sub(subj, sub_idx, from - 1)
+
+                if capture then
+                    res_idx = res_idx + 1
+                    res[res_idx] = capture
+                end
+
+                sub_idx = to
+
+                if sub_idx >= len then
+                    break
+                end
             end
         end
 
@@ -198,16 +207,35 @@ function _M.split(subj, regex, opts, ctx, max, res)
                 break
             end
 
-            res_idx = res_idx + 1
-            res[res_idx] = sub(subj, sub_idx, from - 1)
-
-            if capture then
-                res_idx = res_idx + 1
-                res[res_idx] = capture
+            if last_empty_match then
+                sub_idx = last_empty_match
             end
 
-            sub_idx = to + 1
+            if from == to then
+                last_empty_match = from
+            end
+
+            if from > sub_idx or not last_empty_match then
+                res_idx = res_idx + 1
+                res[res_idx] = sub(subj, sub_idx, from - 1)
+
+                if capture then
+                    res_idx = res_idx + 1
+                    res[res_idx] = capture
+                end
+
+                sub_idx = to
+
+                if sub_idx >= len then
+                    break
+                end
+            end
         end
+
+    end
+
+    if not compile_once then
+        destroy_compiled_regex(compiled)
     end
 
     -- trailing nil for non-cleared res tables
@@ -216,6 +244,30 @@ function _M.split(subj, regex, opts, ctx, max, res)
     res[res_idx + 2] = nil
 
     return res
+end
+
+
+function _M.opt(option, value)
+    if option == "jit_stack_size" then
+        if not is_regex_cache_empty() then
+            error("changing jit stack size is not allowed when some " ..
+                  "regexs have already been compiled and cached")
+        end
+
+        local errbuf = get_string_buf(MAX_ERR_MSG_LEN)
+        local sizep = get_size_ptr()
+        sizep[0] = MAX_ERR_MSG_LEN
+
+        local rc = C.ngx_http_lua_ffi_set_jit_stack_size(value, errbuf, sizep)
+
+        if rc == FFI_OK then
+            return
+        end
+
+        error(ffi_str(errbuf, sizep[0]))
+    end
+
+    error("unrecognized option name")
 end
 
 

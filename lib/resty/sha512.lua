@@ -1,16 +1,16 @@
 -- Copyright (C) by Yichun Zhang (agentzh)
 
 
-local sha = require "resty.sha"
+require "resty.sha"
 local ffi = require "ffi"
 local ffi_new = ffi.new
 local ffi_str = ffi.string
 local C = ffi.C
 local setmetatable = setmetatable
-local error = error
+--local error = error
 
 
-local _M = { _VERSION = '0.09' }
+local _M = { _VERSION = '0.10' }
 
 
 local mt = { __index = _M }

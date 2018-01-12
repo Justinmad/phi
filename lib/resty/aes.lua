@@ -9,11 +9,11 @@ local ffi_str = ffi.string
 local ffi_copy = ffi.copy
 local C = ffi.C
 local setmetatable = setmetatable
-local error = error
+--local error = error
 local type = type
 
 
-local _M = { _VERSION = '0.09' }
+local _M = { _VERSION = '0.10' }
 
 local mt = { __index = _M }
 
@@ -159,6 +159,10 @@ function _M.new(self, key, salt, _cipher, _hash, hash_rounds)
         ffi_copy(gen_iv, _hash.iv, 16)
 
     else
+        if salt and #salt ~= 8 then
+            return nil, "salt must be 8 characters or nil"
+        end
+
         if C.EVP_BytesToKey(_cipher.method, _hash, salt, key, #key,
                             hash_rounds, gen_key, gen_iv)
             ~= _cipherLength

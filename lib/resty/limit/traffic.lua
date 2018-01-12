@@ -1,14 +1,15 @@
 -- Copyright (C) Yichun Zhang (agentzh)
 --
 -- This is an aggregator for various concrete traffic limiter instances
--- (like instances of the resty.limit.req and resty.limit.conn classes).
+-- (like instances of the resty.limit.req, resty.limit.count and
+-- resty.limit.conn classes).
 
 
 local max = math.max
 
 
 local _M = {
-    _VERSION = '0.03'
+    _VERSION = '0.05'
 }
 
 
@@ -39,7 +40,7 @@ function _M.combine(limiters, keys, states)
         if not delay then
             for j = 1, i - 1 do
                 -- we intentionally ignore any errors returned below.
-                lim:uncommit(keys[j])
+                limiters[j]:uncommit(keys[j])
             end
             return nil, err
         end

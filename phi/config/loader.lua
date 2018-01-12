@@ -3,7 +3,7 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/8
 -- Time: 16:21
--- To change this template use File | Settings | File Templates.
+-- 负责加载配置文件，处理默认的配置文件，或者进行配置覆盖
 --
 local pl_pretty = require "pl.pretty"
 local pl_config = require "pl.config"
@@ -14,8 +14,14 @@ local config_loader = {}
 local _M = {}
 
 local DEFAULT_PATHS = {
-    "../conf/phi.ini"
+    "E:/work/phi/conf/phi.ini"
 }
+
+local CONF_SENSITIVE = {
+    redis_password = true
+}
+
+local CONF_SENSITIVE_PLACEHOLDER = "******"
 
 local function overrides(k, default_v, file_conf, arg_conf)
     local value -- definitive value for this property
@@ -29,8 +35,10 @@ local function overrides(k, default_v, file_conf, arg_conf)
         value = file_conf[k]
     end
 
-    -- environment variables have higher priority
-    local env_name = "KONG_" .. string.upper(k)
+    ------------------------
+    -- 环境变量配置
+    ------------------------
+    local env_name = "PHI_" .. string.upper(k)
     local env = os.getenv(env_name)
     if env ~= nil then
         local to_print = env
@@ -51,7 +59,7 @@ end
 
 function _M.load()
     ------------------------
-    -- Default configuration
+    -- 默认配置
     ------------------------
 
     local default_conf = require "config.default_config"
@@ -61,7 +69,7 @@ function _M.load()
     end
 
     ---------------------
-    -- Configuration file
+    -- 配置文件
     ---------------------
     local from_file_conf, err, path
     -- try to look for a conf in default locations, but no big
@@ -103,7 +111,9 @@ function _M.load()
         local conf_arr = {}
         for k, v in pairs(conf) do
             local to_print = v
-
+            if CONF_SENSITIVE[k] then
+                to_print = CONF_SENSITIVE_PLACEHOLDER
+            end
             conf_arr[#conf_arr + 1] = k .. " = " .. pl_pretty.write(to_print, "")
         end
 

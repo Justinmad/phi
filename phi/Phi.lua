@@ -21,11 +21,15 @@ local _M = {
 
 function _M.init()
     require "core.init";
-    local config ,err = require "config.loader".load()
+    local config, err = require "config.loader".load()
     if err then
-
     end
-    _M.configuration = config;
+
+    _M.configuration = config
+
+    local redis = require "tools.redis"
+    local db = redis:new(config)
+    _M.dao = db;
     print("this is init by lua block")
 end
 

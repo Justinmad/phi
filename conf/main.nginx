@@ -1,6 +1,6 @@
 #user  yangyang.zhang;
 worker_processes 2;
-error_log logs/error.log info;
+error_log E:/work/phi/conf/logs/error.log info;
 
 events {
     worker_connections 1024;
@@ -11,9 +11,8 @@ http{
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
-
-    lua_package_path '../phi/?.lua;../lib/?.lua;;';
-    lua_package_cpath '../lib/?.so;;';
+    lua_package_path 'E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
+    lua_package_cpath 'E:/work/phi/lib/?.so;;';
     lua_code_cache off;
 
     lua_shared_dict phi                5m;
