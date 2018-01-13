@@ -18,7 +18,6 @@ local DEFAULT_PATHS = {
 }
 
 local CONF_SENSITIVE = {
-    redis_password = true
 }
 
 local CONF_SENSITIVE_PLACEHOLDER = "******"
