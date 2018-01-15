@@ -4,61 +4,77 @@
 -- Date: 2018/1/4
 -- Time: 15:11
 -- 定义了运行阶段的整体流程和生命周期,每个方法分别对应openresty中的lua执行阶段
+-- 需要在init_by_lua阶段加载本项目，并保存为全局变量PHI
 --
 local router = require "core.router"
 local balancer = require "core.balancer"
 local meta = require "meta"
 
-local PHI = {}
-
-PHI.meta = meta
-
-local _M = {
+local PHI = {
+    meta = meta,
     configuration = nil,
     dao = nil,
-    loaded_plugins = nil
+    components = nil,
+    policy_holder = nil
 }
 
-function _M.init()
-    require "core.init";
-    local config, err = require "config.loader".load()
-    if err then
-    end
-
-    _M.configuration = config
-
-    local redis = require "tools.redis"
-    local db = redis:new(config)
-    _M.dao = db;
-    print("this is init by lua block")
+local function debug(msg)
+    ngx.log(ngx.DEBUG, msg)
 end
 
-function _M.init_worker()
+-- 开启lua_code_cache情况下，每个worker只有一个Lua VM
+-- require函数或者VM级别的变量（例如LRUCACHE）初始化应该在每个worker中都执行，而shared_DICT是跨worker共享的，那么初始化一次即可
+-- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
+function PHI:init()
+    require "core.init"
+
+    -- 加载配置
+    debug("********************开始加载配置********************")
+    local config, err = require "config.loader".load()
+    if err then
+        error("不能加载配置！err：" .. err)
+    end
+
+    self.configuration = config
+
+    -- 初始化Redis
+    debug("********************初始化Redis********************")
+    local redis = require "tools.redis"
+    local db = redis:new(config)
+    local PhiDao = require "dao.phi_dao_by_redis"
+    local phiDao, err = PhiDao:new(db)
+    if err then
+        error(err)
+    else
+        self.dao = phiDao
+    end
+    debug("*****************PHI 初始化完成！******************")
+end
+
+function PHI:init_worker()
     print("this is init_worker by lua block")
 end
 
-function _M.balancer()
-    balancer.exectue()
+function PHI.balancer()
+    balancer:exectue()
 end
 
-function _M.rewrite()
-    print("this is rewrite by lua block");
-    ngx.var.backend = 'phi_upstream';
+function PHI:rewrite()
+    print("this is rewrite by lua block")
+    ngx.var.backend = 'phi_upstream'
 end
 
-function _M.access()
-    router.access();
-    print("this is access by lua block");
+function PHI:access()
+    router.access()
+    print("this is access by lua block")
 end
 
-function _M.log()
+function PHI:log()
     print("this is log by lua block")
 end
 
-function _M.handle_error()
-    print("this is handle_error by lua block");
+function PHI:handle_error()
+    print("this is handle_error by lua block")
 end
-
-setmetatable(PHI, { __index = _M })
 
 return PHI

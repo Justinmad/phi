@@ -24,17 +24,17 @@ end
 -- 建立连接
 local function _connect_mod(config, redis)
     -- 连接
-    local ok, err = redis:connect(config.conf.redis_host, config.conf.redis_port)
+    local ok, err = redis:connect(config.redis_host, config.redis_port)
     if not ok or err then
         log("连接初始化失败,err:", err)
         return nil, err
     end
 
     -- 认证
-    if config.conf.redis_password then
+    if config.redis_password then
         local times, err = redis:get_reused_times()
         if times == 0 then
-            local ok, err = redis:auth(config.conf.redis_password)
+            local ok, err = redis:auth(config.redis_password)
             if not ok or err then
                 log("redis auth认证失败,err:", err)
                 return nil, err
@@ -45,11 +45,11 @@ local function _connect_mod(config, redis)
         end
     end
 
-    -- 选择DB
-    if config.conf.redis_db_index > 0 then
-        local ok, err = redis:select(config.conf.redis_db_index)
+    -- 选择Redis实例
+    if config.redis_db_index > 0 then
+        local ok, err = redis:select(config.redis_db_index)
         if not ok or err then
-            log("选择redis db_index:" .. config.conf.redis_db_index .. "failed ,err:", err)
+            log("选择redis db_index:" .. config.redis_db_index .. "failed ,err:", err)
             return nil, err
         end
     end
@@ -75,7 +75,7 @@ local function _init_connect(config)
 end
 
 local function _set_keepalive(config, redis)
-    return redis:set_keepalive(config.conf.redis_keepalive, config.conf.redis_pool_size)
+    return redis:set_keepalive(config.redis_keepalive, config.redis_pool_size)
 end
 
 -- 发送Redis指令，不支持pipeline，subscribe
@@ -114,9 +114,9 @@ end
 
 setmetatable(_M, {
     __index = function(self, cmd)
-        local config = self;
+        local instance = self;
         local method = function(self, ...)
-            return do_command(self, config, cmd, ...)
+            return do_command(self, instance.conf, cmd, ...)
         end
 
         -- cache the lazily generated method in our

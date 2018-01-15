@@ -1,0 +1,8 @@
+--
+-- Created by IntelliJ IDEA.
+-- User: yangyang.zhang
+-- Date: 2018/1/15
+-- Time: 20:31
+-- 持有应用中定义的所有policy实例
+--
+--- 加载所有配置中允许的policy

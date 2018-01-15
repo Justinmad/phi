@@ -6,8 +6,9 @@
 -- 初始化数据，读取配置等等，提前加载一些模块以提高运行效率
 --
 
+
+-- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
 do
-    -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
     local constants = require "core.constants"
 
     for _, dict in ipairs(constants.DICTS) do
@@ -20,5 +21,9 @@ do
     end
 end
 
+-- 初始化缓存
+local lrucache = require "resty.lrucache"
+
+-- 提前加载依赖，提高性能
 require "resty.core"
 require "cjson.safe"

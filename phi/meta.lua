@@ -12,7 +12,7 @@ local version = setmetatable({
     ------------------------
     major = 0,
     ------------------------
-    -- 常用版本
+    -- 普通版本
     ------------------------
     minor = 0,
     ------------------------
@@ -32,7 +32,7 @@ return {
     _VERSION_TABLE = version,
     -- 以下版本号是我在开发时使用的版本
     _DEPENDENCIES = {
-        nginx = { "1.11.2.4" },
-        lua_nginx_module = { "0.10.12" }
+        nginx = { "1.13.6" },
+        lua_nginx_module = { "0.10.12rc1" }
     }
 }

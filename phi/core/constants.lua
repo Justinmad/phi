@@ -3,7 +3,7 @@ return {
         HOST_OVERRIDE = "X-Host-Override",
         PROXY_LATENCY = "X-Kong-Proxy-Latency",
         UPSTREAM_LATENCY = "X-Kong-Upstream-Latency",
-        CONSUMER_ID = "X-Consumer-ID",
+        CONSUMER_ID = "X-Phi-UID",
         CONSUMER_CUSTOM_ID = "X-Consumer-Custom-ID",
         CONSUMER_USERNAME = "X-Consumer-Username",
         CREDENTIAL_USERNAME = "X-Credential-Username",
@@ -27,5 +27,10 @@ return {
     DICTS = {
         "phi",
         "phi_cache"
+    },
+    CACHE_KEY_PREFIX = {
+        ROUTER = "PHI:ROUTER:",
+        RATE_LIMITING = "PHI:RATE_LIMITING:",
+        SERVICE_DEGRADATION = "PHI:SERVICE_DEGRADATION:",
     }
 }

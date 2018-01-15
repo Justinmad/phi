@@ -1,6 +1,6 @@
 #user  yangyang.zhang;
 worker_processes 2;
-error_log E:/work/phi/conf/logs/error.log info;
+error_log E:/work/phi/conf/logs/error.log debug;
 
 events {
     worker_connections 1024;
@@ -20,11 +20,11 @@ http{
 
     init_by_lua_block {
         PHI = require 'Phi'
-        PHI.init();
+        PHI:init();
     }
 
     init_worker_by_lua_block {
-        PHI.init_worker();
+        PHI:init_worker();
     }
 
     server {
@@ -35,12 +35,12 @@ http{
             set $backend '';
 
             rewrite_by_lua_block {
-                PHI.rewrite()
-            }
+            PHI:rewrite()
+        }
 
             access_by_lua_block {
-                PHI.access()
-            }
+            PHI:access()
+        }
 
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -50,8 +50,8 @@ http{
             proxy_pass $protocol_scheme://$backend;
 
             log_by_lua_block {
-                PHI.log()
-            }
+            PHI:log()
+        }
         }
 
     }
@@ -59,7 +59,15 @@ http{
     upstream phi_upstream {
         server 0.0.0.1;   # just an invalid address as a place holder
         balancer_by_lua_block {
-            PHI.balancer();
+            PHI:balancer()
+        }
+        keepalive 20;
+    }
+
+    upstream admin_upstream {
+        server 0.0.0.1;   # just an invalid address as a place holder
+        balancer_by_lua_block {
+            ngx.say("this is the admin upstream module")
         }
         keepalive 20;
     }

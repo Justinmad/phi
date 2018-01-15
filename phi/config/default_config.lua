@@ -17,9 +17,9 @@ return {
     redis_password = NONE,
     redis_pool_size = 60,
     redis_keepalive = 2000,
-
     db_update_frequency = 5,
     db_update_propagation = 0,
     db_cache_ttl = 3600,
-    lua_socket_pool_size = 30
+    lua_socket_pool_size = 30,
+    enabled_policies = { "RANGE_POLICY" }
 }
