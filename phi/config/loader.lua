@@ -13,10 +13,6 @@ local tablex = require "pl.tablex"
 local config_loader = {}
 local _M = {}
 
-local DEFAULT_PATHS = {
-    "E:/work/phi/conf/phi.ini"
-}
-
 local CONF_SENSITIVE = {
 }
 
@@ -73,16 +69,18 @@ function _M.load()
     local from_file_conf, err, path
     -- try to look for a conf in default locations, but no big
     -- deal if none is found: we will use our defaults.
+    local DEFAULT_PATHS = default_conf.default_paths
+
     for _, default_path in ipairs(DEFAULT_PATHS) do
         if utils.file_exists(default_path) then
             path = default_path
             break
         end
-        ngx.log(ngx.NOTICE, "no config file found at %s", default_path)
+        ngx.log(ngx.NOTICE, "no config file found at ", default_path)
     end
 
     if not path or not utils.file_exists(path) then
-        ngx.log(ngx.NOTICE, "no config file, skipping loading", utils.file_exists(path))
+        ngx.log(ngx.NOTICE, "no config file, skipping loading ")
     else
         local f = io.open(path, "r")
         if not f then
@@ -101,7 +99,7 @@ function _M.load()
         end
     end
 
-    local conf = tablex.pairmap(overrides, default_conf, from_file_conf, {})
+    local conf = tablex.pairmap(overrides, default_conf, (from_file_conf or {}), {})
 
     conf = tablex.merge(conf, default_conf) -- 取交集，删除多余的配置
 

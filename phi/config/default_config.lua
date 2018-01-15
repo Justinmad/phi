@@ -21,5 +21,8 @@ return {
     db_update_propagation = 0,
     db_cache_ttl = 3600,
     lua_socket_pool_size = 30,
-    enabled_policies = { "RANGE_POLICY" }
+    enabled_policies = { "RANGE_POLICY" },
+    default_paths = {
+        "E:/work/phi/conf/phi.ini","/home/young/IdeaProjects/phi/conf/phi.ini"
+    }
 }

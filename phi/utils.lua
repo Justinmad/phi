@@ -10,9 +10,10 @@ local utils = {}
 local _M = {}
 function _M.file_exists(path)
 
-    local file = io.open(path, "rb")
-
-    if file then file:close() end
+    local status,file = pcall(io.open,path, "rb")
+    if status then
+        if file then file:close() end
+    end
 
     return file ~= nil
 end
