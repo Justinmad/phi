@@ -9,8 +9,8 @@
     {
         "default":"stable_upstream", // 在任何情况下都应该首先设置默认的upstream server
         "upstream_name_1":[from,end], //从from到end之间
-        "upstream_name_2":[from,"NONE"],  //小于from
-        "upstream_name_3":["NONE",end]  //大于end
+        "upstream_name_2":[from,"NONE"],  //小于from，需要使用NONE做占位符
+        "upstream_name_3":["NONE",end]  //大于end，需要使用NONE做占位符
     }
 --]]
 local LOGGER = ngx.log
@@ -19,35 +19,48 @@ local ERR = ngx.ERR
 
 local range_policy = {}
 
-function range_policy.calculate(arg, policyTable)
+function range_policy.calculate(arg, routerTable)
+    arg = tonumber(arg)
     if type(arg) ~= "number" then
-        return nil, "输入的第一个参数必须为数字！"
+        return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
-    if type(policyTable) ~= "table" or #policyTable <= 0 then
+    if type(routerTable) ~= "table" then
         return nil, "输入的第二个参数必须是lua表或者该表长度小于0！"
     end
-
+    local upstream, err;
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
-    for up, policy in pairs(policyTable) do
+    for up, policy in pairs(routerTable) do
         if policy and type(policy) == "table" then
             local fromNum = policy[1]
             local endNum = policy[2]
-            local gt = type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and arg > endNum
-            local lt = type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and arg < fromNum
-            local between = type(fromNum) == 'number' and type(endNum) == 'number' and arg > fromNum and arg < endNum
+            local gt = type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and arg >= endNum
+            local lt = type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and arg <= fromNum
+            local between = type(fromNum) == 'number' and type(endNum) == 'number' and arg >= fromNum and arg <= endNum
             if gt or lt or between then
-                return up, nil
+                upstream = up
+                break
             end
-            LOGGER(ERR, "非法的规则参数！", fromNum, endNum)
+            LOGGER(DEBUG, "未匹配的规则参数！", arg)
         else
             LOGGER(ERR, "非法的规则表！", policy)
         end
-        local defult = policyTable["default"]
+    end
+    local defult = routerTable["default"]
+    -- 未查询到
+    if not upstream then
         if defult then
+            -- 但存在默认值
             LOGGER(DEBUG, "未匹配到合适的规则，返回存在的默认值，default:[" .. defult .. "]")
+            upstream = defult
+        else
+            -- 不存在默认值
+            err = "未匹配到合适的规则，并且未设置默认值！"
+            LOGGER(ERR, err)
         end
     end
+
+    return upstream, err
 end
 
 return range_policy

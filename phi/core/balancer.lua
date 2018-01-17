@@ -16,7 +16,7 @@ function _M.exectue()
     -- according to some balancing policies instead of using
     -- hard-coded values like below
     local host = "127.0.0.1"
-    local port = 8888
+    local port = 5555
 
     local ok, err = balancer.set_current_peer(host, port)
     if not ok then

@@ -28,9 +28,10 @@ return {
         "phi",
         "phi_cache"
     },
-    CACHE_KEY_PREFIX = {
-        ROUTER = "PHI:ROUTER:",
-        RATE_LIMITING = "PHI:RATE_LIMITING:",
-        SERVICE_DEGRADATION = "PHI:SERVICE_DEGRADATION:",
+    CACHE_KEY = {
+        CTRL_PREFIX = "PHI:CTRL:",
+        ROUTER = ":ROUTER",
+        RATE_LIMITING = ":RATE_LIMITING",
+        SERVICE_DEGRADATION = ":SERVICE_DEGRADATION",
     }
 }

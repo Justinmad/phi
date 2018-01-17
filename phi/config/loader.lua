@@ -13,7 +13,9 @@ local tablex = require "pl.tablex"
 local config_loader = {}
 local _M = {}
 
+-- 敏感配置
 local CONF_SENSITIVE = {
+    redis_password = true
 }
 
 local CONF_SENSITIVE_PLACEHOLDER = "******"
@@ -21,18 +23,19 @@ local CONF_SENSITIVE_PLACEHOLDER = "******"
 local function overrides(k, default_v, file_conf, arg_conf)
     local value -- definitive value for this property
 
-    -- default values have lowest priority
+    -- 默认配置的优先级最低
     if file_conf and file_conf[k] == nil then
         -- PL will ignore empty strings, so we need a placeholer (NONE)
         value = default_v == "NONE" and "" or default_v
     else
-        -- given conf values have middle priority
+        -- 文件配置中等优先级
         value = file_conf[k]
     end
 
     ------------------------
     -- 环境变量配置
     ------------------------
+    -- 环境变量较高优先级
     local env_name = "PHI_" .. string.upper(k)
     local env = os.getenv(env_name)
     if env ~= nil then
@@ -40,11 +43,11 @@ local function overrides(k, default_v, file_conf, arg_conf)
         if CONF_SENSITIVE[k] then
             to_print = CONF_SENSITIVE_PLACEHOLDER
         end
-        ngx.log(ngx.NOTICE, '%s ENV found with "%s"', env_name, to_print)
+        ngx.log(ngx.NOTICE, env_name .. ' ENV found with "' .. to_print .. '"')
         value = env
     end
 
-    -- arg_conf have highest priority
+    -- 参数配置优先级最高
     if arg_conf and arg_conf[k] ~= nil then
         value = arg_conf[k]
     end
@@ -67,8 +70,7 @@ function _M.load()
     -- 配置文件
     ---------------------
     local from_file_conf, err, path
-    -- try to look for a conf in default locations, but no big
-    -- deal if none is found: we will use our defaults.
+    -- 从默认的路径中读取
     local DEFAULT_PATHS = default_conf.default_paths
 
     for _, default_path in ipairs(DEFAULT_PATHS) do
@@ -91,7 +93,7 @@ function _M.load()
 
         from_file_conf, err = pl_config.read(f, {
             smart = false,
-            list_delim = "_blank_" -- mandatory but we want to ignore it
+            --            list_delim = "," -- 分割集合的分隔符
         })
         f:close()
         if not from_file_conf then

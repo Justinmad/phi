@@ -3,42 +3,82 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/6
 -- Time: 16:33
--- 用来做路由控制，根据制定规则进行访问控制：如灰度发布等.
---
+-- 用来做路由控制，根据指定规则进行访问控制：如灰度发布等.
+--[[
+    一个标准的路由表规则数据结构,多级路由的情况下,会按照顺序依次寻找符合条件的路由目标：
+    {
+        "default":"",
+        "policies":[
+         {
+            "tag":"uid",
+            "mapper":"uri_args",//枚举值 header uri_args
+            "policy":"range_policy",//枚举值 range_policy
+            //规则表
+            "routerTable":{
+                "upstream9999":[100,1000],
+                "upstream9999":[1001,2000],
+                "upstream9999":[2001,2100]
+            }
+         }
+        ]
+    }
+--]]
 
-local router = {}
+local utils = require "utils"
+local lrucache = require "resty.lrucache"
+local cjson = require "cjson.safe"
+local LOGGER = ngx.log
+local DEBUG = ngx.DEBUG
+local ERR = ngx.ERR
+local ALERT = ngx.ALERT
+local var = ngx.var
 
-local function before()
-end
+local class = {}
+local _M = {}
 
-local function after()
-end
-
--- 获取请求头中Host的值，使用此字段作为默认情况下的路由key
--- 特殊情况下可以设置ngx.var.hostkey的值作为路由key
-local getHost = function()
-    local host = ngx.req.get_headers()['Host']
-    if not host then return nil end
-    local hostkey = ngx.var.hostkey
-    if hostkey then
-        return hostkey
-    else
-        --location 中不配置hostkey时
-        return host
+function class:new(config)
+    local c, err = lrucache.new(config.router_lrucache_size)
+    _M.cache = c
+    if not c then
+        return error("failed to create the cache: " .. (err or "unknown"))
     end
+    return setmetatable({}, { __index = _M })
 end
 
--- 主要:根据host查找路由规则，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
-function router.access()
-    local hostkey = getHost();
+function _M.before()
+end
+
+-- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
+function _M.access()
+    local hostkey = utils.getHost();
     if hostkey then
-        local policies = PHI.dao:selectRouterPolicy(hostkey);
-        if policies then
-            print(policies.default, "----", policies.upstream_name_1[2])
+        local rules, err = PHI.dao:selectRouterPolicy(hostkey);
+        if not err and rules and type(rules) == "table" then
+            -- 先取默认值
+            local result = rules.default
+
+            -- 计算路由结果
+            for _, t in pairs(rules.policies) do
+                local tag = PHI.mapper_holder:map(t.mapper, t.tag)
+                local upstream, err = PHI.policy_holder:calculate(t.policy, tag, t.routerTable)
+                if err then
+                    LOGGER(ERR, "路由规则计算出现错误，err：", err)
+                elseif upstream then
+                    result = upstream
+                end
+            end
+
+            var.backend = result
+            LOGGER(DEBUG, "请求将被路由到，upstream：", result)
+        else
+            LOGGER(ERR, err or ("路由规则格式错误，err：" .. cjson.encode(rules or "nil")))
         end
     else
-        ngx.log(ngx.ALERT, "hostkey为nil，无法执行路由操作")
+        LOGGER(ALERT, "hostkey为nil，无法执行路由操作")
     end
 end
 
-return router;
+function _M.after()
+end
+
+return class

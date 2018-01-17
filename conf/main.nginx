@@ -28,7 +28,7 @@ http{
     }
 
     server {
-        listen 8080;
+        listen 80;
 
         location / {
             set $protocol_scheme 'http';

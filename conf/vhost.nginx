@@ -1,3 +1,17 @@
+upstream upstream9999 {
+    server 127.0.0.1:9999;
+    keepalive 20;
+}
+upstream upstream8888 {
+    server 127.0.0.1:8888;
+    keepalive 20;
+}
+upstream upstream7777_6666_5555 {
+    server 127.0.0.1:7777;
+    server 127.0.0.1:6666;
+    keepalive 20;
+}
+
 server {
     listen 9999;
 
@@ -18,10 +32,20 @@ server {
             local printable = require "kong.printable";
 
             local uuidstr = utils.uuid();
+             local var = ngx.var
+             local str=""
+do
+        -- Nginx's behavior when proxying a request with an empty querystring
+        -- `/foo?` is to keep `$is_args` an empty string, hence effectively
+        -- stripping the empty querystring.
+        -- We overcome this behavior with our own logic, to preserve user
+        -- desired semantics.
 
-            local str = cjson.encode(ngx.config.subsystem);
-            ngx.say("this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." .. ngx.var.request_uri);
-            ngx.say(str);
+        if var.is_args == "?" or string.sub(var.request_uri, -1) == "?" then
+          str = str .. "?" .. (var.args or "")
+        end
+      end
+            ngx.say("this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. "..............");
         }
     }
 }

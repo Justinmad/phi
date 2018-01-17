@@ -10,6 +10,9 @@
 -- red.set("a key","value")
 --
 local redis_c = require("resty.redis")
+local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
+local LOGGER = ngx.log
 
 local _M = {
     conf = {}
@@ -18,7 +21,7 @@ local _M = {
 local mt = { __index = _M }
 
 local function log(msg, err)
-    ngx.log(ngx.ERR, msg, err)
+    LOGGER(ERR, msg, err)
 end
 
 -- 建立连接
@@ -45,7 +48,7 @@ local function _connect_mod(config, redis)
         end
     end
 
-    -- 选择Redis实例
+    -- 选择Redis db
     if config.redis_db_index > 0 then
         local ok, err = redis:select(config.redis_db_index)
         if not ok or err then
@@ -109,6 +112,7 @@ function _M:new(config)
     self.conf.redis_password = config.redis_password
     self.conf.redis_keepalive = config.redis_keepalive
     self.conf.redis_pool_size = config.redis_pool_size
+    LOGGER(DEBUG, "初始化Redis成功！host:[" .. self.conf.redis_host .. "],port:[" .. self.conf.redis_port .. "]")
     return setmetatable({}, mt)
 end
 

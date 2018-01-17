@@ -137,7 +137,7 @@ end
 
 --- write a string to a file
 -- @param filename The file path
--- @param str The string
+-- @param header The string
 -- @param is_bin open in binary mode
 -- @return true or nil
 -- @return error message
