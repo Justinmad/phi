@@ -24,6 +24,21 @@ local function log(msg, err)
     LOGGER(ERR, msg, err)
 end
 
+-- if res is ngx.null or nil or type(res) is table and all value is ngx.null return true else false
+local function _is_null(res)
+    if type(res) == "table" then
+        for _, v in pairs(res) do
+            if v ~= ngx.null then
+                return false
+            end
+        end
+    elseif res == ngx.null or res == nil then
+        return true
+    end
+
+    return false
+end
+
 -- 建立连接
 local function _connect_mod(config, redis)
     -- 连接
@@ -94,6 +109,11 @@ local function do_command(self, config, cmd, ...)
         return nil, err
     end
 
+    -- check null
+    if _is_null(result) then
+        result = nil
+    end
+
     -- 返回连接池
     local ok, err = _set_keepalive(config, red)
     if not ok or err then
@@ -102,7 +122,6 @@ local function do_command(self, config, cmd, ...)
 
     return result, nil
 end
-
 
 -- 根据配置生成
 function _M:new(config)

@@ -49,10 +49,18 @@ function _M.before()
 end
 
 -- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
-function _M.access()
+function _M:access()
     local hostkey = utils.getHost();
     if hostkey then
-        local rules, err = PHI.dao:selectRouterPolicy(hostkey);
+        local rules, err = self.cache:get(hostkey)
+        if not rules then
+            LOGGER(DEBUG, "缓存未命中，hostkey：", hostkey)
+            rules, err = PHI.dao:selectRouterPolicy(hostkey)
+            -- 放入缓存
+            self.cache:set(hostkey, rules)
+        else
+            LOGGER(DEBUG, "缓存命中，hostkey：", hostkey)
+        end
         if not err and rules and type(rules) == "table" then
             -- 先取默认值
             local result = rules.default

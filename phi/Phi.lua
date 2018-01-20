@@ -43,7 +43,7 @@ function PHI:rewrite()
 end
 
 function PHI:access()
-    router.access()
+    router:access()
     print("this is access by lua block")
 end
 

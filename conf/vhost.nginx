@@ -3,7 +3,7 @@ upstream upstream9999 {
     keepalive 20;
 }
 upstream upstream8888 {
-    server 127.0.0.1:8888;
+    server 127.0.0.1:8001;
     keepalive 20;
 }
 upstream upstream7777_6666_5555 {
@@ -14,11 +14,9 @@ upstream upstream7777_6666_5555 {
 
 server {
     listen 9999;
-
+    server_name localhost;
     location / {
-        content_by_lua_block {
-        ngx.say("this is the fake backend peer... listen port 9999");
-    }
+        root E:\home\logs\auto-deploy\execLog\2018-01-20;
     }
 }
 
