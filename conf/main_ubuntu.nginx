@@ -12,7 +12,6 @@ http{
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
     lua_package_path '/home/young/IdeaProjects/phi/phi/?.lua;/home/young/IdeaProjects/phi/lib/?.lua;;';
-    #    lua_package_cpath '/home/young/IdeaProjects/phi/lib/?.so;;';
     lua_code_cache off;
 
     lua_shared_dict phi                5m;

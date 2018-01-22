@@ -61,9 +61,9 @@ server {
 server {
     listen 6666;
 
-    location  / {
+    location / {
         content_by_lua_block{
-            ngx.say("this is the fake backend peer... listen port 6666");
+            ngx.say("this is the fake backend peer... listen port 6666")
     }
     }
 }

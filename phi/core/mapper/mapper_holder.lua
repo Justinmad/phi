@@ -13,20 +13,22 @@ local DEBUG = ngx.DEBUG
 function _M:new(config)
     if type(config) == "table" then
         for _, name in ipairs(config) do
+            name = name:lower()
             LOGGER(DEBUG, "[MAPPER_HOLDER]加载:" .. name)
-            local mapper = require("core.mapper." .. name:lower())
-            _M[name:lower()] = mapper
+            local mapper = require("core.mapper." .. name .. "_mapper")
+            _M[name] = mapper
         end
     else
+        config = config:lower()
         LOGGER(DEBUG, "[MAPPER_HOLDER]加载:" .. config)
-        local mapper = require("core.mapper." .. config:lower())
-        _M[config:lower()] = mapper
+        local mapper = require("core.mapper." .. config .. _mapper)
+        _M[config] = mapper
     end
     return setmetatable({}, mt)
 end
 
 function _M:map(type, arg)
-    local mapper = self[type:lower() .. "_mapper"]
+    local mapper = self[type]
     return mapper.map(arg)
 end
 

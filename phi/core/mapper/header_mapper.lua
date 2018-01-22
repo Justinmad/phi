@@ -8,17 +8,7 @@
 local _M = {}
 
 function _M.map(header)
-    local field = "_cache_" .. header
-    local result = ngx.ctx[field]
-
-    if not result then
-        result = ngx.req.get_headers()[header]
-        if result then
-            ngx.ctx[field] = result
-        end
-    end
-
-    return result
+    return ngx.req.get_headers()[header]
 end
 
 return _M

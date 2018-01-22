@@ -55,9 +55,17 @@ function _M:access()
         local rules, err = self.cache:get(hostkey)
         if not rules then
             LOGGER(DEBUG, "缓存未命中，hostkey：", hostkey)
-            rules, err = PHI.dao:selectRouterPolicy(hostkey)
+
+            rules = PHI.dao:selectRouterPolicy(hostkey)
             -- 放入缓存
-            self.cache:set(hostkey, rules)
+            if not err then
+                -- 路由规则排序
+                LOGGER(DEBUG, "加入缓存，hostkey：", hostkey)
+                table.sort(rules.policies, function(r1, r2) return r1.order < r2.order end)
+                self.cache:set(hostkey, rules)
+            else
+                LOGGER(ERR, "路由规则计算出现错误，err：", err)
+            end
         else
             LOGGER(DEBUG, "缓存命中，hostkey：", hostkey)
         end
@@ -73,6 +81,7 @@ function _M:access()
                     LOGGER(ERR, "路由规则计算出现错误，err：", err)
                 elseif upstream then
                     result = upstream
+                    break
                 end
             end
 

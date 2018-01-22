@@ -21,45 +21,30 @@ local range_policy = {}
 
 function range_policy.calculate(arg, routerTable)
     arg = tonumber(arg)
-    if type(arg) ~= "number" then
+    if arg then
         return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
-    if type(routerTable) ~= "table" then
-        return nil, "输入的第二个参数必须是lua表或者该表长度小于0！"
-    end
-    local upstream, err;
+    local upstream, err
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
     for up, policy in pairs(routerTable) do
         if policy and type(policy) == "table" then
             local fromNum = policy[1]
             local endNum = policy[2]
-            local gt = type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and arg >= endNum
-            local lt = type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and arg <= fromNum
-            local between = type(fromNum) == 'number' and type(endNum) == 'number' and arg >= fromNum and arg <= endNum
-            if gt or lt or between then
+            local selected = (type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and arg >= endNum) --gt
+                    or (type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and arg <= fromNum) --lt
+                    or (type(fromNum) == 'number' and type(endNum) == 'number' and arg >= fromNum and arg <= endNum) -- between
+            if selected then
                 upstream = up
+                LOGGER(DEBUG, "匹配到规则:", arg, ",range:[", fromNum, ",", endNum, "]")
                 break
             end
-            LOGGER(DEBUG, "未匹配的规则参数！", arg)
+            LOGGER(DEBUG, "未匹配的规则参数:", arg, ",range:[", fromNum, ",", endNum, "]")
         else
-            LOGGER(ERR, "非法的规则表！", policy)
-        end
-    end
-    local defult = routerTable["default"]
-    -- 未查询到
-    if not upstream then
-        if defult then
-            -- 但存在默认值
-            LOGGER(DEBUG, "未匹配到合适的规则，返回存在的默认值，default:[" .. defult .. "]")
-            upstream = defult
-        else
-            -- 不存在默认值
-            err = "未匹配到合适的规则，并且未设置默认值！"
+            err = "非法的规则表！"
             LOGGER(ERR, err)
         end
     end
-
     return upstream, err
 end
 

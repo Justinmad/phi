@@ -8,17 +8,7 @@
 local _M = {}
 
 function _M.map(arg_name)
-    local field = "_cache_" .. arg_name
-    local result = ngx.ctx[field]
-
-    if not result then
-        result = ngx.req.get_uri_args()[arg_name]
-        if result then
-            ngx.ctx[field] = result
-        end
-    end
-
-    return result
+    return ngx.req.get_uri_args()[arg_name]
 end
 
 return _M
