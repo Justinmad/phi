@@ -21,7 +21,7 @@ local range_policy = {}
 
 function range_policy.calculate(arg, routerTable)
     arg = tonumber(arg)
-    if arg then
+    if not arg then
         return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
     local upstream, err

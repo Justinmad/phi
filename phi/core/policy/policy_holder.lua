@@ -32,7 +32,12 @@ function _M:calculate(policyType, arg, routerTable)
     end
 
     local policy = self[policyType]
-    local upstream, err = policy.calculate(arg, routerTable, self)
+
+    if not policy then
+        return nil, "未查询到可用的路由规则:" .. policyType
+    end
+
+    local upstream, err = policy.calculate(arg, routerTable)
 
     -- 未查询到
     if err or not upstream then

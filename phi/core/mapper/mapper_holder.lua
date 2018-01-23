@@ -29,6 +29,9 @@ end
 
 function _M:map(type, arg)
     local mapper = self[type]
+    if not mapper then
+        return nil, "未查询到可用的mapper:" .. type
+    end
     return mapper.map(arg)
 end
 

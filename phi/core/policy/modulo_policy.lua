@@ -7,7 +7,6 @@
 --
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
-local ERR = ngx.ERR
 
 local modulo_policy = {}
 

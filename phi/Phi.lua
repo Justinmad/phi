@@ -26,6 +26,8 @@ local router
 -- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
 function PHI:init()
     require "core.init"
+
+    -- 组装PHI各个组件
     router = Router:new(PHI.configuration)
 end
 

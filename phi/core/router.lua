@@ -75,7 +75,10 @@ function _M:access()
 
             -- 计算路由结果
             for _, t in pairs(rules.policies) do
-                local tag = PHI.mapper_holder:map(t.mapper, t.tag)
+                local tag
+                if t.mapper then
+                    tag = PHI.mapper_holder:map(t.mapper, t.tag)
+                end
                 local upstream, err = PHI.policy_holder:calculate(t.policy, tag, t.routerTable)
                 if err then
                     LOGGER(ERR, "路由规则计算出现错误，err：", err)

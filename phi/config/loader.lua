@@ -93,7 +93,7 @@ function _M.load()
 
         from_file_conf, err = pl_config.read(f, {
             smart = false,
-            --            list_delim = "," -- 分割集合的分隔符
+            -- list_delim = "," -- 分割集合的分隔符
         })
         f:close()
         if not from_file_conf then
