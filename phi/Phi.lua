@@ -6,17 +6,17 @@
 -- 定义了运行阶段的整体流程和生命周期,每个方法分别对应openresty中的lua执行阶段
 -- 需要在init_by_lua阶段加载本项目，并保存为全局变量PHI
 --
-local Router = require "core.router"
 local balancer = require "core.balancer"
 local meta = require "meta"
 
 local PHI = {
     meta = meta,
     configuration = nil,
-    dao = nil,
+    router_service = nil,
     components = nil,
     policy_holder = nil,
-    mapper_holder = nil
+    mapper_holder = nil,
+    observer = nil
 }
 
 local router
@@ -26,13 +26,13 @@ local router
 -- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
 function PHI:init()
     require "core.init"
-
-    -- 组装PHI各个组件
-    router = Router:new(PHI.configuration)
+    local Router = require "core.router"
+    router = Router:new(PHI)
 end
 
 function PHI:init_worker()
-    print("this is init_worker by lua block")
+    require "core.init_worker"
+    router:init_worker(PHI.observer)
 end
 
 function PHI.balancer()

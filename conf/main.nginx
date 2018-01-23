@@ -1,5 +1,5 @@
 #user  yangyang.zhang;
-worker_processes 2;
+worker_processes auto;
 error_log E:/work/phi/conf/logs/error.log debug;
 
 events {
@@ -12,9 +12,10 @@ http{
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
     lua_package_path 'E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
-    lua_code_cache off;
+    lua_code_cache on;
 
     lua_shared_dict phi                5m;
+    lua_shared_dict phi_events          1m;
     lua_shared_dict phi_cache          128m;
 
     init_by_lua_block {

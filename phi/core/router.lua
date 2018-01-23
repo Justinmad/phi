@@ -32,17 +32,40 @@ local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local var = ngx.var
+local CONST = require "core.constants"
+local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 
 local class = {}
 local _M = {}
 
-function class:new(config)
-    local c, err = lrucache.new(config.router_lrucache_size)
+function class:new(phi)
+    local c, err = lrucache.new(phi.configuration.router_lrucache_size)
     _M.cache = c
     if not c then
         return error("failed to create the cache: " .. (err or "unknown"))
     end
+    _M.service = phi.router_service
+    _M.observer = phi.observer
+    _M.policy_holder = phi.policy_holder
+    _M.mapper_holder = phi.mapper_holder
+
     return setmetatable({}, { __index = _M })
+end
+
+function _M:init_worker(observer)
+    -- 注册关注事件handler到指定事件源
+    observer.register(function(data, event, source, pid)
+        if event == EVENTS.DELETE then
+            _M.cache:delete(data.hostkey)
+        elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
+            _M.cache:set(data.hostkey)
+        elseif event == "READ" then
+            print("received event; source=", source,
+                ", event=", event,
+                ", data=", tostring(data),
+                ", from process ", pid)
+        end
+    end, EVENTS.SOURCE)
 end
 
 function _M.before()
@@ -56,7 +79,7 @@ function _M:access()
         if not rules then
             LOGGER(DEBUG, "缓存未命中，hostkey：", hostkey)
 
-            rules = PHI.dao:selectRouterPolicy(hostkey)
+            rules, err = self.service:getRouterPolicy(hostkey)
             -- 放入缓存
             if not err then
                 -- 路由规则排序
@@ -70,6 +93,11 @@ function _M:access()
             LOGGER(DEBUG, "缓存命中，hostkey：", hostkey)
         end
         if not err and rules and type(rules) == "table" then
+
+            if rules.skipRouter then
+                return
+            end
+
             -- 先取默认值
             local result = rules.default
 
@@ -77,9 +105,9 @@ function _M:access()
             for _, t in pairs(rules.policies) do
                 local tag
                 if t.mapper then
-                    tag = PHI.mapper_holder:map(t.mapper, t.tag)
+                    tag = self.mapper_holder:map(t.mapper, t.tag)
                 end
-                local upstream, err = PHI.policy_holder:calculate(t.policy, tag, t.routerTable)
+                local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
                 if err then
                     LOGGER(ERR, "路由规则计算出现错误，err：", err)
                 elseif upstream then

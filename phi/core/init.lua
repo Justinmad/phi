@@ -43,7 +43,8 @@ do
     if err then
         error(err)
     else
-        PHI.dao = phiDao
+        local RouterService = require "service.router_srevice"
+        PHI.router_service = RouterService:new(phiDao)
     end
     debug("==================初始化Redis结束==================")
 
@@ -52,6 +53,7 @@ do
     debug("********************初始化Policy*******************")
     PHI.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
     debug("==================初始化Policy结束=================")
+
 
     -- 加载Mapper规则
     debug("********************初始化Mapper*******************")

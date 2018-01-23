@@ -19,6 +19,7 @@ function _M.exectue()
     local port = 5555
 
     local ok, err = balancer.set_current_peer(host, port)
+
     if not ok then
         ngx.log(ngx.ERR, "failed to set the current peer: ", err)
         return ngx.exit(500)

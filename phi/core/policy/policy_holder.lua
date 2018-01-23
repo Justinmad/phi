@@ -48,8 +48,7 @@ function _M:calculate(policyType, arg, routerTable)
             upstream = defult
         else
             -- 不存在默认值
-            err = "未匹配到合适的规则，并且未设置默认值！"
-            LOGGER(ERR, err)
+            LOGGER(DEBUG, "未匹配到合适的规则，并且未设置默认值！")
         end
     end
 

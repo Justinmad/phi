@@ -26,12 +26,21 @@ return {
     },
     DICTS = {
         "phi",
-        "phi_cache"
+        "phi_cache",
+        "phi_events"
     },
     CACHE_KEY = {
         CTRL_PREFIX = "PHI:CTRL:",
         ROUTER = ":ROUTER",
         RATE_LIMITING = ":RATE_LIMITING",
         SERVICE_DEGRADATION = ":SERVICE_DEGRADATION",
+    },
+    EVENT_DEFINITION = {
+        ROUTER_SERVICE = {
+            SOURCE = "router_service",
+            DELETE = "delete",
+            UPDATE = "update",
+            CREATE = "create"
+        }
     }
 }
