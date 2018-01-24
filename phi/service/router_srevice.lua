@@ -10,6 +10,7 @@
 local ERR = ngx.ERR
 local LOGGER = ngx.log
 local CONST = require "core.constants"
+local cjson = require "cjson"
 local CACHE_KEY = CONST.CACHE_KEY
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local Lock = require "resty.lock"
