@@ -123,6 +123,9 @@ function _M:setRouterPolicy(hostkey, policyStr)
     local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
     local ok, err = self.dao:setRouterPolicy(routerKey, policyStr)
     if ok then
+        if type(policyStr) == "table" then
+            policyStr = cjson.encode(policyStr)
+        end
         ok, err = SHARED_DICT:set(routerKey, policyStr)
         self:incrVersion()
         self:crudEvent(routerKey, EVENTS.CREATE, policyStr)
