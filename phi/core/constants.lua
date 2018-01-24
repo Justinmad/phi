@@ -24,6 +24,11 @@ return {
             "year"
         }
     },
+    ADMIN = {
+        URL_BASE = "/admin",
+        PATH_BASE = "admin.controller",
+        CONTROLLERS = { "test.router" }
+    },
     DICTS = {
         "phi",
         "phi_cache",

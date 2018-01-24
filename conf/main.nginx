@@ -56,21 +56,29 @@ http{
 
     }
 
+    server {
+        listen 12345;
+
+        location / {
+            content_by_lua_block {
+                PHI.admin:content()
+            }
+
+            log_by_lua_block {
+                PHI:log()
+            }
+        }
+
+    }
+
     upstream phi_upstream {
         server 0.0.0.1;   # just an invalid address as a place holder
         balancer_by_lua_block {
-            PHI:balancer()
+            PHI:balancer();
         }
         keepalive 20;
     }
 
-    upstream admin_upstream {
-        server 0.0.0.1;   # just an invalid address as a place holder
-        balancer_by_lua_block {
-            ngx.say("this is the admin upstream module")
-        }
-        keepalive 20;
-    }
     include vhost.nginx;
 }
 

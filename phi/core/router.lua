@@ -27,12 +27,12 @@
 local utils = require "utils"
 local lrucache = require "resty.lrucache"
 local cjson = require "cjson.safe"
+local CONST = require "core.constants"
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local var = ngx.var
-local CONST = require "core.constants"
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 
 local class = {}
@@ -56,7 +56,7 @@ function _M:init_worker(observer)
     -- 注册关注事件handler到指定事件源
     observer.register(function(data, event, source, pid)
         if event == EVENTS.DELETE then
-            _M.cache:delete(data.hostkey)
+            _M.cache:set({ skipRouter = true })
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
             _M.cache:set(data.hostkey)
         elseif event == "READ" then
@@ -116,8 +116,10 @@ function _M:access()
                 end
             end
 
-            var.backend = result
-            LOGGER(DEBUG, "请求将被路由到，upstream：", result)
+            if result then
+                var.backend = result
+                LOGGER(DEBUG, "请求将被路由到，upstream：", result)
+            end
         else
             LOGGER(ERR, err or ("路由规则格式错误，err：" .. cjson.encode(rules or "nil")))
         end

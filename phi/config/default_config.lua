@@ -26,5 +26,6 @@ return {
     default_paths = {
         "E:/work/phi/conf/phi.ini", "/home/young/IdeaProjects/phi/conf/phi.ini"
     },
-    router_lrucache_size = 2e3
+    router_lrucache_size = 2e3,
+    enabled_admin = true
 }

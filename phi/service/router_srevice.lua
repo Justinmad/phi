@@ -69,20 +69,21 @@ function _M:setRouterPolicy(hostkey, policyStr)
     return ok, err
 end
 
-function _M:delRouterPolicy(hostkey, policyStr)
+function _M:delRouterPolicy(hostkey)
     local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
 
-    local ok, err = self.dao:delRouterPolicy(routerKey, policyStr)
+    local ok, err = self.dao:delRouterPolicy(routerKey)
     if not ok then
         LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到db失败！err:", err)
     else
-        ok, err = SHARED_DICT:delete(routerKey, policyStr)
+        ok, err = SHARED_DICT:delete(routerKey)
         self:incrVersion()
         self:crudEvent(hostkey, EVENTS.DELETE)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到shared_dict失败！err:", err)
         end
     end
+    return ok, err
 end
 
 return class

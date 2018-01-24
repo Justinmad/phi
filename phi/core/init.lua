@@ -60,6 +60,14 @@ do
     PHI.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
     debug("==================初始化Mapper结束=================")
 
+    -- 初始化admin规则
+    if config.enabled_admin then
+        debug("********************初始化PHI-ADMIN*******************")
+        PHI.admin = require "admin.init"
+        debug("==================初始化PHI-ADMIN结束=================")
+    end
+
+
     debug("------------------------PHI初始化完成！------------------------")
 end
 
