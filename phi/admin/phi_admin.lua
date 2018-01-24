@@ -15,7 +15,7 @@ end
 
 local function parseRequest()
     local request = {}
-    request.method = ngx.req.get_method()
+    request.method = ngx.req.get_method():upper()
     request.uri = ngx.var.uri
     request.uri_args = ngx.req.get_uri_args()
     request.headers = ngx.req.get_headers();
@@ -41,18 +41,14 @@ end
 function _M:content()
     local request = parseRequest()
 
-    local func = self[request.uri]
-    if type(func) == "function" then
-        func(request)
-        elseif type(func) == "table" then
+    local handler = self[request.uri]
+
+    if type(handler) == "table" then
+        handler = handler[request.method]
+    end
+    if type(handler) == "function" then
+        handler(request)
     else
-        --        local _, i = string.find(request.uri, BASE_URL)
-        --        if i then
-        --            local uri = string.sub(request.uri, i + 1)
-        --            local func = require(BASE_PATH .. uri)
-        --            _M[request.method][uri] = func
-        --        end
-        -- 404
         Response.failure("No handler for given uri:" .. request.uri, 404)
     end
 end

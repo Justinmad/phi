@@ -45,9 +45,8 @@ for _, class in ipairs(CTRL) do
                 else
                     admin[mapping] = v.handler
                 end
-                print("==============>" .. mapping)
             else
-                print("skip==============>" .. k)
+                print("skip==============>" .. mapping)
             end
         end
     end

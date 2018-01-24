@@ -51,8 +51,18 @@ function _M:setRouterPolicy(routerKey, policy)
 
     local ok, err = self.db:set(routerKey, policyStr)
     if not ok then
-        LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则失败！err:", err)
+        LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]保存路由规则失败！err:", err)
     end
+    return ok, err
+end
+
+-- 删除指定路由规则
+function _M:delRouterPolicy(routerKey)
+    local ok, err = self.db:del(routerKey)
+    if not ok then
+        LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]删除路由规则失败！err:", err)
+    end
+    return ok, err
 end
 
 return class

@@ -58,7 +58,7 @@ function _M:init_worker(observer)
         if event == EVENTS.DELETE then
             _M.cache:set({ skipRouter = true })
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
-            _M.cache:set(data.hostkey)
+            _M.cache:set(data.hostkey,data.data)
         elseif event == "READ" then
             print("received event; source=", source,
                 ", event=", event,
@@ -77,20 +77,18 @@ function _M:access()
     if hostkey then
         local rules, err = self.cache:get(hostkey)
         if not rules then
-            LOGGER(DEBUG, "缓存未命中，hostkey：", hostkey)
+            LOGGER(DEBUG, "worker缓存未命中，hostkey：", hostkey)
 
             rules, err = self.service:getRouterPolicy(hostkey)
             -- 放入缓存
             if not err then
                 -- 路由规则排序
-                LOGGER(DEBUG, "加入缓存，hostkey：", hostkey)
                 table.sort(rules.policies, function(r1, r2) return r1.order < r2.order end)
-                self.cache:set(hostkey, rules)
             else
-                LOGGER(ERR, "路由规则计算出现错误，err：", err)
+                LOGGER(ERR, "路由规则查询出现错误，err：", err)
             end
         else
-            LOGGER(DEBUG, "缓存命中，hostkey：", hostkey)
+            LOGGER(DEBUG, "worker缓存命中，hostkey：", hostkey)
         end
         if not err and rules and type(rules) == "table" then
 
