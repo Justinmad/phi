@@ -24,11 +24,37 @@ local C = ffi.C
 
 local _M = {}
 
-local ip2long = function(ip)
+-- windows下未找到inet_aton函数类似功能，暂时使用这个函数替代
+local function ip2long(ip)
     local num = 0
     ip:gsub("%d+", function(s) num = num * 256 + tonumber(s) end)
     return num
 end
+
+-- 这里有BUG，暂时不使用此方法
+--local function check_ip(ip)
+--    local list = stringx.split(ip, ".")
+--    for _, no in ipairs(list) do
+--        if not tonumber(no) then
+--            return nil
+--        end
+--    end
+--    return list
+--end
+--local bit = require "bit"
+--local lshift = bit.lshift
+--local bor = bit.bor
+--local function ip2long(ip_addr)
+--    print("ip:", ip_addr)
+--    local blocks = check_ip(ip_addr) or error("Invalid IP-Address")
+--    -- 避免长整型溢出，导致出现负数
+--    local ips = 0
+--    ips = ffi.new("int64_t", ips)
+--    for _, i in ipairs(blocks) do
+--        ips = bor(lshift(ips, 8), i);
+--    end
+--    return ips
+--end
 
 local ip2long_c = function(ip)
     local inp = ffi.new("struct in_addr[1]")
@@ -39,9 +65,10 @@ local ip2long_c = function(ip)
 end
 
 function _M.map()
-    local ClientIP = ngx.req.get_headers()["X-Real-IP"]
+    local headers = ngx.req.get_headers()
+    local ClientIP = headers["X-Real-IP"]
     if ClientIP == nil then
-        ClientIP = ngx.req.get_headers()["X-Forwarded-For"]
+        ClientIP = headers["X-Forwarded-For"]
         if ClientIP then
             local colonPos = string.find(ClientIP, ' ')
             if colonPos then
@@ -53,6 +80,7 @@ function _M.map()
     if ClientIP == nil then
         ClientIP = ngx.var.remote_addr
     end
+    --    local ClientIP = ngx.var.remote_addr
     if ClientIP then
         local status, res = pcall(ip2long_c, ClientIP)
         if status then

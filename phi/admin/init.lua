@@ -26,7 +26,6 @@ for _, class in ipairs(CTRL) do
             if type(v) == "function" then
                 mapping = base_url .. "/" .. k
                 admin[mapping] = v
-                print("==============>" .. mapping)
             elseif type(v) == "table" then
                 -- 如果是表，按照表参数映射
                 if type(v.handler) ~= "function" then
@@ -41,12 +40,14 @@ for _, class in ipairs(CTRL) do
                     if not admin[mapping] then
                         admin[mapping] = {}
                     end
+                    print("mapping uri:[" .. mapping .. "]-[" .. v.method .. "] to handler:[" .. class .. "." .. k .. "]")
                     admin[mapping][v.method] = v.handler
                 else
+                    print("mapping uri:[" .. mapping .. "] to handler:[" .. class .. "." .. k .. "]")
                     admin[mapping] = v.handler
                 end
             else
-                print("skip==============>" .. mapping)
+                print("skip mapping field " .. mapping)
             end
         end
     end

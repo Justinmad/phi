@@ -49,7 +49,7 @@ function _M:content()
     if type(handler) == "function" then
         handler(request)
     else
-        Response.failure("No handler for given uri:" .. request.uri, 404)
+        Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
     end
 end
 

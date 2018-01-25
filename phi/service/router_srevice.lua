@@ -7,18 +7,20 @@
 --
 
 -- 查询shared_dict
+local cjson = require "cjson"
 local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
 local LOGGER = ngx.log
 local CONST = require "core.constants"
-local cjson = require "cjson"
+local PHI_ROUTER_DICT = CONST.DICTS.PHI_ROUTER
 local CACHE_KEY = CONST.CACHE_KEY
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local Lock = require "resty.lock"
-local LOCK_NAME = "phi"
+local LOCK_NAME = CONST.DICTS.PHI_LOCK
 
 local class = {}
 local _M = {}
-local SHARED_DICT = ngx.shared["phi_cache"]
+local SHARED_DICT = ngx.shared[PHI_ROUTER_DICT]
 
 function class:new(dao)
     _M.dao = dao
@@ -35,7 +37,14 @@ function _M:getRouterPolicy(hostkey)
     local policiesStr = SHARED_DICT:get(routerKey)
 
     if policiesStr then
-        return cjson.decode(policiesStr)
+        LOGGER(DEBUG, "shared缓存命中！hostkey:", hostkey)
+        local result = cjson.decode(policiesStr)
+        if not result.skipRouter then
+            table.sort(result.policies, function(r1, r2) return r1.order < r2.order end)
+        end
+        -- 异步更新worker缓存
+        self:crudEvent(hostkey, EVENTS.CREATE, result)
+        return result
     end
 
     -- step 1:未查询到缓存
@@ -58,8 +67,7 @@ function _M:getRouterPolicy(hostkey)
             LOGGER(ERR, "解除锁[" .. routerKey .. "]失败！err:", err)
         end
         local result = cjson.decode(policiesStr)
-        -- 异步更新worker缓存
-        self:crudEvent(routerKey, EVENTS.CREATE, result)
+        table.sort(result.policies, function(r1, r2) return r1.order < r2.order end)
         return result
     end
     -- step 4:查询db
@@ -81,8 +89,6 @@ function _M:getRouterPolicy(hostkey)
         local result = { skipRouter = true }
         -- 保存一个兜底数据，避免频繁访问db
         SHARED_DICT:set(routerKey, cjson.encode(result))
-        -- 异步更新worker缓存
-        self:crudEvent(routerKey, EVENTS.CREATE, result)
         return result
     end
 
@@ -94,7 +100,9 @@ function _M:getRouterPolicy(hostkey)
             LOGGER(ERR, "解除锁[" .. routerKey .. "]失败！err:", err)
         end
         LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]保存路由规则到shared_dict失败！err:", msg)
-        return cjson.decode(policiesStr)
+        local result = cjson.decode(policiesStr)
+        table.sort(result.policies, function(r1, r2) return r1.order < r2.order end)
+        return result
     end
 
     -- step 7:释放锁
@@ -102,9 +110,8 @@ function _M:getRouterPolicy(hostkey)
     if not ok then
         LOGGER(ERR, "解除锁[" .. routerKey .. "]失败！err:", err)
     end
-    -- 异步更新worker缓存
     local result = cjson.decode(policiesStr)
-    self:crudEvent(routerKey, EVENTS.CREATE, policiesStr)
+    table.sort(result.policies, function(r1, r2) return r1.order < r2.order end)
     return result
 end
 
@@ -112,24 +119,17 @@ function _M:crudEvent(hostkey, event, data)
     self.observer.post(EVENTS.SOURCE, event, { hostkey = hostkey, data = data })
 end
 
-function _M.version()
-    return SHARED_DICT:get("version")
-end
-
-function _M.incrVersion()
-    return SHARED_DICT:incr("version", 1, 0)
-end
-
 function _M:setRouterPolicy(hostkey, policyStr)
+    local str = policyStr
+    if type(str) == "table" then
+        str = cjson.encode(policyStr)
+    end
     local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
-    local ok, err = self.dao:setRouterPolicy(routerKey, policyStr)
+    local ok, err = self.dao:setRouterPolicy(routerKey, str)
     if ok then
-        if type(policyStr) == "table" then
-            policyStr = cjson.encode(policyStr)
-        end
-        ok, err = SHARED_DICT:set(routerKey, policyStr)
-        self:incrVersion()
-        self:crudEvent(routerKey, EVENTS.CREATE, policyStr)
+        ok, err = SHARED_DICT:set(routerKey, str)
+        -- 这里使用hostkey
+        self:crudEvent(hostkey, EVENTS.CREATE, policyStr)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]保存路由规则到shared_dict失败！err:", err)
         end
@@ -143,11 +143,19 @@ function _M:delRouterPolicy(hostkey)
     local ok, err = self.dao:delRouterPolicy(routerKey)
     if ok then
         ok, err = SHARED_DICT:delete(routerKey)
-        self:incrVersion()
-        self:crudEvent(routerKey, EVENTS.DELETE)
+        self:crudEvent(hostkey, EVENTS.DELETE)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]从shared_dict删除路由规则失败！err:", err)
         end
+    end
+    return ok, err
+end
+
+local MATCH = CONST.CACHE_KEY.CTRL_PREFIX .. "*" .. CONST.CACHE_KEY.ROUTER
+function _M:getAllRouterPolicy(cursor, count)
+    local ok, err = self.dao:getAllRouterPolicy(cursor, MATCH, count)
+    if err then
+        LOGGER(ERR, "全量查询路由规则失败！err:", err)
     end
     return ok, err
 end

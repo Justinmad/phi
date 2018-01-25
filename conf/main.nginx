@@ -14,9 +14,11 @@ http{
     lua_package_path 'E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
     lua_code_cache on;
 
-    lua_shared_dict phi                5m;
+    lua_shared_dict phi                 5m;
     lua_shared_dict phi_events          1m;
-    lua_shared_dict phi_cache          128m;
+    lua_shared_dict phi_lock            1m;
+    lua_shared_dict phi_router          10m;
+#    lua_shared_dict phi_cache          128m;
 
     init_by_lua_block {
         PHI = require 'Phi'
@@ -55,7 +57,12 @@ http{
         }
 
     }
-
+    server {
+        listen 8111;
+        location / {
+            proxy_pass http://upstream8888;
+        }
+    }
     server {
         listen 12345;
 

@@ -26,12 +26,12 @@
 
 local utils = require "utils"
 local lrucache = require "resty.lrucache"
-local cjson = require "cjson.safe"
 local CONST = require "core.constants"
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
+local NOTICE = ngx.NOTICE
 local var = ngx.var
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 
@@ -56,9 +56,9 @@ function _M:init_worker(observer)
     -- 注册关注事件handler到指定事件源
     observer.register(function(data, event, source, pid)
         if event == EVENTS.DELETE then
-            _M.cache:set({ skipRouter = true })
+            self.cache:set({ skipRouter = true })
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
-            _M.cache:set(data.hostkey,data.data)
+            self.cache:set(data.hostkey, data.data)
         elseif event == "READ" then
             print("received event; source=", source,
                 ", event=", event,
@@ -75,30 +75,24 @@ end
 function _M:access()
     local hostkey = utils.getHost();
     if hostkey then
+        -- local缓存
         local rules, err = self.cache:get(hostkey)
         if not rules then
+            -- shared缓存+db
             LOGGER(DEBUG, "worker缓存未命中，hostkey：", hostkey)
-
             rules, err = self.service:getRouterPolicy(hostkey)
-            -- 放入缓存
-            if not err then
-                -- 路由规则排序
-                table.sort(rules.policies, function(r1, r2) return r1.order < r2.order end)
-            else
+            if err then
                 LOGGER(ERR, "路由规则查询出现错误，err：", err)
             end
         else
             LOGGER(DEBUG, "worker缓存命中，hostkey：", hostkey)
         end
         if not err and rules and type(rules) == "table" then
-
             if rules.skipRouter then
                 return
             end
-
             -- 先取默认值
             local result = rules.default
-
             -- 计算路由结果
             for _, t in pairs(rules.policies) do
                 local tag
@@ -113,13 +107,12 @@ function _M:access()
                     break
                 end
             end
-
             if result then
                 var.backend = result
-                LOGGER(DEBUG, "请求将被路由到，upstream：", result)
+                LOGGER(NOTICE, "请求将被路由到，upstream：", result)
             end
         else
-            LOGGER(ERR, err or ("路由规则格式错误，err：" .. cjson.encode(rules or "nil")))
+            LOGGER(ERR, err or ("路由规则格式错误，err：" .. tostring(rules)))
         end
     else
         LOGGER(ALERT, "hostkey为nil，无法执行路由操作")

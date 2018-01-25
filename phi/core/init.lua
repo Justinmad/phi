@@ -15,7 +15,7 @@ do
     end
 
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
-    for _, dict in ipairs(constants.DICTS) do
+    for _, dict in pairs(constants.DICTS) do
         if not ngx.shared[dict] then
             return error("missing shared dict '" .. dict .. "' in Nginx " ..
                     "configuration, are you using a custom template? " ..

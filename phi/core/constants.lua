@@ -34,9 +34,10 @@ return {
         POST = "POST"
     },
     DICTS = {
-        "phi",
-        "phi_cache",
-        "phi_events"
+        PHI = "phi",
+        PHI_ROUTER = "phi_router",
+        PHI_LOCK = "phi_lock",
+        PHI_EVENTS = "phi_events"
     },
     CACHE_KEY = {
         CTRL_PREFIX = "PHI:CTRL:",

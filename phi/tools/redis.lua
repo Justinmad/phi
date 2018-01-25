@@ -97,7 +97,7 @@ local function _set_keepalive(config, redis)
 end
 
 -- 发送Redis指令，不支持pipeline，subscribe
-local function do_command(self, config, cmd, ...)
+local function do_command(config, cmd, ...)
     -- 初始化连接
     local red, err = _init_connect(config)
     if err then return nil, err end
@@ -139,7 +139,7 @@ setmetatable(_M, {
     __index = function(self, cmd)
         local instance = self;
         local method = function(self, ...)
-            return do_command(self, instance.conf, cmd, ...)
+            return do_command(instance.conf, cmd, ...)
         end
 
         -- cache the lazily generated method in our

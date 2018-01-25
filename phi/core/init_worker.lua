@@ -7,9 +7,9 @@
 --
 
 local ev = require "resty.worker.events"
-
+local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
 local ok, err = ev.configure {
-    shm = "phi_events",     -- defined by "lua_shared_dict"
+    shm = PHI_EVENTS,       -- defined by "lua_shared_dict"
     timeout = 2,            -- life time of event data in shm
     interval = 1,           -- poll interval (seconds)
 

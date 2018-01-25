@@ -74,7 +74,7 @@ server {
     location  / {
         content_by_lua_block{
 --        .. string.find(ngx.req.get_headers()["Content-Type"], "json")
-            ngx.say("this is the fake backend peer... listen port 5555" .. ngx.req.get_method());
+            ngx.say("this is the fake backend peer... listen port 5555");
     }
     }
 }
