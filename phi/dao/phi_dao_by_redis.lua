@@ -11,7 +11,9 @@
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR
 local LOGGER = ngx.log
-
+local cjson = require "cjson.safe"
+local CONST = require "core.constants"
+local ROUTER_PREFIX = CONST.CACHE_KEY.ROUTER
 
 local class = {}
 
@@ -54,11 +56,33 @@ end
 
 -- 全量查询路由规则
 function _M:getAllRouterPolicy(cursor, match, count)
-    local ok, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
-    if not ok then
+    local res, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
+    if not res then
         LOGGER(ERR, "全量查询失败！err:", err)
     end
-    return ok, err
+
+    local result = {
+        cursor = res[1],
+        data = {}
+    }
+
+    -- 增加pipeline支持
+    local kes = res[2]
+    self.db:init_pipeline(#kes)
+    for _, k in ipairs(kes) do
+        self.db:get(k)
+    end
+    local results, err = self.db:commit_pipeline()
+
+    if not results then
+        LOGGER(ERR, "failed to commit the pipelined requests: ", err)
+        return
+    else
+        for i, k in ipairs(kes) do
+            result.data[k:sub(#ROUTER_PREFIX + 1)] = cjson.decode(results[i])
+        end
+    end
+    return result, err
 end
 
 return class

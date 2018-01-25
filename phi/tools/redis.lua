@@ -12,7 +12,13 @@
 local redis_c = require("resty.redis")
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
+local WARN = ngx.WARN
 local LOGGER = ngx.log
+
+local ok, new_tab = pcall(require, "table.new")
+if not ok or type(new_tab) ~= "function" then
+    new_tab = function(narr, nrec) return {} end
+end
 
 local _M = {
     conf = {}
@@ -40,7 +46,7 @@ local function _is_null(res)
 end
 
 -- 建立连接
-local function _connect_mod(config, redis)
+local function _do_connect(config, redis)
     -- 连接
     local ok, err = redis:connect(config.redis_host, config.redis_port)
     if not ok or err then
@@ -84,7 +90,7 @@ local function _init_connect(config)
         return nil, err
     end
     -- get connect
-    local ok, err = _connect_mod(config, redis)
+    local ok, err = _do_connect(config, redis)
     if not ok or err then
         log("建立redis连接失败,err:", err)
         return nil, err
@@ -97,7 +103,16 @@ local function _set_keepalive(config, redis)
 end
 
 -- 发送Redis指令，不支持pipeline，subscribe
-local function do_command(config, cmd, ...)
+local function do_command(self, config, cmd, ...)
+
+    -- pipeline reqs
+    local _reqs = rawget(self, "_reqs")
+    if _reqs then
+        -- append reqs
+        _reqs[#_reqs + 1] = { cmd, ... }
+        return
+    end
+
     -- 初始化连接
     local red, err = _init_connect(config)
     if err then return nil, err end
@@ -135,11 +150,77 @@ function _M:new(config)
     return setmetatable({}, mt)
 end
 
+-- init pipeline,default cmds num is 4
+function _M:init_pipeline(n)
+    self._reqs = new_tab(n or 4, 0)
+end
+
+-- cancel pipeline
+function _M:cancel_pipeline()
+    self._reqs = nil
+end
+
+-- commit pipeline
+function _M:commit_pipeline()
+    -- get cache cmds
+    local _reqs = rawget(self, "_reqs")
+    if not _reqs then
+        LOGGER(ERR, "failed to commit pipeline,reason:no pipeline")
+        return nil, "no pipeline"
+    end
+
+    self._reqs = nil
+
+    -- init redis
+    local redis, err = _init_connect(self.conf)
+    if not redis then
+        LOGGER(ERR, "failed to init redis,reason:", err)
+        return nil, err
+    end
+
+    redis:init_pipeline()
+
+    --redis command like set/get ...
+    for _, vals in ipairs(_reqs) do
+        -- vals[1] is redis cmd
+        local fun = redis[vals[1]]
+        -- get params without cmd
+        table.remove(vals, 1)
+        -- invoke redis cmd
+        fun(redis, unpack(vals))
+    end
+
+    -- commit pipeline
+    local results, err = redis:commit_pipeline()
+    if not results or err then
+        LOGGER(ERR, "failed to commit pipeline,reason:", err)
+        return {}, err
+    end
+
+    -- check null
+    if _is_null(results) then
+        results = {}
+        LOGGER(WARN, "redis result is null")
+    end
+
+    -- put it into the connection pool
+    _set_keepalive(self.conf, redis)
+
+    -- if null set default value nil
+    for i, value in ipairs(results) do
+        if _is_null(value) then
+            results[i] = nil
+        end
+    end
+
+    return results, err
+end
+
 setmetatable(_M, {
     __index = function(self, cmd)
         local instance = self;
         local method = function(self, ...)
-            return do_command(instance.conf, cmd, ...)
+            return do_command(self, instance.conf, cmd, ...)
         end
 
         -- cache the lazily generated method in our

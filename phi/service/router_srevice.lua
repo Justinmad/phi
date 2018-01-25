@@ -12,8 +12,8 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local LOGGER = ngx.log
 local CONST = require "core.constants"
-local PHI_ROUTER_DICT = CONST.DICTS.PHI_ROUTER
 local CACHE_KEY = CONST.CACHE_KEY
+local PHI_ROUTER_DICT = CONST.DICTS.PHI_ROUTER
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local Lock = require "resty.lock"
 local LOCK_NAME = CONST.DICTS.PHI_LOCK
@@ -32,7 +32,7 @@ function _M:init_worker(observer)
 end
 
 function _M:getRouterPolicy(hostkey)
-    local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
+    local routerKey = CACHE_KEY.ROUTER .. hostkey
 
     local policiesStr = SHARED_DICT:get(routerKey)
 
@@ -124,7 +124,7 @@ function _M:setRouterPolicy(hostkey, policyStr)
     if type(str) == "table" then
         str = cjson.encode(policyStr)
     end
-    local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
+    local routerKey = CACHE_KEY.ROUTER .. hostkey
     local ok, err = self.dao:setRouterPolicy(routerKey, str)
     if ok then
         ok, err = SHARED_DICT:set(routerKey, str)
@@ -138,7 +138,7 @@ function _M:setRouterPolicy(hostkey, policyStr)
 end
 
 function _M:delRouterPolicy(hostkey)
-    local routerKey = CACHE_KEY.CTRL_PREFIX .. hostkey .. CACHE_KEY.ROUTER
+    local routerKey = CACHE_KEY.ROUTER .. hostkey
 
     local ok, err = self.dao:delRouterPolicy(routerKey)
     if ok then
@@ -151,7 +151,7 @@ function _M:delRouterPolicy(hostkey)
     return ok, err
 end
 
-local MATCH = CONST.CACHE_KEY.CTRL_PREFIX .. "*" .. CONST.CACHE_KEY.ROUTER
+local MATCH = CACHE_KEY.ROUTER .. "*"
 function _M:getAllRouterPolicy(cursor, count)
     local ok, err = self.dao:getAllRouterPolicy(cursor, MATCH, count)
     if err then
