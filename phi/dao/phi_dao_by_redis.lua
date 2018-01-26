@@ -27,6 +27,7 @@ function class:new(redis)
 end
 
 -- 根据主机名查询路由规则表
+-- @parma routerKey：路由key
 function _M:getRouterPolicy(hostkey)
     local policiesStr, err = self.db:get(hostkey)
     -- 查询db
@@ -37,6 +38,8 @@ function _M:getRouterPolicy(hostkey)
 end
 
 -- 添加指定路由规则到db
+-- @parma routerKey：路由key
+-- @parma policy：规则数据,json串
 function _M:setRouterPolicy(routerKey, policy)
     local ok, err = self.db:set(routerKey, policy)
     if not ok then
@@ -46,6 +49,7 @@ function _M:setRouterPolicy(routerKey, policy)
 end
 
 -- 删除指定路由规则
+-- @parma routerKey：路由key
 function _M:delRouterPolicy(routerKey)
     local ok, err = self.db:del(routerKey)
     if not ok then
@@ -55,6 +59,9 @@ function _M:delRouterPolicy(routerKey)
 end
 
 -- 全量查询路由规则
+-- @param cursor：指针
+-- @parma match：匹配规则
+-- @parma count：查询数量
 function _M:getAllRouterPolicy(cursor, match, count)
     local res, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
     if not res then

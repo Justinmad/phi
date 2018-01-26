@@ -5,9 +5,8 @@
 -- Time: 15:39
 -- redis连接工具类.
 -- 使用方式：
--- local redis = require "tools.redis"
--- local red = redis:new(config)
--- red.set("a key","value")
+-- copy from https://github.com/anjia0532/lua-resty-redis-util
+-- copy from https://moonbingbing.gitbooks.io/openresty-best-practices/content/redis/out_package.html
 --
 local redis_c = require("resty.redis")
 local ERR = ngx.ERR
@@ -140,12 +139,13 @@ end
 
 -- 根据配置生成
 function _M:new(config)
-    self.conf.redis_host = config.redis_host
-    self.conf.redis_port = config.redis_port
-    self.conf.redis_db_index = config.redis_db_index
-    self.conf.redis_password = config.redis_password
-    self.conf.redis_keepalive = config.redis_keepalive
-    self.conf.redis_pool_size = config.redis_pool_size
+    self.conf.redis_host = config.redis_host or "127.0.0.1"
+    self.conf.redis_port = config.redis_port or 6379
+    self.conf.timeout = config.timeout or 1000
+    self.conf.redis_db_index = config.redis_db_index or 0
+    self.conf.redis_password = config.redis_password or nil
+    self.conf.redis_keepalive = config.redis_keepalive or 10000
+    self.conf.redis_pool_size = config.redis_pool_size or 100
     LOGGER(DEBUG, "初始化Redis成功！host:[" .. self.conf.redis_host .. "],port:[" .. self.conf.redis_port .. "]")
     return setmetatable({}, mt)
 end
@@ -214,6 +214,42 @@ function _M:commit_pipeline()
     end
 
     return results, err
+end
+
+-- subscribe
+function _M:subscribe(channel)
+
+    -- init redis
+    local redis, err = _init_connect()
+    if not redis then
+        LOGGER(ERR, "failed to init redis,reason::", err)
+        return nil, err
+    end
+
+    -- sub channel
+    local res, err = redis:subscribe(channel)
+    if not res then
+        LOGGER(ERR, "failed to subscribe channel,reason:", err)
+        return nil, err
+    end
+
+    local function do_read_func(do_read)
+        if do_read == nil or do_read == true then
+            res, err = redis:read_reply()
+            if not res then
+                LOGGER(ERR, "failed to read subscribe channel reply,reason:", err)
+                return nil, err
+            end
+            return res
+        end
+
+        -- if do_read is false
+        redis:unsubscribe(channel)
+        _set_keepalive(self.conf, redis)
+        return
+    end
+
+    return do_read_func
 end
 
 setmetatable(_M, {

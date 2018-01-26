@@ -63,7 +63,7 @@ function _M.load()
     local default_conf = require "config.default_config"
 
     if not default_conf then
-        return nil, "could not load default conf: " .. err
+        return nil, "could not load default conf"
     end
 
     ---------------------
@@ -84,18 +84,11 @@ function _M.load()
     if not path or not utils.file_exists(path) then
         ngx.log(ngx.NOTICE, "no config file, skipping loading ")
     else
-        local f = io.open(path, "r")
-        if not f then
-            return nil, err
-        end
-
         ngx.log(ngx.NOTICE, "reading config file at ", path)
 
-        from_file_conf, err = pl_config.read(f, {
-            smart = false,
-            -- list_delim = "," -- 分割集合的分隔符
+        from_file_conf, err = pl_config.read(path, {
+            smart = false
         })
-        f:close()
         if not from_file_conf then
             return nil, err
         end

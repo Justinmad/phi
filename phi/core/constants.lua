@@ -27,7 +27,7 @@ return {
     ADMIN = {
         URL_BASE = "/admin",
         PATH_BASE = "admin.controller",
-        CONTROLLERS = { "router" }
+        CONTROLLERS = { "router", "upstream" }
     },
     METHOD = {
         GET = "GET",

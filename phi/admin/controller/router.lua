@@ -32,7 +32,7 @@ _M.del = {
     method = GET,
     mapping = "del",
     handler = function(request)
-        local hostkey = request.uri_args["hostkey"]
+        local hostkey = request.args["hostkey"]
         local ok, err
         if hostkey then
             ok, err = service:delRouterPolicy(hostkey)
@@ -84,7 +84,6 @@ _M.add = {
         end
     end
 }
-
 --[[
     根据hostkey查询路由规则，也可以起到提前加载缓存的目的
     请求路径：/router/get
@@ -94,7 +93,7 @@ _M.add = {
 _M.get = {
     method = GET,
     handler = function(request)
-        local hostkey = request.uri_args["hostkey"]
+        local hostkey = request.args["hostkey"]
         local policies, err
         if hostkey then
             policies, err = service:getRouterPolicy(hostkey)
@@ -117,8 +116,8 @@ _M.get = {
 _M.getAll = {
     method = GET,
     handler = function(request)
-        local cursor = request.uri_args["cursor"]
-        local count = request.uri_args["count"]
+        local cursor = request.args["cursor"]
+        local count = request.args["count"]
         local res, err = service:getAllRouterPolicy(cursor, count)
         if err then
             Response.failure(err)

@@ -10,13 +10,22 @@ local balancer = require "core.balancer"
 local meta = require "meta"
 
 local PHI = {
+    -- 属性
     meta = meta,
+    -- 配置
     configuration = nil,
-    router_service = nil,
+    -- 扩展组件
     components = nil,
+    -- 规则计算
     policy_holder = nil,
+    -- 请求映射
     mapper_holder = nil,
-    observer = nil
+    -- 事件总线
+    observer = nil,
+    -- 数据源
+    db = nil,
+    -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
+    context = {}
 }
 
 local router

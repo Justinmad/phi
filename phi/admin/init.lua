@@ -15,6 +15,9 @@ local CONST = require "core.constants"
 local BASE_PATH = CONST.ADMIN.PATH_BASE .. "/"
 local CTRL = CONST.ADMIN.CONTROLLERS
 
+local DEBUG = ngx.DEBUG
+local LOGGER = ngx.log
+
 for _, class in ipairs(CTRL) do
     local ctrl = require(BASE_PATH .. class)
     local base_url = "/" .. (ctrl.mapping or class)
@@ -25,6 +28,7 @@ for _, class in ipairs(CTRL) do
             local mapping
             if type(v) == "function" then
                 mapping = base_url .. "/" .. k
+                LOGGER(DEBUG, "mapping uri:[" .. mapping .. "] to handler:[" .. class .. "." .. k .. "]")
                 admin[mapping] = v
             elseif type(v) == "table" then
                 -- 如果是表，按照表参数映射
@@ -40,14 +44,14 @@ for _, class in ipairs(CTRL) do
                     if not admin[mapping] then
                         admin[mapping] = {}
                     end
-                    print("mapping uri:[" .. mapping .. "]-[" .. v.method .. "] to handler:[" .. class .. "." .. k .. "]")
+                    LOGGER(DEBUG, "mapping uri:[" .. mapping .. "]-[" .. v.method .. "] to handler:[" .. class .. "." .. k .. "]")
                     admin[mapping][v.method] = v.handler
                 else
-                    print("mapping uri:[" .. mapping .. "] to handler:[" .. class .. "." .. k .. "]")
+                    LOGGER(DEBUG, "mapping uri:[" .. mapping .. "] to handler:[" .. class .. "." .. k .. "]")
                     admin[mapping] = v.handler
                 end
             else
-                print("skip mapping field " .. mapping)
+                LOGGER(DEBUG, "skip mapping field :[", mapping, "]")
             end
         end
     end

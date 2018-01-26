@@ -3,34 +3,50 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/23
 -- Time: 17:35
--- To change this template use File | Settings | File Templates.
+-- 查询db和shared缓存
 --
 
--- 查询shared_dict
 local cjson = require "cjson"
-local ERR = ngx.ERR
-local DEBUG = ngx.DEBUG
-local LOGGER = ngx.log
+
 local CONST = require "core.constants"
 local CACHE_KEY = CONST.CACHE_KEY
 local PHI_ROUTER_DICT = CONST.DICTS.PHI_ROUTER
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
+local MATCH = CACHE_KEY.ROUTER .. "*"
+
 local Lock = require "resty.lock"
 local LOCK_NAME = CONST.DICTS.PHI_LOCK
 
-local class = {}
-local _M = {}
 local SHARED_DICT = ngx.shared[PHI_ROUTER_DICT]
 
-function class:new(dao)
-    _M.dao = dao
-    return setmetatable({}, { __index = _M })
+local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
+local LOGGER = ngx.log
+
+local class = {}
+local _M = {}
+
+-- 缓存版本
+function _M.version()
+    return SHARED_DICT:get("version")
 end
 
+-- 升级缓存版本
+function _M.incrVersion()
+    return SHARED_DICT:incr("version", 1, 0)
+end
+
+-- 初始化worker
 function _M:init_worker(observer)
     self.observer = observer
 end
 
+-- 发布路由规则CRUD事件
+function _M:crudEvent(hostkey, event, data)
+    self.observer.post(EVENTS.SOURCE, event, { hostkey = hostkey, data = data })
+end
+
+-- 获取单个路由规则
 function _M:getRouterPolicy(hostkey)
     local routerKey = CACHE_KEY.ROUTER .. hostkey
 
@@ -115,10 +131,7 @@ function _M:getRouterPolicy(hostkey)
     return result
 end
 
-function _M:crudEvent(hostkey, event, data)
-    self.observer.post(EVENTS.SOURCE, event, { hostkey = hostkey, data = data })
-end
-
+-- 新增or更新路由规则
 function _M:setRouterPolicy(hostkey, policyStr)
     local str = policyStr
     if type(str) == "table" then
@@ -137,6 +150,7 @@ function _M:setRouterPolicy(hostkey, policyStr)
     return ok, err
 end
 
+-- 删除路由规则
 function _M:delRouterPolicy(hostkey)
     local routerKey = CACHE_KEY.ROUTER .. hostkey
 
@@ -151,13 +165,18 @@ function _M:delRouterPolicy(hostkey)
     return ok, err
 end
 
-local MATCH = CACHE_KEY.ROUTER .. "*"
+-- 分页查询
 function _M:getAllRouterPolicy(cursor, count)
     local ok, err = self.dao:getAllRouterPolicy(cursor, MATCH, count)
     if err then
         LOGGER(ERR, "全量查询路由规则失败！err:", err)
     end
     return ok, err
+end
+
+function class:new(dao)
+    _M.dao = dao
+    return setmetatable({}, { __index = _M })
 end
 
 return class

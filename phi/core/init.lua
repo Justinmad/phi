@@ -33,27 +33,16 @@ do
     end
     PHI.configuration = config
 
-
     -- 初始化Redis
     debug("********************初始化Redis********************")
     local redis = require "tools.redis"
-    local db = redis:new(config)
-    local PhiDao = require "dao.phi_dao_by_redis"
-    local phiDao, err = PhiDao:new(db)
-    if err then
-        error(err)
-    else
-        local RouterService = require "service.router_srevice"
-        PHI.router_service = RouterService:new(phiDao)
-    end
+    PHI.db = redis:new(config)
     debug("==================初始化Redis结束==================")
-
 
     -- 加载路由规则
     debug("********************初始化Policy*******************")
     PHI.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
     debug("==================初始化Policy结束=================")
-
 
     -- 加载Mapper规则
     debug("********************初始化Mapper*******************")

@@ -8,7 +8,8 @@ upstream upstream8888 {
 }
 upstream upstream7777_6666_5555 {
     server 127.0.0.1:7777;
-    server 127.0.0.1:6666;
+    server 127.0.0.1:8888;
+    server 127.0.0.1:6666 backup;
     keepalive 20;
 }
 
