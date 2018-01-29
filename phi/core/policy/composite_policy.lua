@@ -10,13 +10,13 @@
     一个符合要求的组合路由规则示例：
     {
         "default":"stable_upstream", // 在任何情况下都应该首先设置默认的upstream server
-        "primary":{
+        "primary":{                  // primary规则是组合路由必须设置的属性
             "order":2,
             "tag": "ip",
             "mapper": "ip",
             "policy": "range_policy",
             "routerTable": {
-                    "upstream9999": [100,
+                    "secondary": [100,
                     1000],
                     "upstream8888": [1001,
                     2000],
@@ -24,7 +24,7 @@
                     2100]
             }
         },
-        "secondary":{
+        "secondary":{               // secondary其他规则名称，可以随意指定，组合路由中primary计算的结果如果命中其他规则名称，则按照该规则再次进行计算
             "order":2,
             "tag": "ip",
             "mapper": "ip",

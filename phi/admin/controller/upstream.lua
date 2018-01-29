@@ -25,7 +25,7 @@ local EVENTS = {
     PEER_DOWN = "PEER_DOWN",
     PEER_UP = "PEER_UP"
 }
-
+-- 需要通知其他worker进程peer状态改变
 function _M:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
     local event = down and EVENTS.PEER_DOWN or EVENTS.PEER_UP
     self.eventBus.post(EVENTS.SOURCE, event, { upstreamName, isBackup, peerId, down })

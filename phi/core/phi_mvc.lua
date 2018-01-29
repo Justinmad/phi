@@ -3,7 +3,7 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/29
 -- Time: 14:57
--- 映射
+-- 简单的mvc映射
 --
 
 local DEBUG = ngx.DEBUG
@@ -88,7 +88,7 @@ end
 local function mappingAll(context, applicationContext)
     for id, bean in pairs(applicationContext) do
         LOGGER(INFO, "begin to mapping bean:[" .. id .. "]")
-            LOGGER(DEBUG, "bean structure:[" .. id .. "]:", pretty.write(bean))
+        LOGGER(DEBUG, "bean structure:[" .. id .. "]:", pretty.write(bean))
         if bean.request_mapping then
             doMapping(context, id, bean)
         end

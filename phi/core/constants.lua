@@ -24,23 +24,21 @@ return {
             "year"
         }
     },
-    ADMIN = {
-        URL_BASE = "/admin"
-    },
     METHOD = {
-        GET = "GET",
-        POST = "POST"
+        GET = "GET",                                            -- HTTP METHOD POST
+        POST = "POST"                                           -- HTTP METHOD POST
     },
     DICTS = {
-        PHI = "phi",
-        PHI_ROUTER = "phi_router",
-        PHI_LOCK = "phi_lock",
-        PHI_EVENTS = "phi_events"
+        PHI = "phi",                                            -- 没想好存什么，占位
+        PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存
+        PHI_LOCK = "phi_lock",                                  -- 存储锁信息
+        PHI_EVENTS = "phi_events",                              -- 存储事件消息
+        PHI_DYNAMIC_UPSTREAM = "phi_dynamic_upstream"           -- 存储动态配置的upstream信息和server信息
     },
     CACHE_KEY = {
-        ROUTER = "PHI:CTRL:ROUTER:",
-        RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",
-        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION",
+        ROUTER = "PHI:CTRL:ROUTER:",                            -- 作为redis中路由规则的key
+        RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",               -- 作为redis中限流规则的key
+        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION",   -- 作为redis中降级规则的key
     },
     EVENT_DEFINITION = {
         ROUTER_SERVICE = {

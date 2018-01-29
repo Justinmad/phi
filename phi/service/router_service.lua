@@ -11,8 +11,8 @@ local cjson = require "cjson"
 local CONST = require "core.constants"
 local CACHE_KEY = CONST.CACHE_KEY
 local PHI_ROUTER_DICT = CONST.DICTS.PHI_ROUTER
-local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local MATCH = CACHE_KEY.ROUTER .. "*"
+local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 
 local Lock = require "resty.lock"
 local LOCK_NAME = CONST.DICTS.PHI_LOCK
