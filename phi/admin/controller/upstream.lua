@@ -6,16 +6,45 @@
 -- To change this template use File | Settings | File Templates.
 --
 
-local _M = {}
+local _M = {
+    request_mapping = "upstream"
+}
 
-local Response = require "admin.response"
+local Response = require "core.response"
 
 local upstream = require "ngx.upstream"
 local get_servers = upstream.get_servers
 local get_upstreams = upstream.get_upstreams
 
 local ERR = ngx.ERR
+local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
+
+local EVENTS = {
+    SOURCE = "UPSTREAM",
+    PEER_DOWN = "PEER_DOWN",
+    PEER_UP = "PEER_UP"
+}
+
+function _M:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
+    local event = down and EVENTS.PEER_DOWN or EVENTS.PEER_UP
+    self.eventBus.post(EVENTS.SOURCE, event, { upstreamName, isBackup, peerId, down })
+end
+
+function _M:init_worker(eventBus)
+    self.eventBus = eventBus
+    eventBus.register(function(data, event, source, pid)
+        if ngx.worker.pid() == pid then
+            LOGGER(NOTICE, "do not process the event send from self")
+        else
+            upstream.set_peer_down(data[1], data[2], data[3], data[4])
+            LOGGER(NOTICE, "received event; source=", source,
+                ", event=", event,
+                ", data=", tostring(data),
+                ", from process ", pid)
+        end
+    end, EVENTS.SOURCE)
+end
 
 _M.getAll = function()
     local data = {}
@@ -68,7 +97,7 @@ end
     @param down_value: true=关闭/false=开启
     TODO 添加事件支持，需要在修改成功后通知其他worker同步状态
 -- ]]
-_M.setPeerDown = function(request)
+_M.setPeerDown = function(request, self)
     local upstreamName = request.args["upstreamName"]
     local isBackup = request.args["isBackup"]
     local peerId = request.args["peerId"]
@@ -79,6 +108,7 @@ _M.setPeerDown = function(request)
 
     local ok, err = upstream.set_peer_down(upstreamName, isBackup == "true", peerId, down == "true")
     if ok then
+        self:peerStateChangeEvent(upstreamName, isBackup == "true", peerId, down == "true")
         Response.success()
     else
         Response.failue(err)

@@ -14,10 +14,11 @@
         request_body = ""
     }
 --]]
-local _M = {}
-
-local service = PHI.router_service
-local Response = require "admin.response"
+local class = {}
+local _M = {
+    request_mapping = "router"
+}
+local Response = require "core.response"
 local CONST = require "core.constants"
 local GET = CONST.METHOD.GET
 local POST = CONST.METHOD.POST
@@ -31,11 +32,11 @@ local POST = CONST.METHOD.POST
 _M.del = {
     method = GET,
     mapping = "del",
-    handler = function(request)
+    handler = function(request, self)
         local hostkey = request.args["hostkey"]
         local ok, err
         if hostkey then
-            ok, err = service:delRouterPolicy(hostkey)
+            ok, err = self.service:delRouterPolicy(hostkey)
             if ok then
                 Response.success()
             end
@@ -60,7 +61,7 @@ _M.del = {
 ]] --
 _M.add = {
     method = POST,
-    handler = function(request)
+    handler = function(request, self)
         local request = request.request_body
         if not request then
             Response.failure("缺少请求参数,或者请求格式不正确！")
@@ -76,7 +77,7 @@ _M.add = {
         if not policies or #policies < 1 then
             Response.failure("policies不能为空！")
         end
-        local ok, err = service:setRouterPolicy(hostkey, request.data)
+        local ok, err = self.service:setRouterPolicy(hostkey, request.data)
         if ok then
             Response.success()
         else
@@ -92,11 +93,11 @@ _M.add = {
  ]]
 _M.get = {
     method = GET,
-    handler = function(request)
+    handler = function(request, self)
         local hostkey = request.args["hostkey"]
         local policies, err
         if hostkey then
-            policies, err = service:getRouterPolicy(hostkey)
+            policies, err = self.service:getRouterPolicy(hostkey)
             if policies then
                 Response.success(policies)
             end
@@ -115,10 +116,10 @@ _M.get = {
  ]]
 _M.getAll = {
     method = GET,
-    handler = function(request)
+    handler = function(request, self)
         local cursor = request.args["cursor"]
         local count = request.args["count"]
-        local res, err = service:getAllRouterPolicy(cursor, count)
+        local res, err = self.service:getAllRouterPolicy(cursor, count)
         if err then
             Response.failure(err)
         end
@@ -126,4 +127,8 @@ _M.getAll = {
     end
 }
 
-return _M
+function class:new(service)
+    return setmetatable({ service = service }, { __index = _M })
+end
+
+return class

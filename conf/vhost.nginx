@@ -4,7 +4,7 @@ upstream upstream9999 {
 }
 upstream upstream8888 {
     server 127.0.0.1:8001;
-    keepalive 20;
+    keepalive 2000;
 }
 upstream upstream7777_6666_5555 {
     server 127.0.0.1:7777;

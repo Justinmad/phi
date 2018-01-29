@@ -175,8 +175,7 @@ function _M:getAllRouterPolicy(cursor, count)
 end
 
 function class:new(dao)
-    _M.dao = dao
-    return setmetatable({}, { __index = _M })
+    return setmetatable({ dao = dao }, { __index = _M })
 end
 
 return class

@@ -19,11 +19,12 @@ local class = {}
 
 local _M = {}
 
-function class:new(redis)
-    if redis then
-        return setmetatable({ db = redis }, { __index = _M }), nil
+function class:new()
+    local db = PHI.db
+    if PHI.db then
+        return setmetatable({ db = db }, { __index = _M }), nil
     end
-    return nil, "redis实例不能为nil"
+    return nil, "redis实例不能为nil,可能是PHI还未初始化？"
 end
 
 -- 根据主机名查询路由规则表

@@ -22,7 +22,6 @@ do
     end
 
     PHI.observer = ev
-    PHI.router_service:init_worker(ev)
     local context = PHI.context
     for _, bean in pairs(context) do
         if type(bean.init_worker) == "function" then

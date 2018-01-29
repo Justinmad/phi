@@ -44,7 +44,7 @@ function class:new(phi)
     if not c then
         return error("failed to create the cache: " .. (err or "unknown"))
     end
-    _M.service = phi.router_service
+    _M.service = phi.context["routerService"]
     _M.observer = phi.observer
     _M.policy_holder = phi.policy_holder
     _M.mapper_holder = phi.mapper_holder

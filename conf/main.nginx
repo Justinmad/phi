@@ -3,10 +3,12 @@ worker_processes auto;
 error_log E:/work/phi/conf/logs/error.log debug;
 
 events {
-    worker_connections 1024;
+    worker_connections 10240;
 }
 
 http{
+    keepalive_timeout 60;
+    keepalive_requests 10000;
     charset UTF-8;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -68,7 +70,7 @@ http{
 
         location / {
             content_by_lua_block {
-                PHI.admin:content()
+                PHI.admin:content_by_lua()
             }
 
             log_by_lua_block {
@@ -83,7 +85,7 @@ http{
         balancer_by_lua_block {
             PHI:balancer();
         }
-        keepalive 20;
+        keepalive 2000;
     }
 
     include vhost.nginx;

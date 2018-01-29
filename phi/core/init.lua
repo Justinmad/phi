@@ -49,10 +49,15 @@ do
     PHI.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
     debug("==================初始化Mapper结束=================")
 
+    -- 初始化context
+    debug("********************初始化context*******************")
+    PHI.context = require "core.application_context":init(config.application_context_conf)
+    debug("==================初始化context结束=================")
+
     -- 初始化admin规则
     if config.enabled_admin then
         debug("********************初始化PHI-ADMIN*******************")
-        PHI.admin = require "admin.init"
+        PHI.admin = require "admin.phi_admin"
         debug("==================初始化PHI-ADMIN结束=================")
     end
 
