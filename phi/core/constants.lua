@@ -25,17 +25,18 @@ return {
         }
     },
     METHOD = {
-        GET = "GET",                                            -- HTTP METHOD POST
+        GET = "GET",                                            -- HTTP METHOD GET
         POST = "POST"                                           -- HTTP METHOD POST
     },
     DICTS = {
         PHI = "phi",                                            -- 没想好存什么，占位
         PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存
+        PHI_UPSTREAM = "phi_upstream",                          -- 存储upstream信息，作为二级缓存
         PHI_LOCK = "phi_lock",                                  -- 存储锁信息
-        PHI_EVENTS = "phi_events",                              -- 存储事件消息
-        PHI_DYNAMIC_UPSTREAM = "phi_dynamic_upstream"           -- 存储动态配置的upstream信息和server信息
+        PHI_EVENTS = "phi_events"                               -- 存储事件消息
     },
     CACHE_KEY = {
+        UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key
         ROUTER = "PHI:CTRL:ROUTER:",                            -- 作为redis中路由规则的key
         RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",               -- 作为redis中限流规则的key
         SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION",   -- 作为redis中降级规则的key
@@ -46,6 +47,11 @@ return {
             DELETE = "delete",
             UPDATE = "update",
             CREATE = "create"
+        },
+        UPSTREAM_EVENTS = {
+            SOURCE = "upstream_service",
+            PEER_DOWN = "peer_down",
+            PEER_UP = "peer_up"
         }
     }
 }

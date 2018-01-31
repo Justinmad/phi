@@ -19,12 +19,9 @@ if not ok or type(new_tab) ~= "function" then
     new_tab = function(narr, nrec) return {} end
 end
 
-local _M = {
-    conf = {}
-}
+local class = new_tab(0, 1)
 
-local mt = { __index = _M }
-
+local _M = new_tab(0, 60)
 local function log(msg, err)
     LOGGER(ERR, msg, err)
 end
@@ -54,29 +51,26 @@ local function _do_connect(config, redis)
     end
 
     -- 认证
-    if config.redis_password then
-        local times, err = redis:get_reused_times()
-        if times == 0 then
+    local times, err = redis:get_reused_times()
+    if times == 0 then
+        if config.redis_password then
             local ok, err = redis:auth(config.redis_password)
             if not ok or err then
                 log("redis auth认证失败,err:", err)
                 return nil, err
             end
-        elseif err then
-            log("获取连接使用次数失败,err:", err)
-            return nil, err
         end
-    end
-
-    -- 选择Redis db
-    if config.redis_db_index > 0 then
-        local ok, err = redis:select(config.redis_db_index)
-        if not ok or err then
-            log("选择redis db_index:" .. config.redis_db_index .. "failed ,err:", err)
-            return nil, err
+        if config.redis_db_index > 0 then
+            local ok, err = redis:select(config.redis_db_index)
+            if not ok or err then
+                log("选择redis db_index:" .. config.redis_db_index .. "failed ,err:", err)
+                return nil, err
+            end
         end
+    elseif err then
+        log("获取连接使用次数失败,err:", err)
+        return nil, err
     end
-
     return redis, nil
 end
 
@@ -101,9 +95,8 @@ local function _set_keepalive(config, redis)
     return redis:set_keepalive(config.redis_keepalive, config.redis_pool_size)
 end
 
--- 发送Redis指令，不支持pipeline，subscribe
-local function do_command(self, config, cmd, ...)
-
+-- 发送Redis指令
+local function do_command(self, cmd, ...)
     -- pipeline reqs
     local _reqs = rawget(self, "_reqs")
     if _reqs then
@@ -111,9 +104,8 @@ local function do_command(self, config, cmd, ...)
         _reqs[#_reqs + 1] = { cmd, ... }
         return
     end
-
     -- 初始化连接
-    local red, err = _init_connect(config)
+    local red, err = _init_connect(self.conf)
     if err then return nil, err end
 
     -- 执行redis指令
@@ -129,25 +121,12 @@ local function do_command(self, config, cmd, ...)
     end
 
     -- 返回连接池
-    local ok, err = _set_keepalive(config, red)
+    local ok, err = _set_keepalive(self.conf, red)
     if not ok or err then
         return nil, err
     end
 
     return result, nil
-end
-
--- 根据配置生成
-function _M:new(config)
-    self.conf.redis_host = config.redis_host or "127.0.0.1"
-    self.conf.redis_port = config.redis_port or 6379
-    self.conf.timeout = config.timeout or 1000
-    self.conf.redis_db_index = config.redis_db_index or 0
-    self.conf.redis_password = config.redis_password or nil
-    self.conf.redis_keepalive = config.redis_keepalive or 10000
-    self.conf.redis_pool_size = config.redis_pool_size or 100
-    LOGGER(DEBUG, "初始化Redis成功！host:[" .. self.conf.redis_host .. "],port:[" .. self.conf.redis_port .. "]")
-    return setmetatable({}, mt)
 end
 
 -- init pipeline,default cmds num is 4
@@ -168,7 +147,6 @@ function _M:commit_pipeline()
         LOGGER(ERR, "failed to commit pipeline,reason:no pipeline")
         return nil, "no pipeline"
     end
-
     self._reqs = nil
 
     -- init redis
@@ -189,7 +167,6 @@ function _M:commit_pipeline()
         -- invoke redis cmd
         fun(redis, unpack(vals))
     end
-
     -- commit pipeline
     local results, err = redis:commit_pipeline()
     if not results or err then
@@ -212,7 +189,6 @@ function _M:commit_pipeline()
             results[i] = nil
         end
     end
-
     return results, err
 end
 
@@ -220,7 +196,7 @@ end
 function _M:subscribe(channel)
 
     -- init redis
-    local redis, err = _init_connect()
+    local redis, err = _init_connect(self.conf)
     if not redis then
         LOGGER(ERR, "failed to init redis,reason::", err)
         return nil, err
@@ -254,15 +230,33 @@ end
 
 setmetatable(_M, {
     __index = function(self, cmd)
-        local instance = self;
-        local method = function(self, ...)
-            return do_command(self, instance.conf, cmd, ...)
+        if cmd == "init" or cmd == "new" or cmd == "init_worker" then
+            return
         end
-
-        -- cache the lazily generated method in our
-        -- module table
-        _M[cmd] = method
+        local method = function(self, ...)
+            return do_command(self, cmd, ...)
+        end
+        self[cmd] = method
         return method
     end
 })
-return _M
+
+-- 根据配置生成
+function class:new(config)
+    -- 初始化Redis
+    local instance = new_tab(0, 60)
+    instance.conf = {}
+    LOGGER(DEBUG, "********************初始化Redis********************")
+    instance.conf.redis_host = config.redis_host or "127.0.0.1"
+    instance.conf.redis_port = config.redis_port or 6379
+    instance.conf.timeout = config.timeout or 1000
+    instance.conf.redis_db_index = config.redis_db_index or 0
+    instance.conf.redis_password = config.redis_password or nil
+    instance.conf.redis_keepalive = config.redis_keepalive or 10000
+    instance.conf.redis_pool_size = config.redis_pool_size or 100
+    LOGGER(DEBUG, "初始化Redis成功！host:[" .. instance.conf.redis_host .. "],port:[" .. instance.conf.redis_port .. "]")
+    LOGGER(DEBUG, "==================初始化Redis结束==================")
+    return setmetatable(instance, { __index = _M })
+end
+
+return class

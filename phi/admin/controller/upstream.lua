@@ -20,17 +20,6 @@ local ERR = ngx.ERR
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
-local EVENTS = {
-    SOURCE = "UPSTREAM",
-    PEER_DOWN = "PEER_DOWN",
-    PEER_UP = "PEER_UP"
-}
--- 需要通知其他worker进程peer状态改变
-function _M:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
-    local event = down and EVENTS.PEER_DOWN or EVENTS.PEER_UP
-    self.eventBus.post(EVENTS.SOURCE, event, { upstreamName, isBackup, peerId, down })
-end
-
 function _M:init_worker(eventBus)
     self.eventBus = eventBus
     eventBus.register(function(data, event, source, pid)
@@ -95,7 +84,6 @@ end
     @param is_backup: 根据查询信息中返回的backup属性
     @param peer_id: 根据查询信息中返回的id属性
     @param down_value: true=关闭/false=开启
-    TODO 添加事件支持，需要在修改成功后通知其他worker同步状态
 -- ]]
 _M.setPeerDown = function(request, self)
     local upstreamName = request.args["upstreamName"]
@@ -108,7 +96,7 @@ _M.setPeerDown = function(request, self)
 
     local ok, err = upstream.set_peer_down(upstreamName, isBackup == "true", peerId, down == "true")
     if ok then
-        self:peerStateChangeEvent(upstreamName, isBackup == "true", peerId, down == "true")
+        self.upstreamService:peerStateChangeEvent(upstreamName, isBackup == "true", peerId, down == "true")
         Response.success()
     else
         Response.failue(err)

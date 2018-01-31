@@ -60,7 +60,7 @@ function _M:init_worker(observer)
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
             self.cache:set(data.hostkey, data.data)
         elseif event == "READ" then
-            print("received event; source=", source,
+            LOGGER(DEBUG, "received event; source=", source,
                 ", event=", event,
                 ", data=", tostring(data),
                 ", from process ", pid)

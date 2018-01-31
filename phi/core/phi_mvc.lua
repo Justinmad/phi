@@ -25,9 +25,9 @@ local function mappingStrProcessor(request_mapping)
 end
 
 local function doMapping(context, id, bean, realBean)
-    local request_mapping = bean.request_mapping;
+    local request_mapping = bean.request_mapping or id;
     request_mapping = mappingStrProcessor(request_mapping)
-    local base_url = "/" .. (request_mapping or id)
+    local base_url = "/" .. request_mapping
     for k, v in pairs(bean) do
         -- 忽略_开始的函数，new函数，init函数，init_worker函数
         if k:find("_") ~= 1 and k ~= "new" and k ~= "init" and k ~= "init_worker" then
@@ -87,9 +87,9 @@ end
 
 local function mappingAll(context, applicationContext)
     for id, bean in pairs(applicationContext) do
-        LOGGER(INFO, "begin to mapping bean:[" .. id .. "]")
-        LOGGER(DEBUG, "bean structure:[" .. id .. "]:", pretty.write(bean))
-        if bean.request_mapping then
+        local beanType = bean.__definition.type
+        if beanType == "ctrl" or beanType == "CTRL" or beanType == "controller" or type(bean.request_mapping) == "string" then
+            LOGGER(INFO, "begin to mapping bean:[" .. id .. "]")
             doMapping(context, id, bean)
         end
     end

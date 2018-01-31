@@ -3,7 +3,7 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/26
 -- Time: 20:23
--- To change this template use File | Settings | File Templates.
+-- 读取配置文件，加载lua模块
 --
 local pl_config = require "pl.config"
 local pretty = require "pl.pretty"
@@ -15,14 +15,19 @@ local _M = {}
 local function loadConf(context, beanDefinitions, location)
     local conf = pl_config.read(location)
     for id, definition in pairs(conf) do
-        local class = require(definition.path)
-        -- 没有new函数，将此脚本直接放入context
-        if type(class.new) ~= "function" then
-            context[id] = class
-            LOGGER(INFO, id, " is created now")
+        if context[id] or beanDefinitions[id] then
+            error("Duplicate bean definition in config file:" .. location)
         else
-            -- 存在new函数，暂存入beanDefinitions，等待创建
-            beanDefinitions[id] = definition
+            local class = require(definition.path)
+            -- 没有new函数，将此脚本直接放入context
+            if type(class.new) ~= "function" then
+                context[id] = class
+                class.__definition = definition
+                LOGGER(INFO, id, " is created now")
+            else
+                -- 存在new函数，暂存入beanDefinitions，等待创建
+                beanDefinitions[id] = definition
+            end
         end
     end
 end
@@ -39,8 +44,9 @@ local function createBean(id, beanDefinitions, inCreation, context)
         ref_ids = { ref_ids }
     end
 
-    local refs = {}
+    local refs
     if ref_ids and #ref_ids > 0 then
+        refs = {}
         inCreation[id] = true
         for _, ref_id in ipairs(ref_ids) do
             local ref = context[ref_id]
@@ -58,13 +64,7 @@ local function createBean(id, beanDefinitions, inCreation, context)
         end
     end
     local class = require(definition.path)
-    local bean
-    if definition.config then
-        bean = class:new(definition.config, refs)
-    else
-        LOGGER(DEBUG, "no config for bean :[", id, "]")
-        bean = class:new(refs)
-    end
+    local bean = class:new(refs or definition, definition)
     if not bean then
         error("error to create bean " .. id .. " ,the constructor return a " .. tostring(bean) .. " value")
     end
@@ -87,15 +87,15 @@ local function createBean(id, beanDefinitions, inCreation, context)
     end
 end
 
-function _M:init(config_locations)
+function _M:init(configLocations)
     local context = {}
     local beanDefinitions = {}
-    if type(config_locations) == "table" and #config_locations > 0 then
-        for _, location in ipairs(config_locations) do
+    if type(configLocations) == "table" and #configLocations > 0 then
+        for _, location in ipairs(configLocations) do
             loadConf(context, beanDefinitions, location)
         end
-    elseif type(config_locations) == "string" then
-        loadConf(context, beanDefinitions, config_locations)
+    elseif type(configLocations) == "string" then
+        loadConf(context, beanDefinitions, configLocations)
     else
         error("非法的配置文件路径！")
     end

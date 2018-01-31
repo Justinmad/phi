@@ -33,12 +33,6 @@ do
     end
     PHI.configuration = config
 
-    -- 初始化Redis
-    debug("********************初始化Redis********************")
-    local redis = require "tools.redis"
-    PHI.db = redis:new(config)
-    debug("==================初始化Redis结束==================")
-
     -- 加载计算规则
     debug("********************初始化Policy*******************")
     PHI.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)

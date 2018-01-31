@@ -6,17 +6,6 @@
 -- 系统默认配置
 --
 return {
-    database = redis,
-    -----------------------
-    -- 以下是redis的默认配置
-    -----------------------
-    redis_host = "127.0.0.1",
-    redis_port = 6379,
-    redis_db_index = 0,
-    redis_auth = false,
-    redis_password = NONE,
-    redis_pool_size = 100,
-    redis_keepalive = 10000,
     db_update_frequency = 5,
     db_update_propagation = 0,
     db_cache_ttl = 3600,

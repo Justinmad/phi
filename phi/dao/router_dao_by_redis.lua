@@ -3,10 +3,12 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/15
 -- Time: 11:05
--- 主要负责从redis中加载数据
+-- 主要负责从redis中加载路由数据
 -- 必须要实现以下几个方法
 -- getRouterPolicy(hostkey)
 -- setRouterPolicy(routerKey, policy)
+-- delRouterPolicy(routerKey)
+-- getAllRouterPolicy(cursor, match, count)
 --
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR
@@ -19,12 +21,11 @@ local class = {}
 
 local _M = {}
 
-function class:new()
-    local db = PHI.db
-    if PHI.db then
+function class:new(db)
+    if db then
         return setmetatable({ db = db }, { __index = _M }), nil
     end
-    return nil, "redis实例不能为nil,可能是PHI还未初始化？"
+    error("redis实例不能为nil,可能是PHI还未初始化？")
 end
 
 -- 根据主机名查询路由规则表
@@ -39,8 +40,8 @@ function _M:getRouterPolicy(hostkey)
 end
 
 -- 添加指定路由规则到db
--- @parma routerKey：路由key
--- @parma policy：规则数据,json串
+-- @param routerKey：路由key
+-- @param policy：规则数据,json串
 function _M:setRouterPolicy(routerKey, policy)
     local ok, err = self.db:set(routerKey, policy)
     if not ok then
@@ -50,7 +51,7 @@ function _M:setRouterPolicy(routerKey, policy)
 end
 
 -- 删除指定路由规则
--- @parma routerKey：路由key
+-- @param routerKey：路由key
 function _M:delRouterPolicy(routerKey)
     local ok, err = self.db:del(routerKey)
     if not ok then
@@ -61,36 +62,49 @@ end
 
 -- 全量查询路由规则
 -- @param cursor：指针
--- @parma match：匹配规则
--- @parma count：查询数量
+-- @param match：匹配规则
+-- @param count：查询数量
 function _M:getAllRouterPolicy(cursor, match, count)
     local res, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
-    if not res then
-        LOGGER(ERR, "全量查询失败！err:", err)
-    end
-
-    local result = {
-        cursor = res[1],
-        data = {}
-    }
-
-    -- 增加pipeline支持
-    local kes = res[2]
-    self.db:init_pipeline(#kes)
-    for _, k in ipairs(kes) do
-        self.db:get(k)
-    end
-    local results, err = self.db:commit_pipeline()
-
-    if not results then
-        LOGGER(ERR, "failed to commit the pipelined requests: ", err)
-        return
-    else
-        for i, k in ipairs(kes) do
-            result.data[k:sub(#ROUTER_PREFIX + 1)] = cjson.decode(results[i])
+    local result
+    if res then
+        result = {
+            cursor = res[1],
+            data = {}
+        }
+        -- 增加pipeline支持
+        local keys = res[2]
+        self.db:init_pipeline(#keys)
+        for _, k in ipairs(keys) do
+            self.db:get(k)
         end
+        local results, err = self.db:commit_pipeline()
+
+        if not results then
+            LOGGER(ERR, "failed to commit the pipelined requests: ", err)
+            return
+        else
+            for i, k in ipairs(keys) do
+                local res = results[i]
+                if type(res) == "table" and res[1] == false then
+                    result.data[k:sub(#ROUTER_PREFIX + 1)] = { error = true, message = res[2] }
+                else
+                    result.data[k:sub(#ROUTER_PREFIX + 1)] = cjson.decode(res)
+                end
+            end
+        end
+    else
+        LOGGER(ERR, "全量查询失败！err:", err)
     end
     return result, err
 end
+
+a = { a = function(self) print("self.c = " .. self.c) end }
+b = { b = 2 }
+
+b = setmetatable(b, { __index = a })
+c = { c = 3 }
+c = setmetatable(c, { __index = b })
+c:a()
 
 return class

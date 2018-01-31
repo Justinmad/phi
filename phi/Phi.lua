@@ -6,7 +6,6 @@
 -- 定义了运行阶段的整体流程和生命周期,每个方法分别对应openresty中的lua执行阶段
 -- 需要在init_by_lua阶段加载本项目，并保存为全局变量PHI
 --
-local balancer = require "core.balancer"
 local meta = require "meta"
 
 local PHI = {
@@ -22,13 +21,11 @@ local PHI = {
     mapper_holder = nil,
     -- 事件总线
     observer = nil,
-    -- 数据源
-    db = nil,
     -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
     context = {}
 }
 
-local router
+local router, balancer
 
 -- 开启lua_code_cache情况下，每个worker只有一个Lua VM
 -- require函数或者VM级别的变量（例如LRUCACHE）初始化应该在每个worker中都执行，而shared_DICT是跨worker共享的，那么初始化一次即可
@@ -37,6 +34,7 @@ function PHI:init()
     require "core.init"
     local Router = require "core.router"
     router = Router:new(PHI)
+    balancer = require "core.balancer"
 end
 
 function PHI:init_worker()
