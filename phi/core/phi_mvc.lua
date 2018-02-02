@@ -128,6 +128,8 @@ function _M:content_by_lua()
         end
         if handler then
             handler(request)
+        else
+            Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
         end
     end
 end

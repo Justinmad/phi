@@ -119,11 +119,16 @@ _M.getAll = {
     handler = function(request, self)
         local cursor = request.args["cursor"]
         local count = request.args["count"]
-        local res, err = self.service:getAllRouterPolicy(cursor, count)
-        if err then
-            Response.failure(err)
+        if type(cursor) == "number" and type(count) == "number" then
+            local res, err = self.service:getAllRouterPolicy(cursor, count)
+            if err then
+                Response.failure(err)
+            end
+            Response.success(res)
+        else
+            Response.failure("缺少必须参数！")
         end
-        Response.success(res)
+
     end
 }
 
