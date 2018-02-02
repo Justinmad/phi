@@ -17,23 +17,7 @@ local get_servers = upstream.get_servers
 local get_upstreams = upstream.get_upstreams
 
 local ERR = ngx.ERR
-local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
-
-function _M:init_worker(eventBus)
-    self.eventBus = eventBus
-    eventBus.register(function(data, event, source, pid)
-        if ngx.worker.pid() == pid then
-            LOGGER(NOTICE, "do not process the event send from self")
-        else
-            upstream.set_peer_down(data[1], data[2], data[3], data[4])
-            LOGGER(NOTICE, "received event; source=", source,
-                ", event=", event,
-                ", data=", tostring(data),
-                ", from process ", pid)
-        end
-    end, EVENTS.SOURCE)
-end
 
 _M.getAll = function()
     local data = {}
@@ -53,8 +37,9 @@ _M.getAllRuntimeInfo = function()
     local data = {}
     local us = get_upstreams()
     for _, u in ipairs(us) do
-        data["primary"] = upstream.get_primary_peers(u)
-        data["backup"] = upstream.get_backup_peers(u)
+        data[u] = {}
+        data[u]["primary"] = upstream.get_primary_peers(u)
+        data[u]["backup"] = upstream.get_backup_peers(u)
     end
     Response.success(data)
 end

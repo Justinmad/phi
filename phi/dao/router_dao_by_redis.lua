@@ -6,9 +6,9 @@
 -- 主要负责从redis中加载路由数据
 -- 必须要实现以下几个方法
 -- getRouterPolicy(hostkey)
--- setRouterPolicy(routerKey, policy)
--- delRouterPolicy(routerKey)
--- getAllRouterPolicy(cursor, match, count)
+-- setRouterPolicy(hostkey, policy)
+-- delRouterPolicy(hostkey)
+-- getAllRouterPolicy(cursor, count)
 --
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR
@@ -16,6 +16,7 @@ local LOGGER = ngx.log
 local cjson = require "cjson.safe"
 local CONST = require "core.constants"
 local ROUTER_PREFIX = CONST.CACHE_KEY.ROUTER
+local MATCH = ROUTER_PREFIX .. "*"
 
 local class = {}
 
@@ -29,9 +30,10 @@ function class:new(db)
 end
 
 -- 根据主机名查询路由规则表
--- @parma routerKey：路由key
+-- @parma hostkey：路由key
 function _M:getRouterPolicy(hostkey)
-    local policiesStr, err = self.db:get(hostkey)
+    local cacheKey = ROUTER_PREFIX .. hostkey
+    local policiesStr, err = self.db:get(cacheKey)
     -- 查询db
     if err then
         LOGGER(ALERT, "通过hostkey：[" .. hostkey .. "]未查询到对应的路由规则")
@@ -40,22 +42,24 @@ function _M:getRouterPolicy(hostkey)
 end
 
 -- 添加指定路由规则到db
--- @param routerKey：路由key
+-- @param hostkey：路由key
 -- @param policy：规则数据,json串
-function _M:setRouterPolicy(routerKey, policy)
-    local ok, err = self.db:set(routerKey, policy)
+function _M:setRouterPolicy(hostkey, policy)
+    local cacheKey = ROUTER_PREFIX .. hostkey
+    local ok, err = self.db:set(cacheKey, policy)
     if not ok then
-        LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]保存路由规则失败！err:", err)
+        LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则失败！err:", err)
     end
     return ok, err
 end
 
 -- 删除指定路由规则
--- @param routerKey：路由key
-function _M:delRouterPolicy(routerKey)
-    local ok, err = self.db:del(routerKey)
+-- @param hostkey：路由key
+function _M:delRouterPolicy(hostkey)
+    local cacheKey = ROUTER_PREFIX .. hostkey
+    local ok, err = self.db:del(cacheKey)
     if not ok then
-        LOGGER(ERR, "通过hostkey：[" .. routerKey .. "]删除路由规则失败！err:", err)
+        LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]删除路由规则失败！err:", err)
     end
     return ok, err
 end
@@ -64,8 +68,8 @@ end
 -- @param cursor：指针
 -- @param match：匹配规则
 -- @param count：查询数量
-function _M:getAllRouterPolicy(cursor, match, count)
-    local res, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
+function _M:getAllRouterPolicy(cursor, count)
+    local res, err = self.db:scan(cursor, "MATCH", MATCH, "COUNT", count)
     local result
     if res then
         result = {
@@ -98,13 +102,5 @@ function _M:getAllRouterPolicy(cursor, match, count)
     end
     return result, err
 end
-
-a = { a = function(self) print("self.c = " .. self.c) end }
-b = { b = 2 }
-
-b = setmetatable(b, { __index = a })
-c = { c = 3 }
-c = setmetatable(c, { __index = b })
-c:a()
 
 return class

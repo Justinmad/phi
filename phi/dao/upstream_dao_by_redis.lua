@@ -3,10 +3,10 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/30
 -- Time: 15:09
--- 主要负责从redis中加载upstream以及server数据
+-- 主要负责通过redis对动态upstream以及动态server数据进行CRUD操作
 -- 必须要实现以下几个方法
 -- getUpstreamServers(upstream)
--- addUpstreamServer(upstream, servers)
+-- addUpstreamServers(upstream, servers)
 -- delUpstreamServer(upstream, serverName)
 -- getAllUpstreams(cursor, match, count)
 --
@@ -16,12 +16,14 @@ local LOGGER = ngx.log
 local cjson = require "cjson.safe"
 local CONST = require "core.constants"
 local UPSTREAM_PREFIX = CONST.CACHE_KEY.UPSTREAM
+local MATCH = UPSTREAM_PREFIX .. "*"
 
 local _M = {}
 -- 查看指定upstream中的所有servers
 -- @param routerKey：upstream名称
 function _M:getUpstreamServers(upstream)
-    local policiesStr, err = self.db:hgetall(upstream)
+    local cahcheKey = UPSTREAM_PREFIX .. upstream
+    local policiesStr, err = self.db:hgetall(cahcheKey)
     if err then
         LOGGER(ALERT, "通过upstream：[" .. upstream .. "]未查询到对应的服务器")
     end
@@ -31,13 +33,14 @@ end
 -- 添加指定servers列表到upstream
 -- @param upstream：upstream名称
 -- @param servers：服务器列表 []
-function _M:addUpstreamServer(upstream, servers)
+function _M:addUpstreamServers(upstream, servers)
+    local cahcheKey = UPSTREAM_PREFIX .. upstream
     local commands = {}
     for i, server in ipairs(servers) do
         commands[2 * i - 1] = server.name
         commands[2 * i] = server.info
     end
-    local ok, err = self.db:hset(upstream, unpack(servers))
+    local ok, err = self.db:hset(cahcheKey, unpack(servers))
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]保存服务器列表失败！err:", err)
     end
@@ -47,7 +50,8 @@ end
 -- 删除指定upstream中的server
 -- @param routerKey：路由key
 function _M:delUpstreamServer(upstream, serverName)
-    local ok, err = self.db:hdel(upstream, serverName)
+    local cahcheKey = UPSTREAM_PREFIX .. upstream
+    local ok, err = self.db:hdel(cahcheKey, serverName)
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]删除server失败！err:", err)
     end
@@ -58,8 +62,8 @@ end
 -- @param cursor：指针
 -- @param match：匹配规则
 -- @param count：查询数量
-function _M:getAllUpstreams(cursor, match, count)
-    local res, err = self.db:scan(cursor, "MATCH", match, "COUNT", count)
+function _M:getAllUpstreams(cursor, count)
+    local res, err = self.db:scan(cursor, "MATCH", MATCH, "COUNT", count)
     local result
     if res then
         result = {

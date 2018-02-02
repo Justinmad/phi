@@ -51,7 +51,9 @@ return {
         UPSTREAM_EVENTS = {
             SOURCE = "upstream_service",
             PEER_DOWN = "peer_down",
-            PEER_UP = "peer_up"
+            PEER_UP = "peer_up",
+            SERVER_UPDATE = "server_update",
+            SERVER_DEL = "server_del",
         }
     }
 }

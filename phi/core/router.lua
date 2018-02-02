@@ -58,6 +58,7 @@ function _M:init_worker(observer)
         if event == EVENTS.DELETE then
             self.cache:set({ skipRouter = true })
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
+            table.sort(data.data, function(r1, r2) return r1.order < r2.order end)
             self.cache:set(data.hostkey, data.data)
         elseif event == "READ" then
             LOGGER(DEBUG, "received event; source=", source,

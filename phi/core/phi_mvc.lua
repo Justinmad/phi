@@ -10,7 +10,6 @@ local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
 local LOGGER = ngx.log
 local Response = require "core.response"
-local pretty = require 'pl.pretty'
 local cjson = require 'cjson.safe'
 local class = {}
 local _M = {}
@@ -36,7 +35,7 @@ local function doMapping(context, id, bean, realBean)
             local _self = realBean or bean
             if type(v) == "function" then
                 mapping = base_url .. "/" .. k
-                LOGGER(INFO, "mapping uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
+                LOGGER(INFO, "mapped uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
                 context[mapping] = setmetatable({ anyMethod = true }, {
                     __call = function(self, req)
                         v(req, _self)
@@ -59,14 +58,14 @@ local function doMapping(context, id, bean, realBean)
                     if not context[mapping] then
                         context[mapping] = {}
                     end
-                    LOGGER(INFO, "mapping uri:[" .. mapping .. "]-[" .. method .. "] to handler:[" .. id .. "." .. k .. "]")
+                    LOGGER(INFO, "mapped uri:[" .. mapping .. "]-[" .. method .. "] to handler:[" .. id .. "." .. k .. "]")
                     context[mapping][method] = setmetatable({}, {
                         __call = function(self, req)
                             hanler(req, _self)
                         end
                     })
                 else
-                    LOGGER(INFO, "mapping uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
+                    LOGGER(INFO, "mapped uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
                     context[mapping] = setmetatable({ anyMethod = true }, {
                         __call = function(self, req)
                             hanler(req, _self)

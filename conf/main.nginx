@@ -1,5 +1,5 @@
 #user  yangyang.zhang;
-worker_processes auto;
+worker_processes 1;
 error_log E:/work/phi/conf/logs/error.log debug;
 
 events {

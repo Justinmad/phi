@@ -6,7 +6,10 @@
 -- 初始化数据，读取配置等等，提前加载一些模块以提高运行效率
 --
 
-do
+-- 提前加载依赖，提高性能
+require "resty.core"
+require "cjson.safe"
+
     local constants = require "core.constants"
     local LOGGER = ngx.log
     local DEBUG = ngx.DEBUG
@@ -57,9 +60,3 @@ do
 
 
     debug("------------------------PHI初始化完成！------------------------")
-end
-
--- 提前加载依赖，提高性能
-require "resty.lrucache"
-require "resty.core"
-require "cjson.safe"

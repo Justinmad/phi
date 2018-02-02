@@ -17,7 +17,7 @@ server {
     listen 9999;
     server_name localhost;
     location / {
-        root E:\home\logs\auto-deploy\execLog\2018-01-20;
+        root E:\home\logs;
     }
 }
 
