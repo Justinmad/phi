@@ -9,9 +9,9 @@
     {
         method = "",
         uri = "",
-        uri_args = "",
+        args = "",
         headers = "",
-        request_body = ""
+        body = ""
     }
 --]]
 local class = {}
@@ -62,22 +62,22 @@ _M.del = {
 _M.add = {
     method = POST,
     handler = function(request, self)
-        local request = request.request_body
-        if not request then
+        local body = request.body
+        if not body then
             Response.failure("缺少请求参数,或者请求格式不正确！")
         end
-        local hostkey = request.hostkey
-        if not request.hostkey then
+        local hostkey = body.hostkey
+        if not body.hostkey then
             Response.failure("hostkey不能为空！")
         end
-        if not request.data.default then
+        if not body.data.default then
             Response.failure("必须设置默认路由服务器！")
         end
-        local policies = request.data.policies
+        local policies = body.data.policies
         if not policies or #policies < 1 then
             Response.failure("policies不能为空！")
         end
-        local ok, err = self.service:setRouterPolicy(hostkey, request.data)
+        local ok, err = self.service:setRouterPolicy(hostkey, body.data)
         if ok then
             Response.success()
         else
@@ -119,7 +119,7 @@ _M.getAll = {
     handler = function(request, self)
         local cursor = request.args["cursor"]
         local count = request.args["count"]
-        if type(cursor) == "number" and type(count) == "number" then
+        if cursor and count then
             local res, err = self.service:getAllRouterPolicy(cursor, count)
             if err then
                 Response.failure(err)

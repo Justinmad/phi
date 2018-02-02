@@ -102,11 +102,11 @@ local function parseRequest()
     request.headers = ngx.req.get_headers();
     if request.method ~= "GET" then
         ngx.req.read_body()
-        request.request_body = ngx.req.get_body_data()
+        request.body = ngx.req.get_body_data()
         local content_type = request.headers["Content-Type"]
         if content_type then
             if string.find(content_type, "json") then
-                request.request_body = cjson.decode(request.request_body)
+                request.body = cjson.decode(request.request_body)
             elseif string.find(content_type, "x%-www%-form%-urlencoded") then
                 local form_args = ngx.decode_args(request.request_body)
                 setmetatable(request.args, { __index = form_args })
@@ -118,20 +118,17 @@ end
 
 function _M:content_by_lua()
     local request = parseRequest()
-
     local handler = self.context[request.uri]
-    if not handler then
-        Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
-    else
+    if handler then
         if not handler.anyMethod then
             handler = handler[request.method]
         end
         if handler then
             handler(request)
-        else
-            Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
+            Response.ok("[" .. request.uri .. "] and method:[" .. request.method .. "] no content", 204)
         end
     end
+    Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
 end
 
 function class:init(applicationContext)
