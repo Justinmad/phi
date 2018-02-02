@@ -10,32 +10,37 @@ local pretty = require "pl.pretty"
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
+local NOTICE = ngx.NOTICE
 local _M = {}
 
 local function loadConf(context, beanDefinitions, location)
     local conf = pl_config.read(location)
-    for id, definition in pairs(conf) do
-        if context[id] or beanDefinitions[id] then
-            error("Duplicate bean definition in config file:" .. location)
-        else
-            local class = require(definition.path)
-            -- 没有new函数，将此脚本直接放入context
-            if type(class.new) ~= "function" then
-                context[id] = class
-                class.__definition = definition
-                LOGGER(INFO, id, " is created now")
+    if conf then
+        for id, definition in pairs(conf) do
+            if context[id] or beanDefinitions[id] then
+                error("Duplicate bean definition in config file:" .. location)
             else
-                -- 存在new函数，暂存入beanDefinitions，等待创建
-                beanDefinitions[id] = definition
+                local class = require(definition.path)
+                -- 没有new函数，将此脚本直接放入context
+                if type(class.new) ~= "function" then
+                    context[id] = class
+                    class.__definition = definition
+                    LOGGER(INFO, id, " is created now")
+                else
+                    -- 存在new函数，暂存入beanDefinitions，等待创建
+                    beanDefinitions[id] = definition
+                end
             end
         end
+    else
+        LOGGER(NOTICE, location .. " is not exists !")
     end
 end
 
 local function createBean(id, beanDefinitions, inCreation, context)
     local definition = beanDefinitions[id]
-    if type(definition) ~= "table" then
-        error("Error creating bean with name '" .. id .. "' the bean definition is not a valid table")
+    if (type(definition) ~= "table") or not (definition.path) then
+        error("Error creating bean with name '" .. id .. "' the bean definition is not exists")
     end
     -- 依赖
     LOGGER(DEBUG, id, " is now in creation")
@@ -57,7 +62,11 @@ local function createBean(id, beanDefinitions, inCreation, context)
                 createBean(ref_id, beanDefinitions, inCreation, context)
                 ref = context[ref_id]
             end
-            refs[ref_id] = ref
+            if ref then
+                refs[ref_id] = ref
+            else
+                error(ref_id .. "is undefined , check it!")
+            end
         end
         if #ref_ids == 1 then
             refs = refs[ref_ids[1]]
@@ -111,7 +120,8 @@ function _M:init(configLocations)
     end
 
     -- Autowire
-    for id, definition in pairs(beanDefinitions) do
+    for id, bean in pairs(context) do
+        local definition = bean.__definition
         local autowire = definition.autowire
         if autowire then
             if type(autowire) == "string" then
@@ -119,7 +129,7 @@ function _M:init(configLocations)
             end
             LOGGER(DEBUG, id, " need to autowire ", pretty.write(autowire, ","))
             local bean = context[id]
-            for _, ref_id in autowire do
+            for _, ref_id in ipairs(autowire) do
                 bean[ref_id] = context[ref_id] or error(ref_id .. " is not exists in the context, check it ")
             end
         else

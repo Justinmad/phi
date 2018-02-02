@@ -12,12 +12,13 @@ http{
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
     lua_package_path '/home/young/IdeaProjects/phi/phi/?.lua;/home/young/IdeaProjects/phi/lib/?.lua;;';
-    lua_code_cache off;
+    lua_code_cache on;
 
     lua_shared_dict phi                 5m;
     lua_shared_dict phi_events          1m;
     lua_shared_dict phi_lock            1m;
     lua_shared_dict phi_router          10m;
+    lua_shared_dict phi_upstream        10m;
 
     init_by_lua_block {
     PHI = require 'Phi'
@@ -62,7 +63,7 @@ http{
 
         location / {
             content_by_lua_block {
-            PHI.admin:content()
+            PHI.admin:content_by_lua()
         }
 
             log_by_lua_block {

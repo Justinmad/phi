@@ -17,5 +17,5 @@ return {
     },
     router_lrucache_size = 2e3,
     enabled_admin = true,
-    application_context_conf = {"E:/work/phi/phi/config/application.ini"}
+    application_context_conf = { "E:/work/phi/phi/config/application.ini", "/home/young/IdeaProjects/phi/phi/config/application.ini" }
 }

@@ -32,7 +32,8 @@ return {
     _VERSION_TABLE = version,
     -- 以下版本号是我在开发时使用的版本
     _DEPENDENCIES = {
-        nginx = { "1.13.6" },
-        lua_nginx_module = { "0.10.12rc1" }
+        nginx = { "1.13.8" },
+        lua_nginx_module = { "0.10.11" },
+        lua_upstream_nginx_module = { "0.07" }
     }
 }

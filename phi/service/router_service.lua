@@ -133,6 +133,7 @@ end
 
 -- 新增or更新路由规则
 function _M:setRouterPolicy(hostkey, policyStr)
+    self.observer.post(EVENTS.SOURCE, "READ", { hostkey = hostkey, data = {} })
     local str = policyStr
     if type(str) == "table" then
         str = cjson.encode(policyStr)
@@ -140,7 +141,6 @@ function _M:setRouterPolicy(hostkey, policyStr)
     local ok, err = self.dao:setRouterPolicy(hostkey, str)
     if ok then
         ok, err = SHARED_DICT:set(hostkey, str)
-        -- 这里使用hostkey
         self:crudEvent(hostkey, EVENTS.CREATE, policyStr)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到shared_dict失败！err:", err)
