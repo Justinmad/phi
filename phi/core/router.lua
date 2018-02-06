@@ -34,22 +34,9 @@ local ALERT = ngx.ALERT
 local NOTICE = ngx.NOTICE
 local var = ngx.var
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
-
-local class = {}
 local _M = {}
 
-function class:new(phi)
-    local c, err = lrucache.new(phi.configuration.router_lrucache_size)
-    _M.cache = c
-    if not c then
-        return error("failed to create the cache: " .. (err or "unknown"))
-    end
-    _M.service = phi.context["routerService"]
-    _M.observer = phi.observer
-    _M.policy_holder = phi.policy_holder
-    _M.mapper_holder = phi.mapper_holder
-
-    return setmetatable({}, { __index = _M })
+function _M:init()
 end
 
 function _M:init_worker(observer)
@@ -60,12 +47,11 @@ function _M:init_worker(observer)
         elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
             table.sort(data.data, function(r1, r2) return r1.order < r2.order end)
             self.cache:set(data.hostkey, data.data)
-        elseif event == "READ" then
-            LOGGER(DEBUG, "received event; source=", source,
-                ", event=", event,
-                ", data=", tostring(data),
-                ", from process ", pid)
         end
+        LOGGER(DEBUG, "received event; source=", source,
+            ", event=", event,
+            ", data=", tostring(data),
+            ", from process ", pid)
     end, EVENTS.SOURCE)
 end
 
@@ -121,6 +107,20 @@ function _M:access()
 end
 
 function _M.after()
+end
+
+local class = {}
+function class:new(ref, config)
+    local c, err = lrucache.new(config.router_lrucache_size)
+    if not c then
+        return error("failed to create the cache: " .. (err or "unknown"))
+    end
+    local instance = {}
+    instance.cache = c
+    instance.service = ref
+    instance.policy_holder = PHI.policy_holder
+    instance.mapper_holder = PHI.mapper_holder
+    return setmetatable(instance, { __index = _M })
 end
 
 return class

@@ -32,7 +32,7 @@ local POST = CONST.METHOD.POST
 _M.del = {
     method = GET,
     mapping = "del",
-    handler = function(request, self)
+    handler = function(self, request)
         local hostkey = request.args["hostkey"]
         local ok, err
         if hostkey then
@@ -61,7 +61,7 @@ _M.del = {
 ]] --
 _M.add = {
     method = POST,
-    handler = function(request, self)
+    handler = function(self, request)
         local body = request.body
         if not body then
             Response.failure("缺少请求参数,或者请求格式不正确！")
@@ -93,7 +93,7 @@ _M.add = {
  ]]
 _M.get = {
     method = GET,
-    handler = function(request, self)
+    handler = function(self, request)
         local hostkey = request.args["hostkey"]
         local policies, err
         if hostkey then
@@ -116,7 +116,7 @@ _M.get = {
  ]]
 _M.getAll = {
     method = GET,
-    handler = function(request, self)
+    handler = function(self, request)
         local cursor = request.args["cursor"]
         local count = request.args["count"]
         if cursor and count then
@@ -128,7 +128,6 @@ _M.getAll = {
         else
             Response.failure("缺少必须参数！")
         end
-
     end
 }
 

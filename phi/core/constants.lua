@@ -49,11 +49,21 @@ return {
             CREATE = "create"
         },
         UPSTREAM_EVENTS = {
-            SOURCE = "upstream_service",
+            SOURCE = "peer",
             PEER_DOWN = "peer_down",
             PEER_UP = "peer_up",
+
+            DYNAMIC_PEER_SOURCE = "dynamic_peer",
+            DYNAMIC_PEER_DOWN = "dynamic_peer_down",
+            DYNAMIC_PEER_UP = "dynamic_peer_up",
+
+            SERVER_SOURCE = "server",
             SERVER_UPDATE = "server_update",
             SERVER_DEL = "server_del",
+
+            UPS_SOURCE = "upsream",
+            UPS_UPDATE = "ups_update",
+            UPS_DEL = "ups_del"
         }
     }
 }

@@ -22,8 +22,8 @@ local _M = {}
 -- 查看指定upstream中的所有servers
 -- @param routerKey：upstream名称
 function _M:getUpstreamServers(upstream)
-    local cahcheKey = UPSTREAM_PREFIX .. upstream
-    local policiesStr, err = self.db:hgetall(cahcheKey)
+    local cacheKey = UPSTREAM_PREFIX .. upstream
+    local policiesStr, err = self.db:hgetall(cacheKey)
     if err then
         LOGGER(ALERT, "通过upstream：[" .. upstream .. "]未查询到对应的服务器")
     end
@@ -34,13 +34,13 @@ end
 -- @param upstream：upstream名称
 -- @param servers：服务器列表 []
 function _M:addUpstreamServers(upstream, servers)
-    local cahcheKey = UPSTREAM_PREFIX .. upstream
+    local cacheKey = UPSTREAM_PREFIX .. upstream
     local commands = {}
     for i, server in ipairs(servers) do
         commands[2 * i - 1] = server.name
-        commands[2 * i] = server.info
+        commands[2 * i] = type(server.info)
     end
-    local ok, err = self.db:hset(cahcheKey, unpack(servers))
+    local ok, err = self.db:hset(cacheKey, unpack(servers))
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]保存服务器列表失败！err:", err)
     end
@@ -48,12 +48,27 @@ function _M:addUpstreamServers(upstream, servers)
 end
 
 -- 删除指定upstream中的server
--- @param routerKey：路由key
 function _M:delUpstreamServer(upstream, serverName)
-    local cahcheKey = UPSTREAM_PREFIX .. upstream
-    local ok, err = self.db:hdel(cahcheKey, serverName)
+    local cacheKey = UPSTREAM_PREFIX .. upstream
+    local ok, err = self.db:hdel(cacheKey, serverName)
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]删除server失败！err:", err)
+    end
+    return ok, err
+end
+
+-- 修改指定upstream中的server
+function _M:downUpstreamServer(upstream, serverName, down)
+    local cacheKey = UPSTREAM_PREFIX .. upstream
+    self.db:watch(cacheKey)
+    local oldValue = self.db:hget(cacheKey, serverName)
+    local oldTable = cjson.decode(oldValue)
+    oldTable.down = down
+    self.db:multi()
+    self.db:hset(cacheKey, serverName, cjson.encode(oldTable))
+    local ok, err = self.db:exec()
+    if not ok then
+        LOGGER(ERR, "通过upstream：[" .. upstream .. "]修改server失败！err:", err)
     end
     return ok, err
 end

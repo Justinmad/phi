@@ -28,6 +28,7 @@ local function doMapping(context, id, bean, realBean)
     request_mapping = mappingStrProcessor(request_mapping)
     local base_url = "/" .. request_mapping
     for k, v in pairs(bean) do
+--        print("--------------",k)
         -- 忽略_开始的函数，new函数，init函数，init_worker函数
         if k:find("_") ~= 1 and k ~= "new" and k ~= "init" and k ~= "init_worker" then
             -- 如果是函数，直接映射到路径
@@ -38,7 +39,7 @@ local function doMapping(context, id, bean, realBean)
                 LOGGER(INFO, "mapped uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
                 context[mapping] = setmetatable({ anyMethod = true }, {
                     __call = function(self, req)
-                        v(req, _self)
+                        v(_self, req)
                     end
                 })
             elseif type(v) == "table" and v.handler then
@@ -61,14 +62,14 @@ local function doMapping(context, id, bean, realBean)
                     LOGGER(INFO, "mapped uri:[" .. mapping .. "]-[" .. method .. "] to handler:[" .. id .. "." .. k .. "]")
                     context[mapping][method] = setmetatable({}, {
                         __call = function(self, req)
-                            hanler(req, _self)
+                            hanler(_self, req)
                         end
                     })
                 else
                     LOGGER(INFO, "mapped uri:[" .. mapping .. "] to handler:[" .. id .. "." .. k .. "]")
                     context[mapping] = setmetatable({ anyMethod = true }, {
                         __call = function(self, req)
-                            hanler(req, _self)
+                            hanler(_self, req)
                         end
                     })
                 end
@@ -106,9 +107,9 @@ local function parseRequest()
         local content_type = request.headers["Content-Type"]
         if content_type then
             if string.find(content_type, "json") then
-                request.body = cjson.decode(request.request_body)
+                request.body = cjson.decode(request.body)
             elseif string.find(content_type, "x%-www%-form%-urlencoded") then
-                local form_args = ngx.decode_args(request.request_body)
+                local form_args = ngx.decode_args(request.body)
                 setmetatable(request.args, { __index = form_args })
             end
         end

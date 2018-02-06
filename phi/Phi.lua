@@ -32,14 +32,14 @@ local router, balancer
 -- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
 function PHI:init()
     require "core.init"
-    local Router = require "core.router"
-    router = Router:new(PHI)
-    balancer = require "core.balancer"
+    router = PHI.context["router"]
+    balancer = PHI.context["balancer"]
 end
 
 function PHI:init_worker()
     require "core.init_worker"
     router:init_worker(PHI.observer)
+    balancer:init_worker(PHI.observer)
 end
 
 function PHI.balancer()
@@ -47,13 +47,12 @@ function PHI.balancer()
 end
 
 function PHI:rewrite()
-    print("this is rewrite by lua block")
     ngx.var.backend = 'phi_upstream'
+    router:access()
 end
 
 function PHI:access()
-    router:access()
-    print("this is access by lua block")
+    balancer:load()
 end
 
 function PHI:log()
