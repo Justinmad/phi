@@ -32,7 +32,6 @@ local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local NOTICE = ngx.NOTICE
-local var = ngx.var
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local _M = {}
 
@@ -59,8 +58,8 @@ function _M.before()
 end
 
 -- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
-function _M:access()
-    local hostkey = utils.getHost();
+function _M:access(ctx)
+    local hostkey = utils.getHost(ctx);
     if hostkey then
         -- local缓存
         local rules, err = self.cache:get(hostkey)
@@ -95,7 +94,7 @@ function _M:access()
                 end
             end
             if result then
-                var.backend = result
+                ctx.backend = result
                 LOGGER(NOTICE, "请求将被路由到，upstream：", result)
             end
         else

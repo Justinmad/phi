@@ -23,9 +23,8 @@ end
 -- 特殊情况下可以设置ngx.var.hostkey的值作为路由key
 -- 同一请求，直接将结果放入ngx.ctx，避免多次调用ngx.var，这个api性能开销很大
 -- @see https://github.com/openresty/lua-nginx-module#ngxvarvariable
-function utils.getHost()
-    local result = ngx.ctx.__host;
-
+function utils.getHost(ctx)
+    local result = ctx.__host;
     if not result then
         -- 获取到请求头中的Host
         result = ngx.req.get_headers()['Host']
@@ -35,7 +34,7 @@ function utils.getHost()
             if hostkey then
                 result = hostkey
             end
-            ngx.ctx.__host = result;
+            ctx.__host = result;
         end
     end
 

@@ -43,12 +43,12 @@ http{
             set $backend '';
 
             rewrite_by_lua_block {
-            PHI:rewrite()
-        }
+                PHI:rewrite()
+            }
 
             access_by_lua_block {
-            PHI:access()
-        }
+                PHI:access()
+            }
 
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";

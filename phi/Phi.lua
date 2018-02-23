@@ -38,21 +38,23 @@ end
 
 function PHI:init_worker()
     require "core.init_worker"
-    router:init_worker(PHI.observer)
-    balancer:init_worker(PHI.observer)
 end
 
 function PHI.balancer()
-    balancer:exectue()
+    local ctx = ngx.ctx
+    -- 负载均衡
+    balancer:exectue(ctx)
 end
 
 function PHI:rewrite()
-    ngx.var.backend = 'phi_upstream'
-    router:access()
+    local ctx = ngx.ctx
+    -- 路由
+    router:access(ctx)
+    -- 动态upstream映射
+    balancer:load(ctx)
 end
 
 function PHI:access()
-    balancer:load()
 end
 
 function PHI:log()

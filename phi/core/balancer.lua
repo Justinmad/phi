@@ -18,7 +18,7 @@ local NOTICE = ngx.NOTICE
 
 local get_upstreams = ngx_upstream.get_upstreams
 
-local var = ngx.var
+local utils = require "utils"
 local EVENTS = CONST.EVENT_DEFINITION.UPSTREAM_EVENTS
 local _M = {}
 
@@ -74,14 +74,15 @@ function _M:before()
 end
 
 -- 检查是否属于动态upstream，如果是路由到default_upstream中进行balance操作
-function _M:load()
-    local upstream = var.backend
+function _M:load(ctx)
+    local upstream = ctx.backend
     if upstream then
         -- local缓存
-        local infos, err = self.cache:get(upstream)
+        local infos = self.cache:get(upstream)
         if not infos then
             -- shared缓存+db
             LOGGER(DEBUG, "worker缓存未命中，upstream：", upstream)
+            local err
             infos, err = self.service:getUpstream(upstream)
             if err then
                 LOGGER(ERR, "upstream查询出现错误，err：", err)
@@ -90,14 +91,16 @@ function _M:load()
             LOGGER(DEBUG, "worker缓存命中，upstream：", upstream)
         end
         if infos ~= "stable" then
-            var.backend = self.default_upstream
+            upstream = self.default_upstream
         end
     else
         LOGGER(ALERT, "upstream为nil，无法执行upstream列表更新操作")
     end
+    ngx.var.backend = upstream
 end
 
-function _M:exectue()
+function _M:balance()
+    utils.getHost(ctx);
     -- well, usually we calculate the peer's host and port
     -- according to some balancing policies instead of using
     -- hard-coded values like below
@@ -107,7 +110,7 @@ function _M:exectue()
     local ok, err = balancer.set_current_peer(host, port)
 
     if not ok then
-        ngx.log(ngx.ERR, "failed to set the current peer: ", err)
+        LOGGER(ERR, "failed to set the current peer: ", err)
         return ngx.exit(500)
     end
 end
@@ -117,7 +120,7 @@ end
 
 local class = {}
 
-function class:new(ref,config)
+function class:new(ref, config)
     local c, err = lrucache.new(config.upstream_lrucache_size)
     if not c then
         return error("failed to create the cache: " .. (err or "unknown"))
