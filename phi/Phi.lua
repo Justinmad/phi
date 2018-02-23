@@ -43,13 +43,15 @@ end
 function PHI.balancer()
     local ctx = ngx.ctx
     -- 负载均衡
-    balancer:exectue(ctx)
+    balancer:balance(ctx)
 end
 
 function PHI:rewrite()
     local ctx = ngx.ctx
     -- 路由
+    router:before(ctx)
     router:access(ctx)
+    router:after(ctx)
     -- 动态upstream映射
     balancer:load(ctx)
 end

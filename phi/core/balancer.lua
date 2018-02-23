@@ -94,12 +94,12 @@ function _M:load(ctx)
             upstream = self.default_upstream
         end
     else
-        LOGGER(ALERT, "upstream为nil，无法执行upstream列表更新操作")
+        LOGGER(ALERT, "upstream为nil，转发到默认upstream:", self.default_upstream)
     end
-    ngx.var.backend = upstream
+    ngx.var.backend = upstream or self.default_upstream
 end
 
-function _M:balance()
+function _M:balance(ctx)
     utils.getHost(ctx);
     -- well, usually we calculate the peer's host and port
     -- according to some balancing policies instead of using

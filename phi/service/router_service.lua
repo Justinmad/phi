@@ -133,7 +133,6 @@ end
 
 -- 新增or更新路由规则
 function _M:setRouterPolicy(hostkey, policyStr)
-    self.observer.post(EVENTS.SOURCE, "READ", { hostkey = hostkey, data = {} })
     local str = policyStr
     if type(str) == "table" then
         str = cjson.encode(policyStr)

@@ -25,36 +25,14 @@
 --]]
 
 local utils = require "utils"
-local lrucache = require "resty.lrucache"
-local CONST = require "core.constants"
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local NOTICE = ngx.NOTICE
-local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local _M = {}
 
-function _M:init()
-end
-
-function _M:init_worker(observer)
-    -- 注册关注事件handler到指定事件源
-    observer.register(function(data, event, source, pid)
-        if event == EVENTS.DELETE then
-            self.cache:set({ skipRouter = true })
-        elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
-            table.sort(data.data, function(r1, r2) return r1.order < r2.order end)
-            self.cache:set(data.hostkey, data.data)
-        end
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", tostring(data),
-            ", from process ", pid)
-    end, EVENTS.SOURCE)
-end
-
-function _M.before()
+function _M.before(ctx)
 end
 
 -- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
@@ -62,17 +40,7 @@ function _M:access(ctx)
     local hostkey = utils.getHost(ctx);
     if hostkey then
         -- local缓存
-        local rules, err = self.cache:get(hostkey)
-        if not rules then
-            -- shared缓存+db
-            LOGGER(DEBUG, "worker缓存未命中，hostkey：", hostkey)
-            rules, err = self.service:getRouterPolicy(hostkey)
-            if err then
-                LOGGER(ERR, "路由规则查询出现错误，err：", err)
-            end
-        else
-            LOGGER(DEBUG, "worker缓存命中，hostkey：", hostkey)
-        end
+        local rules, err = self.service:getRouterPolicy(hostkey)
         if not err and rules and type(rules) == "table" then
             if rules.skipRouter then
                 return
@@ -98,24 +66,19 @@ function _M:access(ctx)
                 LOGGER(NOTICE, "请求将被路由到，upstream：", result)
             end
         else
-            LOGGER(ERR, err or ("路由规则格式错误，err：" .. tostring(rules)))
+            LOGGER(ERR, "路由规则查询出现错误或者规则格式错误，err：", err, ", policies:", tostring(rules))
         end
     else
         LOGGER(ALERT, "hostkey为nil，无法执行路由操作")
     end
 end
 
-function _M.after()
+function _M.after(ctx)
 end
 
 local class = {}
-function class:new(ref, config)
-    local c, err = lrucache.new(config.router_lrucache_size)
-    if not c then
-        return error("failed to create the cache: " .. (err or "unknown"))
-    end
+function class:new(ref)
     local instance = {}
-    instance.cache = c
     instance.service = ref
     instance.policy_holder = PHI.policy_holder
     instance.mapper_holder = PHI.mapper_holder

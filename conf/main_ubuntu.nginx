@@ -1,6 +1,8 @@
 #user  yangyang.zhang;
 worker_processes 2;
 error_log /home/young/IdeaProjects/phi/conf/logs/error.log debug;
+worker_rlimit_core 400m;
+working_directory /home/young/IdeaProjects/phi/conf/logs;
 
 events {
     worker_connections 1024;
