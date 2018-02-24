@@ -3,71 +3,17 @@
 -- User: yangyang.zhang
 -- Date: 2018/1/29
 -- Time: 20:24
--- 动态upstream模块
+-- 动态upstream模块，由proxy_next_upstream 和 proxy_next_upstream_tries 配置指令来控制retry，balancer_by_lua* 会在 retry 的时候自动被重新调用
 --
-local lrucache = require "resty.lrucache"
-local CONST = require "core.constants"
 local balancer = require "ngx.balancer"
-local ngx_upstream = require "ngx.upstream"
 
 local LOGGER = ngx.log
-local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
-local NOTICE = ngx.NOTICE
 
-local get_upstreams = ngx_upstream.get_upstreams
-
-local utils = require "utils"
-local EVENTS = CONST.EVENT_DEFINITION.UPSTREAM_EVENTS
 local _M = {}
 
 function _M:init()
-    -- 加载配置文件中的upstream信息
-    local us = get_upstreams()
-    for _, u in ipairs(us) do
-        self.cache:set(u, "stable")
-    end
-end
-
-function _M:init_worker(observer)
-    -- 关注ups更新
-    observer.register(function(data, event, source, pid)
-        if event == EVENTS.UPS_UPDATE then
-            self.cache:set(data[1], data[2])
-        elseif event == EVENTS.UPS_DEL then
-            self.cache:delete(data[1])
-        end
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", tostring(data),
-            ", from process ", pid)
-    end, EVENTS.UPS_SOURCE)
-    -- 关注动态upstream中的server增删
-    observer.register(function(data, event, source, pid)
-        if event == EVENTS.SERVER_UPDATE then
-
-            self.cache:set()
-        elseif event == EVENTS.UPS_DEL then
-            self.cache:delete(data[1])
-        end
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", tostring(data),
-            ", from process ", pid)
-    end, EVENTS.SERVER_SOURCE)
-    -- 关注动态upstream中的server启停
-    observer.register(function(data, event, source, pid)
-        if event == EVENTS.UPS_UPDATE then
-            self.cache:set(data[1], data[2])
-        elseif event == EVENTS.UPS_DEL then
-            self.cache:delete(data[1])
-        end
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", tostring(data),
-            ", from process ", pid)
-    end, EVENTS.DYNAMIC_PEER_SOURCE)
 end
 
 function _M:before()
@@ -77,21 +23,12 @@ end
 function _M:load(ctx)
     local upstream = ctx.backend
     if upstream then
-        -- local缓存
-        local infos = self.cache:get(upstream)
-        if not infos then
-            -- shared缓存+db
-            LOGGER(DEBUG, "worker缓存未命中，upstream：", upstream)
-            local err
-            infos, err = self.service:getUpstream(upstream)
-            if err then
-                LOGGER(ERR, "upstream查询出现错误，err：", err)
-            end
-        else
-            LOGGER(DEBUG, "worker缓存命中，upstream：", upstream)
-        end
-        if infos ~= "stable" then
+        local infos, err = self.service:getUpstream(upstream)
+        if err then
+            LOGGER(ERR, "upstream查询出现错误，err：", err)
+        elseif type(infos) == "table" then
             upstream = self.default_upstream
+            ctx.servers = infos
         end
     else
         LOGGER(ALERT, "upstream为nil，转发到默认upstream:", self.default_upstream)
@@ -100,7 +37,9 @@ function _M:load(ctx)
 end
 
 function _M:balance(ctx)
-    utils.getHost(ctx);
+    local servers = ctx.servers
+    print("-----------------------------------",require("pl.pretty").write(servers))
+    -- 需要根据列表进行负载均衡处理
     -- well, usually we calculate the peer's host and port
     -- according to some balancing policies instead of using
     -- hard-coded values like below
@@ -121,12 +60,7 @@ end
 local class = {}
 
 function class:new(ref, config)
-    local c, err = lrucache.new(config.upstream_lrucache_size)
-    if not c then
-        return error("failed to create the cache: " .. (err or "unknown"))
-    end
     local instance = {}
-    instance.cache = c
     instance.default_upstream = config.balancer_upstream_name
     instance.service = ref
     instance.policy_holder = PHI.policy_holder

@@ -50,13 +50,20 @@ _M.addUpstreamServers = {
     method = POST,
     handler = function(self, request)
         local body = request.body
-        if not body or not body.upstreamName or not body.servers then
+        local upstreamName = body.upstreamName
+        local servers = body.servers
+        if not body or not upstreamName or not servers then
             Response.failure("缺少必须的请求参数！")
         end
         if #(body.servers) < 1 then
             Response.failure("请至少指定一个server列表！")
         end
-        local ok, err = self.upstreamService:addUpstreamServers(body.upstreamName, body.servers)
+        for _, server in ipairs(servers) do
+            if type(server.name) ~= "string" or type(server.info) ~= "table" then
+                Response.failure("请检查servers列表的数据格式，server.name必须是字符串" .. type(server.info))
+            end
+        end
+        local ok, err = self.upstreamService:addUpstreamServers(upstreamName, servers)
         if ok then
             Response.success()
         else

@@ -4,11 +4,14 @@
 -- Date: 2018/2/23
 -- Time: 17:35
 -- 查询db和多级缓存
+-- L1:Worker级别的LRU CACHE
+-- L2:共享内存SHARED_DICT
+-- L3:Redis,作为回源DB使用
 --
 local cjson = require "cjson"
 local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
-local Lock = require "resty.lock"
+local worker_pid = ngx.worker.pid
 
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
 local UPDATE = EVENTS.UPDATE
@@ -16,12 +19,20 @@ local UPDATE = EVENTS.UPDATE
 local SHARED_DICT_NAME = CONST.DICTS.PHI_ROUTER
 local PHI_EVENTS_DICT_NAME = CONST.DICTS.PHI_EVENTS
 
-local LOCK_NAME = CONST.DICTS.PHI_LOCK
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
+local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
 local _M = {}
+
+local function jsonSerializer(row)
+    if not row.skipRouter then
+        -- 排序
+        table.sort(row.policies, function(r1, r2) return r1.order < r2.order end)
+    end
+    return row
+end
 
 -- 初始化worker
 function _M:init_worker(observer)
@@ -29,16 +40,20 @@ function _M:init_worker(observer)
 
     -- 注册关注事件handler到指定事件源
     observer.register(function(data, event, source, pid)
-        if event == EVENTS.DELETE then
-            self.cache:set({ skipRouter = true })
-        elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
-            -- 更新缓存
-            self.cache:update()
+        if worker_pid() == pid then
+            LOGGER(NOTICE, "do not process the event send from self")
+        else
+            if event == EVENTS.DELETE then
+                self.cache:set({ skipRouter = true })
+            elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
+                -- 更新缓存
+                self.cache:update()
+            end
+            LOGGER(DEBUG, "received event; source=", source,
+                ", event=", event,
+                ", data=", tostring(data),
+                ", from process ", pid)
         end
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", tostring(data),
-            ", from process ", pid)
     end, EVENTS.SOURCE)
 end
 
@@ -56,12 +71,11 @@ function _M:getRouterPolicy(hostkey)
             return { skipRouter = true }, nil, 10
         end
         if type(res) == "string" then
+            -- 反序列化
             res = cjson.decode(res)
-            table.sort(res, function(r1, r2) return r1.order < r2.order end)
         end
         return res or { skipRouter = true }
     end)
-    self:updateEvent(hostkey)
     return result, err
 end
 
@@ -74,7 +88,7 @@ function _M:setRouterPolicy(hostkey, policies)
     local ok, err = self.dao:setRouterPolicy(hostkey, str)
 
     if ok then
-        ok, err = self.cache:set(hostkey, policies)
+        ok, err = self.cache:set(hostkey, nil, policies)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到shared_dict失败！err:", err)
         else
@@ -88,7 +102,7 @@ end
 function _M:delRouterPolicy(hostkey)
     local ok, err = self.dao:delRouterPolicy(hostkey)
     if ok then
-        ok, err = self.cache:delete(hostkey)
+        ok, err = self.cache:set(hostkey, nil, { skipRouter = true })
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从shared_dict删除路由规则失败！err:", err)
         else
@@ -114,8 +128,12 @@ function class:new(ref, config)
         lru_size = config.router_lrucache_size or 1000, -- L1缓存大小，默认取1000
         ttl = 0,                                        -- 缓存失效时间
         neg_ttl = 0,                                    -- 未命中缓存失效时间
-        resty_lock_opts = Lock:new(LOCK_NAME),          -- 回源DB的锁
+        resty_lock_opts = {                             -- 回源DB的锁配置
+            exptime = 10,                               -- 锁失效时间
+            timeout = 5                                 -- 获取锁超时时间
+        },
         ipc_shm = PHI_EVENTS_DICT_NAME,                 -- 通知其他worker的事件总线
+        l1_serializer = jsonSerializer                  -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)

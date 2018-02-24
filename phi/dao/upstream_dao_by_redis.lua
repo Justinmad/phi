@@ -37,10 +37,10 @@ function _M:addUpstreamServers(upstream, servers)
     local cacheKey = UPSTREAM_PREFIX .. upstream
     local commands = {}
     for i, server in ipairs(servers) do
-        commands[2 * i - 1] = server.name
-        commands[2 * i] = type(server.info)
+        commands[2 * i - 1] = server.name   -- 主机名+端口
+        commands[2 * i] = server.info       -- 具体信息的json字符串
     end
-    local ok, err = self.db:hset(cacheKey, unpack(servers))
+    local ok, err = self.db:hmset(cacheKey, unpack(commands))
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]保存服务器列表失败！err:", err)
     end

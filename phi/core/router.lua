@@ -26,7 +26,6 @@
 
 local utils = require "utils"
 local LOGGER = ngx.log
-local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local NOTICE = ngx.NOTICE
@@ -39,7 +38,7 @@ end
 function _M:access(ctx)
     local hostkey = utils.getHost(ctx);
     if hostkey then
-        -- local缓存
+        -- 查询多级缓存
         local rules, err = self.service:getRouterPolicy(hostkey)
         if not err and rules and type(rules) == "table" then
             if rules.skipRouter then
@@ -48,7 +47,7 @@ function _M:access(ctx)
             -- 先取默认值
             local result = rules.default
             -- 计算路由结果
-            for _, t in pairs(rules.policies) do
+            for _, t in ipairs(rules.policies) do
                 local tag
                 if t.mapper then
                     tag = self.mapper_holder:map(t.mapper, t.tag)

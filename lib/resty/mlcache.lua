@@ -123,6 +123,51 @@ local unmarshallers = {
 }
 
 
+local function rebuild_lru(self)
+    local name = self.name
+
+    if self.lru then
+        -- When calling purge(), we invalidate the entire LRU by
+        -- GC-ing it.
+        -- lua-resty-lrucache has a 'flush_all()' method in development
+        -- which would be more appropriate:
+        -- https://github.com/openresty/lua-resty-lrucache/pull/23
+        LRU_INSTANCES[name] = nil
+        self.c_lru_gc = nil
+        self.lru = nil
+    end
+
+    -- Several mlcache instances can have the same name and hence, the same
+    -- lru instance. We need to GC such LRU instances when all mlcache
+    -- instances using them are GC'ed.
+    -- We do this by using a C struct with a __gc metamethod.
+
+    local c_lru_gc    = ffi.new(c_lru_gc_type)
+    c_lru_gc.len      = #name
+    c_lru_gc.lru_name = ffi.cast(c_str_type, name)
+
+    -- keep track of our LRU instance and a counter of how many mlcache
+    -- instances are refering to it
+
+    local lru_gc = LRU_INSTANCES[name]
+    if not lru_gc then
+        lru_gc              = { count = 0, lru = nil }
+        LRU_INSTANCES[name] = lru_gc
+    end
+
+    local lru = lru_gc.lru
+    if not lru then
+        lru        = lrucache.new(self.lru_size)
+        lru_gc.lru = lru
+    end
+
+    self.lru      = lru
+    self.c_lru_gc = c_lru_gc
+
+    lru_gc.count = lru_gc.count + 1
+end
+
+
 local _M     = {
     _VERSION = "1.0.1",
     _AUTHOR  = "Thibault Charbonnier",
@@ -180,6 +225,11 @@ function _M.new(name, shm, opts)
             error("opts.ipc_shm must be a string", 2)
         end
 
+        if opts.l1_serializer ~= nil
+            and type(opts.l1_serializer) ~= "function"
+        then
+            error("opts.l1_serializer must be a function", 2)
+        end
     else
         opts = {}
     end
@@ -195,7 +245,9 @@ function _M.new(name, shm, opts)
         shm             = shm,
         ttl             = opts.ttl     or 30,
         neg_ttl         = opts.neg_ttl or 5,
+        lru_size        = opts.lru_size or 100,
         resty_lock_opts = opts.resty_lock_opts,
+        l1_serializer   = opts.l1_serializer,
     }
 
     if opts.ipc_shm then
@@ -208,9 +260,14 @@ function _M.new(name, shm, opts)
         end
 
         self.ipc_invalidation_channel = fmt("mlcache:invalidations:%s", name)
+        self.ipc_purge_channel = fmt("mlcache:purge:%s", name)
 
         self.ipc:subscribe(self.ipc_invalidation_channel, function(key)
             self.lru:delete(key)
+        end)
+
+        self.ipc:subscribe(self.ipc_purge_channel, function()
+            rebuild_lru(self)
         end)
     end
 
@@ -218,41 +275,14 @@ function _M.new(name, shm, opts)
         self.lru = opts.lru
 
     else
-        -- Several mlcache instances can have the same name and hence, the samw
-        -- lru instance. We need to GC such LRU instances when all mlcache
-        -- instances using them are GC'ed.
-        -- We do this by using a C struct with a __gc metamethod.
-
-        local c_lru_gc    = ffi.new(c_lru_gc_type)
-        c_lru_gc.lru_name = ffi.cast(c_str_type, name)
-        c_lru_gc.len      = #name
-
-        -- Keep track of our LRU instance and a counter of how many mlcache
-        -- instances are refering to it
-
-        local lru_gc = LRU_INSTANCES[name]
-        if not lru_gc then
-            lru_gc              = { count = 0, lru = nil }
-            LRU_INSTANCES[name] = lru_gc
-        end
-
-        local lru = lru_gc.lru
-        if not lru then
-            lru   = lrucache.new(opts.lru_size or 100)
-            lru_gc.lru = lru
-        end
-
-        self.lru      = lru
-        self.c_lru_gc = c_lru_gc
-
-        lru_gc.count = lru_gc.count + 1
+        rebuild_lru(self)
     end
 
     return setmetatable(self, mt)
 end
 
 
-local function set_lru(self, key, value, ttl, neg_ttl)
+local function set_lru(self, key, value, ttl, neg_ttl, l1_serializer)
     if value == nil then
         if neg_ttl == 0 then
             -- indefinite ttl for lua-resty-lrucache is 'nil'
@@ -267,6 +297,22 @@ local function set_lru(self, key, value, ttl, neg_ttl)
     if ttl == 0 then
         -- indefinite ttl for lua-resty-lrucache is 'nil'
         ttl = nil
+    end
+
+    if l1_serializer then
+        local ok, err
+        ok, value, err = pcall(l1_serializer, value)
+        if not ok then
+            return nil, "l1_serializer threw an error: " .. value
+        end
+
+        if err then
+            return nil, err
+        end
+
+        if value == nil then
+            return nil, "l1_serializer returned a nil value"
+        end
     end
 
     self.lru:set(key, value, ttl)
@@ -319,7 +365,7 @@ local function set_shm(self, shm_key, value, ttl, neg_ttl)
 end
 
 
-local function get_shm_set_lru(self, key, shm_key)
+local function get_shm_set_lru(self, key, shm_key, l1_serializer)
     local v, err = self.dict:get(shm_key)
     if err then
         return nil, "could not read from lua_shared_dict: " .. err
@@ -340,7 +386,8 @@ local function get_shm_set_lru(self, key, shm_key)
 
         -- value_type of 0 is a nil entry
         if value_type == 0 then
-            return set_lru(self, key, nil, remaining_ttl, remaining_ttl)
+            return set_lru(self, key, nil, remaining_ttl, remaining_ttl,
+                           l1_serializer)
         end
 
         local value, err = unmarshallers[value_type](str_serialized)
@@ -349,7 +396,8 @@ local function get_shm_set_lru(self, key, shm_key)
                         "retrieval: " .. err
         end
 
-        return set_lru(self, key, value, remaining_ttl, remaining_ttl)
+        return set_lru(self, key, value, remaining_ttl, remaining_ttl,
+                       l1_serializer)
     end
 end
 
@@ -357,6 +405,7 @@ end
 local function check_opts(self, opts)
     local ttl
     local neg_ttl
+    local l1_serializer
 
     if opts ~= nil then
         if type(opts) ~= "table" then
@@ -384,6 +433,11 @@ local function check_opts(self, opts)
                 error("opts.neg_ttl must be >= 0", 3)
             end
         end
+
+        l1_serializer = opts.l1_serializer
+        if l1_serializer ~= nil and type(l1_serializer) ~= "function" then
+           error("opts.l1_serializer must be a function", 3)
+        end
     end
 
     if not ttl then
@@ -394,7 +448,11 @@ local function check_opts(self, opts)
         neg_ttl = self.neg_ttl
     end
 
-    return ttl, neg_ttl
+    if not l1_serializer then
+        l1_serializer = self.l1_serializer
+    end
+
+    return ttl, neg_ttl, l1_serializer
 end
 
 
@@ -435,8 +493,12 @@ function _M:get(key, opts, cb, ...)
     -- shm
     local namespaced_key = self.name .. key
 
+    -- opts validation
+
+    local ttl, neg_ttl, l1_serializer = check_opts(self, opts)
+
     local err
-    data, err = get_shm_set_lru(self, key, namespaced_key)
+    data, err = get_shm_set_lru(self, key, namespaced_key, l1_serializer)
     if err then
         return nil, err
     end
@@ -452,10 +514,6 @@ function _M:get(key, opts, cb, ...)
     -- not in shm either
     -- single worker must execute the callback
 
-    -- opts validation
-
-    local ttl, neg_ttl = check_opts(self, opts)
-
     local lock, err = resty_lock:new(self.shm, self.resty_lock_opts)
     if not lock then
         return nil, "could not create lock: " .. err
@@ -468,7 +526,7 @@ function _M:get(key, opts, cb, ...)
 
     -- check for another worker's success at running the callback
 
-    data, err = get_shm_set_lru(self, key, namespaced_key)
+    data, err = get_shm_set_lru(self, key, namespaced_key, l1_serializer)
     if err then
         return unlock_and_ret(lock, nil, err)
     end
@@ -482,16 +540,18 @@ function _M:get(key, opts, cb, ...)
     end
 
     -- still not in shm, we are responsible for running the callback
-    --
-    -- Note: the `_` variable is a placeholder for forward compatibility
-    -- for callback-returned errors
 
-    local ok, err, _, new_ttl = pcall(cb, ...)
-    if not ok then
-        return unlock_and_ret(lock, nil, "callback threw an error: " .. err)
+    local pok, perr, err, new_ttl = pcall(cb, ...)
+    if not pok then
+        return unlock_and_ret(lock, nil, "callback threw an error: " .. perr)
     end
 
-    data = err
+    data = perr
+
+    if err then
+        -- callback returned nil + err
+        return unlock_and_ret(lock, data, err)
+    end
 
     -- override ttl / neg_ttl
 
@@ -513,7 +573,14 @@ function _M:get(key, opts, cb, ...)
 
     -- set our own worker's LRU cache
 
-    set_lru(self, key, data, ttl, neg_ttl)
+    data, err = set_lru(self, key, data, ttl, neg_ttl, l1_serializer)
+    if err then
+        return unlock_and_ret(lock, nil, err)
+    end
+
+    if data == CACHE_MISS_SENTINEL_LRU then
+        return unlock_and_ret(lock, nil, nil, 3)
+    end
 
     -- unlock and return
 
@@ -570,10 +637,10 @@ function _M:set(key, opts, value)
         -- restrict this key to the current namespace, so we isolate this
         -- mlcache instance from potential other instances using the same
         -- shm
-        local ttl, neg_ttl   = check_opts(self, opts)
+        local ttl, neg_ttl, l1_serializer = check_opts(self, opts)
         local namespaced_key = self.name .. key
 
-        set_lru(self, key, value, ttl, neg_ttl)
+        set_lru(self, key, value, ttl, neg_ttl, l1_serializer)
 
         local ok, err = set_shm(self, namespaced_key, value, ttl, neg_ttl)
         if not ok then
@@ -618,6 +685,30 @@ function _M:delete(key)
     local ok, err = self.ipc:broadcast(self.ipc_invalidation_channel, key)
     if not ok then
         return nil, "could not broadcast deletion: " .. err
+    end
+
+    return true
+end
+
+
+function _M:purge(flush_expired)
+    if not self.ipc then
+        error("no ipc to propagate purge, specify ipc_shm", 2)
+    end
+
+    -- clear shm first
+    self.dict:flush_all()
+
+    if flush_expired then
+        self.dict:flush_expired()
+    end
+
+    -- clear LRU content and propagate
+    rebuild_lru(self)
+
+    local ok, err = self.ipc:broadcast(self.ipc_purge_channel, "")
+    if not ok then
+        return nil, "could not broadcast purge: " .. err
     end
 
     return true

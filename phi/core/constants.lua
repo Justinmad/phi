@@ -39,7 +39,7 @@ return {
         UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key
         ROUTER = "PHI:CTRL:ROUTER:",                            -- 作为redis中路由规则的key
         RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",               -- 作为redis中限流规则的key
-        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"    -- 作为redis中降级规则的key
+        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"   -- 作为redis中降级规则的key
     },
     EVENT_DEFINITION = {
         ROUTER_SERVICE = {
@@ -53,17 +53,9 @@ return {
             PEER_DOWN = "peer_down",
             PEER_UP = "peer_up",
 
-            DYNAMIC_PEER_SOURCE = "dynamic_peer",
-            DYNAMIC_PEER_DOWN = "dynamic_peer_down",
-            DYNAMIC_PEER_UP = "dynamic_peer_up",
-
-            SERVER_SOURCE = "server",
-            SERVER_UPDATE = "server_update",
-            SERVER_DEL = "server_del",
-
-            UPS_SOURCE = "upsream",
-            UPS_UPDATE = "ups_update",
-            UPS_DEL = "ups_del"
+            DYNAMIC_UPS_SOURCE = "dynamic_ups",
+            DYNAMIC_UPS_DEL = "dynamic_ups_del",
+            DYNAMIC_UPS_UPDATE = "dynamic_ups_update"
         }
     }
 }
