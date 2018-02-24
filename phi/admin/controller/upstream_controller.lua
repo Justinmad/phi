@@ -59,7 +59,7 @@ _M.addUpstreamServers = {
             Response.failure("请至少指定一个server列表！")
         end
         for _, server in ipairs(servers) do
-            if type(server.name) ~= "string" or type(server.info) ~= "table" then
+            if type(server.name) ~= "string" or (server.name ~= "strategy" and type(server.info) ~= "table") then
                 Response.failure("请检查servers列表的数据格式，server.name必须是字符串" .. type(server.info))
             end
         end

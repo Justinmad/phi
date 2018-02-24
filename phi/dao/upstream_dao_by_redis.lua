@@ -23,11 +23,16 @@ local _M = {}
 -- @param routerKey：upstream名称
 function _M:getUpstreamServers(upstream)
     local cacheKey = UPSTREAM_PREFIX .. upstream
-    local policiesStr, err = self.db:hgetall(cacheKey)
+    local res, err = self.db:hgetall(cacheKey)
+    local result = {}
+    for i = 1, #res, 2 do
+        result[res[i]] = res[i + 1]
+    end
     if err then
         LOGGER(ALERT, "通过upstream：[" .. upstream .. "]未查询到对应的服务器")
     end
-    return policiesStr, err
+
+    return result, err
 end
 
 -- 添加指定servers列表到upstream
@@ -37,8 +42,8 @@ function _M:addUpstreamServers(upstream, servers)
     local cacheKey = UPSTREAM_PREFIX .. upstream
     local commands = {}
     for i, server in ipairs(servers) do
-        commands[2 * i - 1] = server.name   -- 主机名+端口
-        commands[2 * i] = server.info       -- 具体信息的json字符串
+        commands[2 * i - 1] = server.name -- 主机名+端口
+        commands[2 * i] = server.info -- 具体信息的json字符串
     end
     local ok, err = self.db:hmset(cacheKey, unpack(commands))
     if not ok then
@@ -70,7 +75,7 @@ function _M:downUpstreamServer(upstream, serverName, down)
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]修改server失败！err:", err)
     end
-    return ok, err
+    return oldTable.weight, err
 end
 
 -- 全量查询路由规则

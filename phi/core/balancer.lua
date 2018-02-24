@@ -23,12 +23,12 @@ end
 function _M:load(ctx)
     local upstream = ctx.backend
     if upstream then
-        local infos, err = self.service:getUpstream(upstream)
+        local upstreamBalancer, err = self.service:getUpstreamBalancer(upstream)
         if err then
             LOGGER(ERR, "upstream查询出现错误，err：", err)
-        elseif type(infos) == "table" then
+        elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
-            ctx.servers = infos
+            ctx.balancer = upstreamBalancer
         end
     else
         LOGGER(ALERT, "upstream为nil，转发到默认upstream:", self.default_upstream)
@@ -37,16 +37,11 @@ function _M:load(ctx)
 end
 
 function _M:balance(ctx)
-    local servers = ctx.servers
-    print("-----------------------------------",require("pl.pretty").write(servers))
-    -- 需要根据列表进行负载均衡处理
-    -- well, usually we calculate the peer's host and port
-    -- according to some balancing policies instead of using
-    -- hard-coded values like below
-    local host = "127.0.0.1"
-    local port = 5555
+    local ups_balancer = ctx.balancer
 
-    local ok, err = balancer.set_current_peer(host, port)
+    local server = ups_balancer:find()
+
+    local ok, err = balancer.set_current_peer(server)
 
     if not ok then
         LOGGER(ERR, "failed to set the current peer: ", err)
