@@ -34,6 +34,15 @@ server {
 }
 
 server {
+    listen 12346;
+    server_name localhost;
+    location / {
+        root /home/young;
+    }
+}
+
+
+server {
     listen 8888;
 
     location  / {
