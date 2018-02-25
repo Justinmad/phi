@@ -90,7 +90,7 @@ http{
         balancer_by_lua_block {
             PHI:balancer();
         }
-        keepalive 2000;
+        keepalive 20;
     }
 
     include vhost.nginx;

@@ -15,7 +15,7 @@ upstream upstream7777_6666_5555 {
 
 upstream upstream12346 {
     server 127.0.0.1:12346;
-    keepalive 20000;
+    keepalive 20;
 }
 
 server {
