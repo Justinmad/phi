@@ -8,12 +8,12 @@
 -- L2:共享内存SHARED_DICT
 -- L3:Redis,作为回源DB使用
 --
-local cjson = require "cjson.safe"
 local ngx_upstream = require "ngx.upstream"
 local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
-local resty_chash = require "resty.chash"
-local resty_roundrobin = require "resty.roundrobin"
+local pretty_write = require("pl.pretty").write
+
+local balancer_warpper = require "core.balancer.balancer_warpper"
 
 local get_upstreams = ngx_upstream.get_upstreams
 local set_peer_down = ngx_upstream.set_peer_down
@@ -46,11 +46,12 @@ function _M:init_worker(observer)
     observer.register(function(data, event, source, pid)
         LOGGER(DEBUG, "received event; source=", source,
             ", event=", event,
-            ", data=", tostring(data),
+            ", data=", pretty_write(data),
             ", from process ", pid)
         if worker_pid() == pid then
             LOGGER(NOTICE, "do not process the event send from self")
         else
+            -- server增删情况下，重建balancer
             self.cache:update()
         end
     end, EVENTS.DYNAMIC_UPS_SOURCE)
@@ -58,12 +59,23 @@ function _M:init_worker(observer)
     observer.register(function(data, event, source, pid)
         LOGGER(DEBUG, "received event; source=", source,
             ", event=", event,
-            ", data=", tostring(data),
+            ", data=", pretty_write(data),
             ", from process ", pid)
-        if worker_pid() == pid then
+        if worker_pid() == pid and type(data[4]) ~= "boolean" then
+            --            local _, _, upstreamInfo = self.cache:peek(data[1])
+            --            if upstreamInfo then
+            --                for k, v in pairs(upstreamInfo) do
+            --                    if k == data[2] then
+            --                        LOGGER(NOTICE, "update L2 cache,upstreamName:", data[1], ",server:", data[2])
+            --                        local tmpJson = cjson.decode(v)
+            --                        tmpJson.weight = data[3]
+            --                        upstreamInfo[k] = cjson.encode(tmpJson)
+            --                    end
+            --                end
+            --            end
             LOGGER(NOTICE, "do not process the event send from self")
         else
-            if data[4] ~= nil then
+            if type(data[4]) == "boolean" then
                 set_peer_down(data[1], data[2], data[3], data[4])
             else
                 self:getUpstreamBalancer(data[1]).set(data[2], data[3])
@@ -98,27 +110,33 @@ end
 
 -- 关闭指定的peer，暂时不参与负载均衡
 function _M:setPeerDown(upstreamName, peerId, down, isBackup)
+    -- 查询L2
     local _, err, upstreamInfo = self.cache:peek(upstreamName)
     local ok
-    if upstreamInfo then
-        if upstreamInfo == "stable" then
-            ok, err = ngx_upstream.set_peer_down(upstreamName, isBackup, peerId, down)
-            if ok then
-                self:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
-            end
-        else
-            -- 更新DB
-            local weight
-            weight, err = self.dao:downUpstreamServer(upstreamName, peerId, down)
-            -- TODO 忽略了L2缓存的更新，需要考虑如何更新L2缓存
-            if not err then
-                if down then weight = 0 end
-                self:getUpstreamBalancer(upstreamName).set(peerId, weight)
-                self:peerStateChangeEvent(upstreamName, peerId, weight)
-            end
+    if upstreamInfo == "stable" then
+        ok, err = ngx_upstream.set_peer_down(upstreamName, isBackup, peerId, down)
+        if ok then
+            self:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
         end
     else
-        err = "不存在的upstream！"
+        if not upstreamInfo then
+            -- 查询DB
+            upstreamInfo, err = self.dao:getUpstreamServers(upstreamName)
+            if err or upstreamName == nil then
+                err = "查询upstream出错！可能是不存在upstreamName:" .. upstreamName
+                LOGGER(ERR, err)
+                return ok, err
+            end
+        end
+        -- 更新db
+        local weight
+        weight, err = self.dao:downUpstreamServer(upstreamName, peerId, down)
+        if not err then
+            if down then weight = 0 end
+            self:getUpstreamBalancer(upstreamName):set(peerId, weight)
+            self:peerStateChangeEvent(upstreamName, peerId, weight)
+            ok = true
+        end
     end
     return ok, err
 end
@@ -132,7 +150,7 @@ function _M:refreshCache(upstreamName)
     elseif res == nil then
         LOGGER(ERR, "could not find upstream servers")
     else
-        self.cache:set(upstreamName, res)
+        self.cache:set(upstreamName, nil, res)
         -- 通知其它worker更新缓存
         self:dynamicUpsChangeEvent(upstreamName)
     end
@@ -147,12 +165,29 @@ function _M:addUpstreamServers(upstream, servers)
         if upstreamInfo == "stable" then
             err = "暂不支持对配置文件中的upstream进行编辑！"
         else
-            for _, server in ipairs(servers) do
-                server.info = cjson.encode(server.info)
-            end
             ok, err = self.dao:addUpstreamServers(upstream, servers)
             if ok then
-                self.cache:set(upstream, servers)
+                --通知其它worker进行更新缓存,并且重建balancer
+                self:refreshCache(upstream)
+            end
+        end
+    else
+        LOGGER(ERR, "查询upstream信息出现错误，err:", err)
+    end
+    return ok, err
+end
+
+-- 动态添加upstream中的server
+function _M:delUpstreamServers(upstream, servers)
+    -- 查询
+    local _, err, upstreamInfo = self.cache:peek(upstream)
+    local ok
+    if not err then
+        if upstreamInfo == "stable" then
+            err = "暂不支持对配置文件中的upstream进行编辑！"
+        else
+            ok, err = self.dao:delUpstreamServers(upstream, servers)
+            if ok then
                 --通知其它worker进行更新缓存,并且重建balancer
                 self:refreshCache(upstream)
             end
@@ -194,11 +229,14 @@ local function newBalancer(res)
     ]]
     if type(res) == "table" then
         local server_list = new_tab(0, #res)
-        local strategy
-        print("-----------------------------------",require("pl.pretty").write(res))
+        local strategy, mapper, tag
         for k, v in pairs(res) do
             if k == "strategy" then
                 strategy = v
+            elseif k == "mapper" then
+                mapper = v
+            elseif k == "tag" then
+                tag = v
             else
                 --                local hostAndPort = split(k, ":")
                 --                server.host = hostAndPort[1]
@@ -208,14 +246,12 @@ local function newBalancer(res)
                 --                server.max_fails = infos.max_fails
                 --                server.fail_timeout = infos.fail_timeout
                 --                server.backup = infos.ackup
-                local info = cjson.decode(v)
-                if not info.down then
-                    server_list[k] = info.weight
+                if not v.down then
+                    server_list[k] = v.weight
                 end
             end
         end
---        print("-----------------------------------",require("pl.pretty").write(server_list))
-        return strategy == "resty_chash" and resty_chash:new(server_list) or resty_roundrobin:new(server_list)
+        return balancer_warpper:new(strategy, server_list, mapper, tag)
     else
         return res
     end

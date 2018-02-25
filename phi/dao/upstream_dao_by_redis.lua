@@ -26,7 +26,7 @@ function _M:getUpstreamServers(upstream)
     local res, err = self.db:hgetall(cacheKey)
     local result = {}
     for i = 1, #res, 2 do
-        result[res[i]] = res[i + 1]
+        result[res[i]] = cjson.decode(res[i + 1])
     end
     if err then
         LOGGER(ALERT, "通过upstream：[" .. upstream .. "]未查询到对应的服务器")
@@ -43,7 +43,7 @@ function _M:addUpstreamServers(upstream, servers)
     local commands = {}
     for i, server in ipairs(servers) do
         commands[2 * i - 1] = server.name -- 主机名+端口
-        commands[2 * i] = server.info -- 具体信息的json字符串
+        commands[2 * i] = cjson.encode(server.info) -- 具体信息的json字符串
     end
     local ok, err = self.db:hmset(cacheKey, unpack(commands))
     if not ok then
@@ -53,9 +53,9 @@ function _M:addUpstreamServers(upstream, servers)
 end
 
 -- 删除指定upstream中的server
-function _M:delUpstreamServer(upstream, serverName)
+function _M:delUpstreamServers(upstream, serverNames)
     local cacheKey = UPSTREAM_PREFIX .. upstream
-    local ok, err = self.db:hdel(cacheKey, serverName)
+    local ok, err = self.db:hdel(cacheKey, unpack(serverNames))
     if not ok then
         LOGGER(ERR, "通过upstream：[" .. upstream .. "]删除server失败！err:", err)
     end
@@ -117,6 +117,7 @@ function _M:getAllUpstreams(cursor, count)
 end
 
 local class = {}
+
 function class:new(db)
     return setmetatable({ db = db }, { __index = _M })
 end

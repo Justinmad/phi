@@ -59,11 +59,47 @@ _M.addUpstreamServers = {
             Response.failure("请至少指定一个server列表！")
         end
         for _, server in ipairs(servers) do
-            if type(server.name) ~= "string" or (server.name ~= "strategy" and type(server.info) ~= "table") then
-                Response.failure("请检查servers列表的数据格式，server.name必须是字符串" .. type(server.info))
+            if type(server.name) ~= "string" then
+                Response.failure("请检查servers列表的数据格式是否正确!")
             end
         end
         local ok, err = self.upstreamService:addUpstreamServers(upstreamName, servers)
+        if ok then
+            Response.success()
+        else
+            Response.failure(err)
+        end
+    end
+}
+
+--[[
+    添加动态upstream
+    请求路径：/upstream/delUpstreamServers
+    请求方式：POST
+    请求数据格式：JSON
+    请求数据示例：{
+        upstreamName:"a new upstream",
+        servers:[{
+            addr:"127.0.0.1:8989",
+            weight:100,
+            backup:false,
+            down:true
+        }]
+    }
+-- ]]
+_M.delUpstreamServers = {
+    method = POST,
+    handler = function(self, request)
+        local body = request.body
+        local upstreamName = body.upstreamName
+        local servers = body.servers
+        if not body or not upstreamName or not servers then
+            Response.failure("缺少必须的请求参数！")
+        end
+        if #(body.servers) < 1 then
+            Response.failure("请至少指定一个server列表！")
+        end
+        local ok, err = self.upstreamService:delUpstreamServers(upstreamName, servers)
         if ok then
             Response.success()
         else
@@ -85,7 +121,7 @@ function _M:setPeerDown(request)
     local isBackup = request.args["isBackup"]
     local peerId = request.args["peerId"]
     local down = request.args["down"]
-    if (not upstreamName) or (isBackup == nil) or (down == nil) or (not peerId) then
+    if (not upstreamName) or (down == nil) or (not peerId) then
         Response.failure("缺少必须参数！")
     end
 
@@ -93,7 +129,7 @@ function _M:setPeerDown(request)
     if ok then
         Response.success()
     else
-        Response.failue(err)
+        Response.failure(err)
     end
 end
 

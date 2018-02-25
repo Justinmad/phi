@@ -10,25 +10,17 @@
 -- delRouterPolicy(hostkey)
 -- getAllRouterPolicy(cursor, count)
 --
+local cjson = require "cjson.safe"
+local CONST = require "core.constants"
+
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR
 local LOGGER = ngx.log
-local cjson = require "cjson.safe"
-local CONST = require "core.constants"
+
 local ROUTER_PREFIX = CONST.CACHE_KEY.ROUTER
 local MATCH = ROUTER_PREFIX .. "*"
 
-local class = {}
-
 local _M = {}
-
-function class:new(db)
-    if db then
-        return setmetatable({ db = db }, { __index = _M }), nil
-    end
-    error("redis实例不能为nil,可能是PHI还未初始化？")
-end
-
 -- 根据主机名查询路由规则表
 -- @parma hostkey：路由key
 function _M:getRouterPolicy(hostkey)
@@ -38,7 +30,7 @@ function _M:getRouterPolicy(hostkey)
     if err then
         LOGGER(ALERT, "通过hostkey：[" .. hostkey .. "]未查询到对应的路由规则")
     end
-    return policiesStr, err
+    return cjson.decode(policiesStr), err
 end
 
 -- 添加指定路由规则到db
@@ -46,7 +38,7 @@ end
 -- @param policy：规则数据,json串
 function _M:setRouterPolicy(hostkey, policy)
     local cacheKey = ROUTER_PREFIX .. hostkey
-    local ok, err = self.db:set(cacheKey, policy)
+    local ok, err = self.db:set(cacheKey, cjson.encode(policy))
     if not ok then
         LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则失败！err:", err)
     end
@@ -101,6 +93,15 @@ function _M:getAllRouterPolicy(cursor, count)
         LOGGER(ERR, "全量查询失败！err:", err)
     end
     return result, err
+end
+
+local class = {}
+
+function class:new(db)
+    if db then
+        return setmetatable({ db = db }, { __index = _M }), nil
+    end
+    error("redis实例不能为nil,可能是PHI还未初始化？")
 end
 
 return class

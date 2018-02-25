@@ -9,6 +9,7 @@ local balancer = require "ngx.balancer"
 
 local LOGGER = ngx.log
 local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
 local ALERT = ngx.ALERT
 
 local _M = {}
@@ -28,6 +29,7 @@ function _M:load(ctx)
             LOGGER(ERR, "upstream查询出现错误，err：", err)
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
+            -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer
         end
     else
@@ -40,7 +42,7 @@ function _M:balance(ctx)
     local ups_balancer = ctx.balancer
 
     local server = ups_balancer:find()
-
+    LOGGER(DEBUG, "select server:", server)
     local ok, err = balancer.set_current_peer(server)
 
     if not ok then

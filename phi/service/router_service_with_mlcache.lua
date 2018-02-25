@@ -8,9 +8,9 @@
 -- L2:共享内存SHARED_DICT
 -- L3:Redis,作为回源DB使用
 --
-local cjson = require "cjson"
 local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
+local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
 
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
@@ -26,7 +26,7 @@ local LOGGER = ngx.log
 
 local _M = {}
 
-local function jsonSerializer(row)
+local function sortSerializer(row)
     if not row.skipRouter then
         -- 排序
         table.sort(row.policies, function(r1, r2) return r1.order < r2.order end)
@@ -51,7 +51,7 @@ function _M:init_worker(observer)
             end
             LOGGER(DEBUG, "received event; source=", source,
                 ", event=", event,
-                ", data=", tostring(data),
+                ", data=", pretty_write(data),
                 ", from process ", pid)
         end
     end, EVENTS.SOURCE)
@@ -70,10 +70,6 @@ function _M:getRouterPolicy(hostkey)
             LOGGER(ERR, "could not retrieve router policy:", err)
             return { skipRouter = true }, nil, 10
         end
-        if type(res) == "string" then
-            -- 反序列化
-            res = cjson.decode(res)
-        end
         return res or { skipRouter = true }
     end)
     return result, err
@@ -81,12 +77,7 @@ end
 
 -- 新增or更新路由规则
 function _M:setRouterPolicy(hostkey, policies)
-    local str = policies
-    if type(str) == "table" then
-        str = cjson.encode(policies)
-    end
-    local ok, err = self.dao:setRouterPolicy(hostkey, str)
-
+    local ok, err = self.dao:setRouterPolicy(hostkey, policies)
     if ok then
         ok, err = self.cache:set(hostkey, nil, policies)
         if not ok then
@@ -133,7 +124,7 @@ function class:new(ref, config)
             timeout = 5                                 -- 获取锁超时时间
         },
         ipc_shm = PHI_EVENTS_DICT_NAME,                 -- 通知其他worker的事件总线
-        l1_serializer = jsonSerializer                  -- 结果排序处理
+        l1_serializer = sortSerializer -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)
