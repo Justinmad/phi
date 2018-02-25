@@ -24,7 +24,7 @@ local _M = {}
 function _M:getUpstreamServers(upstream)
     local cacheKey = UPSTREAM_PREFIX .. upstream
     local res, err = self.db:hgetall(cacheKey)
-    local result = {}
+    local result = #res~=0 and {} or nil
     for i = 1, #res, 2 do
         result[res[i]] = cjson.decode(res[i + 1])
     end

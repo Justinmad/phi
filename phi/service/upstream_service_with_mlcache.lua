@@ -228,6 +228,7 @@ local function newBalancer(res)
         }
     ]]
     if type(res) == "table" then
+        print("....",pretty_write(res))
         local server_list = new_tab(0, #res)
         local strategy, mapper, tag
         for k, v in pairs(res) do
