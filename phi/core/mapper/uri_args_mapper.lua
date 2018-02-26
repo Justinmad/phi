@@ -7,7 +7,7 @@
 --
 local _M = {}
 
-function _M.map(arg_name)
+function _M.map(ctx, arg_name)
     return ngx.req.get_uri_args()[arg_name]
 end
 

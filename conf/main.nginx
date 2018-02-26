@@ -1,6 +1,7 @@
 #user  yangyang.zhang;
-worker_processes 1;
-error_log E:/work/phi/conf/logs/error.log debug;
+worker_processes auto;
+#worker_cpu_affinity auto;
+error_log E:/work/phi/conf/logs/error.log notice;
 
 events {
     worker_connections 10240;
@@ -17,7 +18,6 @@ http{
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
     lua_package_path 'D:/soft/ZeroBraneStudioEduPack-1.70-win32/lualibs/?/?.lua;D:/soft/ZeroBraneStudioEduPack-1.70-win32/lualibs/?.lua;E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
-    lua_package_cpath 'D:/soft/ZeroBraneStudioEduPack-1.70-win32/lualibs/?.dll;;';
     lua_code_cache on;
 
     lua_shared_dict phi                     5m;
@@ -25,6 +25,8 @@ http{
     lua_shared_dict phi_lock                5m;
     lua_shared_dict phi_router              10m;
     lua_shared_dict phi_upstream            10m;
+    lua_shared_dict phi_limit_req           128m;
+    lua_shared_dict phi_limit_conn          128m;
 #   lua_shared_dict phi_cache          128m;
 
     init_by_lua_block {

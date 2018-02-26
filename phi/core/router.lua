@@ -50,7 +50,7 @@ function _M:access(ctx)
             for _, t in ipairs(rules.policies) do
                 local tag
                 if t.mapper then
-                    tag = self.mapper_holder:map(t.mapper, t.tag)
+                    tag = self.mapper_holder:map(ctx, t.mapper, t.tag)
                 end
                 local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
                 if err then

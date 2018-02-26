@@ -42,14 +42,15 @@ function utils.getHost(ctx)
 end
 
 function getHeader(header)
+    local ctx = ngx.ctx
     local field = "_cache_" .. header
-    local result = ngx.ctx[field];
+    local result = ctx[field];
 
     if not result then
         -- 获取到请求头中的Host
         result = ngx.req.get_headers()[header]
         if result then
-            ngx.ctx[field] = result;
+            ctx[field] = result;
         end
     end
 

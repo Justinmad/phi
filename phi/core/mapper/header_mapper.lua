@@ -7,7 +7,7 @@
 --
 local _M = {}
 
-function _M.map(header)
+function _M.map(ctx, header)
     return ngx.req.get_headers()[header]
 end
 

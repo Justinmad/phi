@@ -9,6 +9,7 @@ local _M = {}
 local mt = { __index = _M }
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
+local ERR = ngx.ERR
 
 function _M:new(config)
     if type(config) == "table" then
@@ -27,12 +28,15 @@ function _M:new(config)
     return setmetatable({}, mt)
 end
 
-function _M:map(type, tag)
-    local mapper = self[type]
-    if not mapper then
-        return nil, "未查询到可用的mapper:" .. type
+function _M:map(ctx, typeStr, tag)
+    if type(ctx) ~= "table" or type(typeStr) ~= "string" then
+        LOGGER(ERR, "ctx参数不正确？")
     end
-    return mapper.map(tag)
+    local mapper = self[typeStr]
+    if not mapper then
+        return nil, "未查询到可用的mapper:" .. typeStr
+    end
+    return mapper.map(ctx, tag)
 end
 
 return _M

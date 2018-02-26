@@ -8,8 +8,7 @@
 
 -- 提前加载依赖，提高性能
 require "resty.core"
-require "cjson.safe"
-
+do
     local constants = require "core.constants"
     local LOGGER = ngx.log
     local DEBUG = ngx.DEBUG
@@ -29,7 +28,6 @@ require "cjson.safe"
 
     debug("------------------------PHI初始化开始------------------------")
     -- 加载配置
-    debug("********************开始加载配置********************")
     local config, err = require "config.loader".load()
     if err then
         error("不能加载配置！err：" .. err)
@@ -37,26 +35,17 @@ require "cjson.safe"
     PHI.configuration = config
 
     -- 加载计算规则
-    debug("********************初始化Policy*******************")
     PHI.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
-    debug("==================初始化Policy结束=================")
 
     -- 加载Mapper规则
-    debug("********************初始化Mapper*******************")
     PHI.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
-    debug("==================初始化Mapper结束=================")
 
     -- 初始化context
-    debug("********************初始化context*******************")
     PHI.context = require "core.application_context":init(config.application_context_conf)
-    debug("==================初始化context结束=================")
 
     -- 初始化admin规则
     if config.enabled_admin then
-        debug("********************初始化PHI-ADMIN*******************")
         PHI.admin = require "admin.phi_admin"
-        debug("==================初始化PHI-ADMIN结束=================")
     end
-
-
     debug("------------------------PHI初始化完成！------------------------")
+end

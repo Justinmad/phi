@@ -33,13 +33,15 @@ return {
         PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存
         PHI_UPSTREAM = "phi_upstream",                          -- 存储upstream信息，作为二级缓存
         PHI_LOCK = "phi_lock",                                  -- 存储锁信息
-        PHI_EVENTS = "phi_events"                               -- 存储事件消息
+        PHI_EVENTS = "phi_events",                              -- 存储事件消息
+        PHI_LIMIT_REQ = "phi_limit_req",                        -- 存储限流标记
+        PHI_LIMIT_CONN = "phi_limit_conn"                       -- 存储限流标记
     },
     CACHE_KEY = {
         UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key
         ROUTER = "PHI:CTRL:ROUTER:",                            -- 作为redis中路由规则的key
         RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",               -- 作为redis中限流规则的key
-        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"   -- 作为redis中降级规则的key
+        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"    -- 作为redis中降级规则的key
     },
     EVENT_DEFINITION = {
         ROUTER_SERVICE = {

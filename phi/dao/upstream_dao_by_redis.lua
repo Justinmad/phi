@@ -24,7 +24,7 @@ local _M = {}
 function _M:getUpstreamServers(upstream)
     local cacheKey = UPSTREAM_PREFIX .. upstream
     local res, err = self.db:hgetall(cacheKey)
-    local result = #res~=0 and {} or nil
+    local result = #res ~= 0 and {} or nil
     for i = 1, #res, 2 do
         result[res[i]] = cjson.decode(res[i + 1])
     end
@@ -119,7 +119,10 @@ end
 local class = {}
 
 function class:new(db)
-    return setmetatable({ db = db }, { __index = _M })
+    if db then
+        return setmetatable({ db = db }, { __index = _M })
+    end
+    error("redis实例不能为nil,可能是PHI还未初始化？")
 end
 
 return class

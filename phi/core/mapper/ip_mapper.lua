@@ -64,7 +64,7 @@ local ip2long_c = function(ip)
     return nil
 end
 
-function _M.map()
+function _M.map(ctx, tag)
     local headers = ngx.req.get_headers()
     local ClientIP = headers["X-Real-IP"]
     if ClientIP == nil then

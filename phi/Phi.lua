@@ -54,6 +54,8 @@ function PHI:rewrite()
     router:after(ctx)
     -- 动态upstream映射
     balancer:load(ctx)
+
+
 end
 
 function PHI:access()

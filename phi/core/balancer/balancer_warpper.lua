@@ -17,9 +17,9 @@ local ERR = ngx.ERR
 
 local _M = {}
 
-function _M:find()
+function _M:find(ctx)
     if self.mapper then
-        local tag, err = self.mapper_holder:map(self.mapper, self.tag)
+        local tag, err = self.mapper_holder:map(ctx, self.mapper, self.tag)
         if err then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
             return ngx.exit(500)
@@ -38,7 +38,12 @@ local class = {}
 
 function class:new(strategy, server_list, mapper, tag)
     local balancer = strategy == "resty_chash" and resty_chash:new(server_list) or resty_roundrobin:new(server_list)
-    return setmetatable({ balancer = balancer, mapper = mapper, tag = tag ,mapper_holder = PHI.mapper_holder}, { __index = _M })
+    return setmetatable({
+        balancer = balancer,
+        mapper = mapper,
+        tag = tag,
+        mapper_holder = PHI.mapper_holder
+    }, { __index = _M })
 end
 
 return class

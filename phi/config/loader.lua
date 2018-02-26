@@ -1,9 +1,9 @@
 --
--- Created by IntelliJ IDEA.
 -- User: yangyang.zhang
 -- Date: 2018/1/8
 -- Time: 16:21
--- 负责加载配置文件，处理默认的配置文件，或者进行配置覆盖
+-- 负责加载配置文件，处理默认的配置文件，或者进行配置覆盖，参考了kong的配置加载
+-- @see https://github.com/Kong/kong/blob/master/kong/conf_loader.lua
 --
 local pl_pretty = require "pl.pretty"
 local pl_config = require "pl.config"

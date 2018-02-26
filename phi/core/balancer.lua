@@ -41,7 +41,7 @@ end
 function _M:balance(ctx)
     local ups_balancer = ctx.balancer
 
-    local server = ups_balancer:find()
+    local server = ups_balancer:find(ctx)
     LOGGER(DEBUG, "select server:", server)
     local ok, err = balancer.set_current_peer(server)
 
@@ -60,8 +60,6 @@ function class:new(ref, config)
     local instance = {}
     instance.default_upstream = config.balancer_upstream_name
     instance.service = ref
-    instance.policy_holder = PHI.policy_holder
-    instance.mapper_holder = PHI.mapper_holder
     return setmetatable(instance, { __index = _M })
 end
 

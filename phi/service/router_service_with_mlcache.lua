@@ -115,6 +115,7 @@ end
 local class = {}
 
 function class:new(ref, config)
+    -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
     local cache, err = mlcache.new("router_cache", SHARED_DICT_NAME, {
         lru_size = config.router_lrucache_size or 1000, -- L1缓存大小，默认取1000
         ttl = 0,                                        -- 缓存失效时间
@@ -124,7 +125,7 @@ function class:new(ref, config)
             timeout = 5                                 -- 获取锁超时时间
         },
         ipc_shm = PHI_EVENTS_DICT_NAME,                 -- 通知其他worker的事件总线
-        l1_serializer = sortSerializer -- 结果排序处理
+        l1_serializer = sortSerializer                  -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)

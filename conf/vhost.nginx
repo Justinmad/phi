@@ -37,7 +37,8 @@ server {
     listen 12346;
     server_name localhost;
     location / {
-        root /home/young;
+        # root /home/young;
+        root E:/home/logs;
     }
 }
 
@@ -65,7 +66,7 @@ do
           str = str .. "?" .. (var.args or "")
         end
       end
-            ngx.say("this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. "..............");
+            ngx.say(ngx.var.binary_remote_addr,"  this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." , ngx.var.connections_active);
         }
     }
 }

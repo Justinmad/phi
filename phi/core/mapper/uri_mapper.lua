@@ -7,7 +7,7 @@
 --
 local _M = {}
 
-function _M.map()
+function _M.map(ctx, tag)
     local u = ngx.var.uri
     return u
 end
