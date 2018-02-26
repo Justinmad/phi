@@ -4,40 +4,184 @@
 -- Date: 2018/2/26
 -- Time: 15:46
 -- 多级缓存的限流规则查询服务
+-- @see
 --[[
     限流规则类型:
     req     限制请求速率
+    @see https://github.com/openresty/lua-resty-limit-traffic/blob/master/lib/resty/limit/req.md
         {
-            "rate"      : 200,      // 正常速率 200 req/sec
-            "burst"     : 100,      // 突发速率 100 req/sec
-            "mapper"    : "host",   // 限流flag
-            "tag"       : "xxx"     // mapper函数的可选参数
-            "rejected"  : "xxx"     // 拒绝策略
+            "type"      : "req"         // 限流策略类型
+            "rate"      : 200,          // 正常速率 200 req/sec
+            "burst"     : 100,          // 突发速率 100 req/sec
+            "mapper"    : "host",       // 限流flag
+            "tag"       : "xxx"         // mapper函数的可选参数
+            "rejected"  : "xxx"         // 拒绝策略
         }
     conn    限制并发连接数
+    @see https://github.com/openresty/lua-resty-limit-traffic/blob/master/lib/resty/limit/conn.md
         {
-            "rate"      : 200,      // 正常速率 200 并发连接
-            "burst"     : 100,      // 突发速率 100 并发连接
-            "mapper"    : "host",   // 限流flag
-            "tag"       : "xxx"     // mapper函数的可选参数
-            "rejected"  : "xxx"     // 拒绝策略
+            "type"      : "conn"        // 限流策略类型
+            "rate"      : 200,          // 正常速率 200 并发连接
+            "burst"     : 100,          // 突发速率 100 并发连接
+            "mapper"    : "host",       // 限流flag
+            "tag"       : "xxx"         // mapper函数的可选参数
+            "rejected"  : "xxx"         // 拒绝策略
         }
-    traffic 组合限流，前两种的组合
+    count   限制指定时间内的调用总次数
+    @see https://github.com/openresty/lua-resty-limit-traffic/blob/master/lib/resty/limit/count.md
+        {
+            "type"          : "count"   // 限流策略类型
+            "rate"          : 200,      // 每360秒允许200次调用
+            "time_window"   : 200,      // 每360秒允许200次调用
+            "mapper"        : "host",   // 限流flag
+            "tag"           : "xxx"     // mapper函数的可选参数
+            "rejected"      : "xxx"     // 拒绝策略
+        }
+    traffic 组合限流，前几种的组合
+    @see https://github.com/openresty/lua-resty-limit-traffic/blob/master/lib/resty/limit/traffic.md
 ]] --
-local CONST = require "core.constants"
-local LIMIT_REQ_DICT_NAME = CONST.PHI_LIMIT_REQ
-local LIMIT_CONN_DICT_NAME = CONST.PHI_LIMIT_CONN
+local mlcache = require "resty.mlcache"
+local limiter_wrapper = require "component.limit_traffic.limiter_wrapper"
+local CONST = require("core.constants")
+local pretty_write = require("pl.pretty").write
+local worker_pid = ngx.worker.pid
 
-local _M = {
-    limit_req = require "resty.limit.req",
-    limit_conn = require "resty.limit.conn",
-    limit_traffic = require "resty.limit.traffic"
-}
+local PHI_EVENTS_DICT_NAME = CONST.DICTS.DICTS.PHI_EVENTS
+local SHARED_DICT_NAME = CONST.DICTS.DICTS.PHI_LIMITER
 
-function _M:new(dao, config)
-    self.dao = dao
+local EVENTS = CONST.EVENT_DEFINITION.RATE_LIMITING_EVENTS
+local UPDATE = EVENTS.UPDATE
+
+local ok, new_tab = pcall(require, "table.new")
+if not ok or type(new_tab) ~= "function" then
+    new_tab = function() return {} end
 end
 
-return _M
+local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
+local NOTICE = ngx.NOTICE
+local LOGGER = ngx.log
+
+local function newLimiterWrapper(policy)
+    if not policy.skip then
+        local limiter
+        if #policy > 0 then
+            limiter = new_tab(0, #policy)
+            for _, p in ipairs(policy) do
+                table.insert(limiter, limiter_wrapper:new(p))
+            end
+        else
+            limiter = limiter_wrapper:new(policy)
+        end
+        return limiter
+    else
+        return policy
+    end
+end
+
+local function updateLimiterWrapper(policy)
+    return policy.wrapper:update(policy)
+end
+
+local _M = {}
+
+function _M:init_worker(observer)
+    self.observer = observer
+
+    -- 注册关注事件handler到指定事件源
+    observer.register(function(data, event, source, pid)
+        if worker_pid() == pid then
+            LOGGER(NOTICE, "do not process the event send from self")
+        else
+            -- 更新缓存
+            self.cache:update()
+            LOGGER(DEBUG, "received event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
+        end
+    end, EVENTS.SOURCE)
+end
+
+function _M:updateEvent(hostkey)
+    self.observer.post(EVENTS.SOURCE, UPDATE, hostkey)
+end
+
+function _M:getLimiter(hostkey)
+    local result, err = self.cache:get(hostkey, nil, function()
+        local res, err = self.dao:getLimitPolicy(hostkey)
+        if err then
+            -- 查询出现错误，10秒内不再查询
+            LOGGER(ERR, "could not retrieve limiter:", err)
+            return { skip = true }, nil, 10
+        end
+        return res or { skip = true }
+    end)
+    return result, err
+end
+
+-- TODO 这个方法并非线程安全，如果可能会有并发调用的情况，需要进行同步处理
+function _M:setLimitPolicy(hostkey, policy)
+    local oldVal, err = self.dao:setLimitPolicy(hostkey, policy)
+    local ok
+    if not err then
+        -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
+        local updated = oldVal and oldVal.type == policy.type and policy.type ~= "traffic"
+        policy.wrapper = self:getLimiter(hostkey)
+        ok, err = self.cache:set(hostkey, updated and { l1_serializer = updateLimiterWrapper } or nil, policy)
+        if not ok then
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到shared_dict失败！err:", err)
+        else
+            self:updateEvent(hostkey, oldVal)
+        end
+    end
+    return ok, err
+end
+
+-- 删除限流规则
+function _M:delLimitPolicy(hostkey)
+    local ok, err = self.dao:delRouterPolicy(hostkey)
+    if ok then
+        ok, err = self.cache:set(hostkey, nil, { skip = true })
+        if not ok then
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除限流规则失败！err:", err)
+        else
+            self:updateEvent(hostkey)
+        end
+    end
+    return ok, err
+end
+
+-- 分页查询
+function _M:getAllRouterPolicy(from, count)
+    local ok, err = self.dao:getAllLimitPolicy(from, count)
+    if err then
+        LOGGER(ERR, "全量查询限流规则失败！err:", err)
+    end
+    return ok, err
+end
+
+local class = {}
+
+function class:new(dao, config)
+    -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
+    local cache, err = mlcache.new("rate_limiting_cache", SHARED_DICT_NAME, {
+        lru_size = config.limiter_lrucache_size or 1000,    -- L1缓存大小，默认取1000
+        ttl = 0,                                            -- 缓存失效时间
+        neg_ttl = 0,                                        -- 未命中缓存失效时间
+        resty_lock_opts = {                                 -- 回源DB的锁配置
+            exptime = 10,                                   -- 锁失效时间
+            timeout = 5                                     -- 获取锁超时时间
+        },
+        ipc_shm = PHI_EVENTS_DICT_NAME,                     -- 通知其他worker的事件总线
+        l1_serializer = newLimiterWrapper                   -- 结果排序处理
+    })
+    if err then
+        error("could not create mlcache for router cache ! err :" .. err)
+    end
+    return setmetatable({ dao = dao, cache = cache }, { __index = _M })
+end
+
+return class
 
 

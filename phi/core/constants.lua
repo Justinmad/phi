@@ -32,10 +32,12 @@ return {
         PHI = "phi",                                            -- 没想好存什么，占位
         PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存
         PHI_UPSTREAM = "phi_upstream",                          -- 存储upstream信息，作为二级缓存
+        PHI_LIMITER = "phi_limiter",                            -- 存储limiter规则信息
         PHI_LOCK = "phi_lock",                                  -- 存储锁信息
         PHI_EVENTS = "phi_events",                              -- 存储事件消息
-        PHI_LIMIT_REQ = "phi_limit_req",                        -- 存储限流标记
-        PHI_LIMIT_CONN = "phi_limit_conn"                       -- 存储限流标记
+        PHI_LIMIT_REQ = "phi_limit_req",                        -- 存储限流标记req
+        PHI_LIMIT_CONN = "phi_limit_conn",                      -- 存储限流标记conn
+        PHI_LIMIT_COUNT = "phi_limit_conn"                      -- 存储限流标记count
     },
     CACHE_KEY = {
         UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key
@@ -44,11 +46,9 @@ return {
         SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"    -- 作为redis中降级规则的key
     },
     EVENT_DEFINITION = {
-        ROUTER_SERVICE = {
-            SOURCE = "router_service",
-            DELETE = "delete",
-            UPDATE = "update",
-            CREATE = "create"
+        ROUTER_EVENTS = {
+            SOURCE = "router",
+            UPDATE = "update"
         },
         UPSTREAM_EVENTS = {
             SOURCE = "peer",
@@ -58,6 +58,10 @@ return {
             DYNAMIC_UPS_SOURCE = "dynamic_ups",
             DYNAMIC_UPS_DEL = "dynamic_ups_del",
             DYNAMIC_UPS_UPDATE = "dynamic_ups_update"
+        },
+        RATE_LIMITING_EVENTS = {
+            SOURCE = "rate_limiting",
+            UPDATE = "update"
         }
     }
 }

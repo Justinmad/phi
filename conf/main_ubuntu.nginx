@@ -22,6 +22,8 @@ http{
     lua_shared_dict phi_lock            1m;
     lua_shared_dict phi_router          10m;
     lua_shared_dict phi_upstream        10m;
+    lua_shared_dict phi_limit_req       128m;
+    lua_shared_dict phi_limit_conn      128m;
 
     init_by_lua_block {
     PHI = require 'Phi'

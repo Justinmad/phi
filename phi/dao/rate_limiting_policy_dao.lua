@@ -28,11 +28,11 @@ end
 
 function _M:setLimitPolicy(hostkey, policy)
     local cacheKey = RATE_LIMITING_PREFIX .. hostkey
-    local ok, err = self.db:set(cacheKey, cjson.encode(policy))
-    if not ok then
+    local oldVal, err = self.db:getset(cacheKey, cjson.encode(policy))
+    if err then
         LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则失败！err:", err)
     end
-    return ok, err
+    return oldVal, err
 end
 
 function _M:delLimitPolicy(hostkey)

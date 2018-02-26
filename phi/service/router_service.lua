@@ -9,7 +9,7 @@ local cjson = require "cjson"
 local CONST = require "core.constants"
 local Lock = require "resty.lock"
 
-local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
+local EVENTS = CONST.EVENT_DEFINITION.ROUTER_EVENTS
 
 local LOCK_NAME = CONST.DICTS.PHI_LOCK
 local SHARED_DICT = ngx.shared[CONST.DICTS.PHI_ROUTER]

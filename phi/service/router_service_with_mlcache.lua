@@ -13,7 +13,7 @@ local mlcache = require "resty.mlcache"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
 
-local EVENTS = CONST.EVENT_DEFINITION.ROUTER_SERVICE
+local EVENTS = CONST.EVENT_DEFINITION.ROUTER_EVENTS
 local UPDATE = EVENTS.UPDATE
 
 local SHARED_DICT_NAME = CONST.DICTS.PHI_ROUTER
@@ -43,12 +43,8 @@ function _M:init_worker(observer)
         if worker_pid() == pid then
             LOGGER(NOTICE, "do not process the event send from self")
         else
-            if event == EVENTS.DELETE then
-                self.cache:set({ skipRouter = true })
-            elseif event == EVENTS.UPDATE or event == EVENTS.CREATE then
-                -- 更新缓存
-                self.cache:update()
-            end
+            -- 更新缓存
+            self.cache:update()
             LOGGER(DEBUG, "received event; source=", source,
                 ", event=", event,
                 ", data=", pretty_write(data),
@@ -95,7 +91,7 @@ function _M:delRouterPolicy(hostkey)
     if ok then
         ok, err = self.cache:set(hostkey, nil, { skipRouter = true })
         if not ok then
-            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从shared_dict删除路由规则失败！err:", err)
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除路由规则失败！err:", err)
         else
             self:updateEvent(hostkey)
         end
