@@ -32,7 +32,7 @@ function _M:setLimitPolicy(hostkey, policy)
     if err then
         LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则失败！err:", err)
     end
-    return oldVal, err
+    return cjson.decode(oldVal), err
 end
 
 function _M:delLimitPolicy(hostkey)

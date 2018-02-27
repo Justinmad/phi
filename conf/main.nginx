@@ -1,8 +1,8 @@
 #user  yangyang.zhang;
 worker_processes auto;
 #worker_cpu_affinity auto;
-error_log E:/work/phi/conf/logs/error.log notice;
-
+error_log E:/work/phi/logs/error.log debug;
+working_directory E:/work/phi/conf;
 events {
     worker_connections 10240;
 }
@@ -25,6 +25,7 @@ http{
     lua_shared_dict phi_lock                5m;
     lua_shared_dict phi_router              10m;
     lua_shared_dict phi_upstream            10m;
+    lua_shared_dict phi_limiter             10m;
     lua_shared_dict phi_limit_req           128m;
     lua_shared_dict phi_limit_conn          128m;
 #   lua_shared_dict phi_cache          128m;

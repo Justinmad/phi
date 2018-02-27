@@ -48,25 +48,26 @@ server {
 
     location  / {
         content_by_lua_block{
-            local utils = require "kong.utils";
-            local cjson = require "cjson.safe";
-            local printable = require "kong.printable";
-
-            local uuidstr = utils.uuid();
-             local var = ngx.var
-             local str=""
-do
-        -- Nginx's behavior when proxying a request with an empty querystring
-        -- `/foo?` is to keep `$is_args` an empty string, hence effectively
-        -- stripping the empty querystring.
-        -- We overcome this behavior with our own logic, to preserve user
-        -- desired semantics.
-
-        if var.is_args == "?" or string.sub(var.request_uri, -1) == "?" then
-          str = str .. "?" .. (var.args or "")
-        end
-      end
-            ngx.say(ngx.var.binary_remote_addr,"  this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." , ngx.var.connections_active);
+--            local utils = require "kong.utils";
+--            local cjson = require "cjson.safe";
+--            local printable = require "kong.printable";
+--
+--            local uuidstr = utils.uuid();
+--             local var = ngx.var
+--             local str=""
+--do
+--        -- Nginx's behavior when proxying a request with an empty querystring
+--        -- `/foo?` is to keep `$is_args` an empty string, hence effectively
+--        -- stripping the empty querystring.
+--        -- We overcome this behavior with our own logic, to preserve user
+--        -- desired semantics.
+--
+--        if var.is_args == "?" or string.sub(var.request_uri, -1) == "?" then
+--          str = str .. "?" .. (var.args or "")
+--        end
+--      end
+--            ngx.say(ngx.var.binary_remote_addr,"  this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." , ngx.var.connections_active);
+            ngx.say("this is the fake backend peer... listen port 8888");
         }
     }
 }

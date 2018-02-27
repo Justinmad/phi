@@ -42,8 +42,8 @@ return {
     CACHE_KEY = {
         UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key
         ROUTER = "PHI:CTRL:ROUTER:",                            -- 作为redis中路由规则的key
-        RATE_LIMITING = "PHI:CTRL:RATE_LIMITING",               -- 作为redis中限流规则的key
-        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION"    -- 作为redis中降级规则的key
+        RATE_LIMITING = "PHI:CTRL:RATE_LIMITING:",              -- 作为redis中限流规则的key
+        SERVICE_DEGRADATION = "PHI:CTRL:SERVICE_DEGRADATION:"   -- 作为redis中降级规则的key
     },
     EVENT_DEFINITION = {
         ROUTER_EVENTS = {

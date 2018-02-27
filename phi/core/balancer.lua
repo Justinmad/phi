@@ -40,13 +40,16 @@ end
 
 function _M:balance(ctx)
     local ups_balancer = ctx.balancer
-
-    local server = ups_balancer:find(ctx)
-    LOGGER(DEBUG, "select server:", server)
-    local ok, err = balancer.set_current_peer(server)
-
-    if not ok then
-        LOGGER(ERR, "failed to set the current peer: ", err)
+    if ups_balancer then
+        local server = ups_balancer:find(ctx)
+        LOGGER(DEBUG, "select server:", server)
+        local ok, err = balancer.set_current_peer(server)
+        if not ok then
+            LOGGER(ERR, "failed to set the current peer: ", err)
+            return ngx.exit(500)
+        end
+    else
+        LOGGER(ERR, "failed to dispatch to backend: ups_balancer is nil?")
         return ngx.exit(500)
     end
 end

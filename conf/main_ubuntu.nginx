@@ -1,8 +1,8 @@
 #user  yangyang.zhang;
 worker_processes auto;
-error_log /home/young/IdeaProjects/phi/conf/logs/error.log debug;
+error_log /home/young/IdeaProjects/phi/logs/error.log debug;
 worker_rlimit_core 400m;
-working_directory /home/young/IdeaProjects/phi/conf/logs;
+working_directory /home/young/IdeaProjects/phi/conf/;
 
 events {
     worker_connections 1024;
@@ -22,6 +22,7 @@ http{
     lua_shared_dict phi_lock            1m;
     lua_shared_dict phi_router          10m;
     lua_shared_dict phi_upstream        10m;
+    lua_shared_dict phi_limiter         10m;
     lua_shared_dict phi_limit_req       128m;
     lua_shared_dict phi_limit_conn      128m;
 

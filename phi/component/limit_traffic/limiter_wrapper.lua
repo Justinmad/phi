@@ -11,6 +11,7 @@ local limit_conn = require "resty.limit.conn"
 local limit_count = require "resty.limit.count"
 local limit_req = require "resty.limit.req"
 local limit_traffic = require "resty.limit.traffic"
+local tablex = require "pl.tablex"
 
 local LIMIT_REQ_DICT_NAME = DICTS.PHI_LIMIT_REQ
 local LIMIT_CONN_DICT_NAME = DICTS.PHI_LIMIT_CONN
@@ -19,12 +20,60 @@ local LIMIT_COUNT_DICT_NAME = DICTS.PHI_LIMIT_COUNT
 local ERR = ngx.ERR
 local LOGGER = ngx.log
 
+local sleep = ngx.sleep
+local exit = ngx.exit
+
 local ok, new_tab = pcall(require, "table.new")
 if not ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 
-local _M = {}
+local function createLimiter(policy)
+    local typeStr = policy.type
+    if typeStr == "req" then
+        return limit_req:new(LIMIT_REQ_DICT_NAME, policy.rate, policy.burst)
+    elseif typeStr == "conn" then
+        return limit_conn:new(LIMIT_CONN_DICT_NAME, policy.conn, policy.burst)
+    elseif typeStr == "count" then
+        return limit_count:new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
+    else
+        LOGGER(ERR, "创建limiter失败，错误的policy类型：", typeStr)
+        return exit(500)
+    end
+end
+
+local function createTrafficLimiter(policy, mapper_holder)
+    if #policy < 2 then
+        LOGGER(ERR, "创建Traffic limiter失败，至少需要配置两条以上规则！")
+        return exit(500)
+    end
+    local limiters = new_tab(0, #policy)
+    local keys = new_tab(0, #policy)
+    for _, p in ipairs(policy) do
+        table.insert(limiters, createLimiter(p))
+        table.insert(keys, function(ctx)
+            return p.mapper and mapper_holder:map(ctx, p.mapper, p.tag) or get_host(ctx)
+        end)
+    end
+
+    local limiter = {
+        incoming = function()
+            return limit_traffic:combine(limiters, keys)
+        end,
+        limiters = limiters,
+        keys = keys
+    }
+
+    local get_key = function(ctx)
+        local res = new_tab(0, #policy)
+        for _, func in ipairs(keys) do
+            table.insert(res, func(ctx))
+        end
+        return res
+    end
+
+    return limiter, get_key
+end
 
 local function connLeaving(ctx, lim, key, delay)
     if lim:is_committed() then
@@ -34,7 +83,7 @@ local function connLeaving(ctx, lim, key, delay)
             table.insert(ctx.finally_func, function()
                 local conn, err = lim:leaving(key, delay)
                 if not conn then
-                    ngx.log(ngx.ERR,
+                    LOGGER(ERR,
                         "failed to record the connection leaving ",
                         "request: ", err)
                 end
@@ -43,23 +92,25 @@ local function connLeaving(ctx, lim, key, delay)
     end
 end
 
+local _M = {}
+
 function _M:incoming(ctx, commit)
     local key = self.get_key(ctx)
     local lim = self.limiter
 
-    local delay, err = lim:incoming(key or get_host(), commit)
+    local delay, err = lim:incoming(key or get_host(ctx), commit)
 
     if not delay then
         -- TODO 考虑的降级策略
         if err == "rejected" then
-            return ngx.exit(503)
+            return exit(503)
         end
         LOGGER(ERR, "failed to limit req: ", err)
-        return ngx.exit(500)
+        return exit(500)
     end
 
     if delay >= 0.001 then
-        ngx.sleep(delay)
+        sleep(delay)
     end
 
     if self.type == "conn" then
@@ -73,61 +124,39 @@ function _M:incoming(ctx, commit)
     end
 end
 
---TODO 更新操作
 function _M:update(policy)
+    print("++++++++++++++++++++++++++++++++++")
     local typeStr = policy.type
     if typeStr == "req" then
+        local limiter = self.limiter
+        limiter:set_rate(policy.rate)
+        limiter:set_burst(policy.burst)
     elseif typeStr == "conn" then
+        local limiter = self.limiter
+        limiter:set_conn(policy.conn)
+        limiter:set_burst(policy.burst)
     elseif typeStr == "count" then
+        self.limiter = limit_count:new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
     elseif typeStr == "traffic" then
+        self.limiter = createTrafficLimiter(policy, PHI.mapper_holder)
+    else
+        LOGGER(ERR, "更新limiter失败，错误的policy类型:", typeStr)
     end
+    policy.wrapper = nil
+    return policy
 end
 
 local class = {}
 
-local function createLimiter(policy)
-    if typeStr == "req" then
-        return limit_req:new(LIMIT_REQ_DICT_NAME, policy.rate, policy.burst)
-    elseif typeStr == "conn" then
-        return limit_conn:new(LIMIT_CONN_DICT_NAME, policy.rate, policy.burst)
-    elseif typeStr == "count" then
-        return limit_count:new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
-    end
-end
-
 function class:new(policy)
     local mapper_holder = PHI.mapper_holder
+    local limiter
     local get_key = function(ctx)
         return policy.mapper and mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
     end
     local typeStr = policy.type
-    local limiter
-
     if typeStr == "traffic" then
-        local limiters = new_tab(0, #policy)
-        local keys = new_tab(0, #policy)
-        for _, p in ipairs(policy) do
-            table.insert(limiters, createLimiter(p))
-            table.insert(keys, function(ctx)
-                return p.mapper and mapper_holder:map(ctx, p.mapper, p.tag) or get_host(ctx)
-            end)
-        end
-
-        limiter = {
-            incoming = function()
-                return limit_traffic:combine(limiters, keys)
-            end,
-            limiters = limiters,
-            keys = keys
-        }
-
-        get_key = function(ctx)
-            local res = new_tab(0, #policy)
-            for _, func in ipairs(keys) do
-                table.insert(res, func(ctx))
-            end
-            return res
-        end
+        limiter, get_key = createTrafficLimiter(policy, mapper_holder)
     else
         limiter = createLimiter(policy)
     end

@@ -6,7 +6,7 @@
 -- 读取配置文件，加载lua模块
 --
 local pl_config = require "pl.config"
-local pretty = require "pl.pretty"
+local pretty_write = require "pl.pretty".write
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
@@ -75,7 +75,7 @@ local function createBean(id, beanDefinitions, inCreation, context)
     local class = require(definition.path)
     local bean = class:new(refs or definition, definition)
     if not bean then
-        error("error to create bean " .. id .. " ,the constructor return a " .. tostring(bean) .. " value")
+        error("error to create bean " .. id .. " ,the constructor return a " .. pretty_write(bean) .. " value")
     end
     bean.__definition = definition
     context[id] = bean
@@ -127,7 +127,7 @@ function _M:init(configLocations)
             if type(autowire) == "string" then
                 autowire = { autowire }
             end
-            LOGGER(DEBUG, id, " need to autowire ", pretty.write(autowire, ","))
+            LOGGER(DEBUG, id, " need to autowire ", pretty_write(autowire, ","))
             local bean = context[id]
             for _, ref_id in ipairs(autowire) do
                 bean[ref_id] = context[ref_id] or error(ref_id .. " is not exists in the context, check it ")

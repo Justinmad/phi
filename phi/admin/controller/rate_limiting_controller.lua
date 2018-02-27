@@ -1,30 +1,22 @@
 --
 -- Created by IntelliJ IDEA.
 -- User: yangyang.zhang
--- Date: 2018/1/24
--- Time: 14:10
--- 路由api,提供路由的增删改查接口
+-- Date: 2018/2/27
+-- Time: 14:35
+-- To change this template use File | Settings | File Templates.
 --
---[[
-    {
-        method = "",
-        uri = "",
-        args = "",
-        headers = "",
-        body = ""
-    }
---]]
-local _M = {
-    request_mapping = "router"
-}
 local Response = require "core.response"
 local CONST = require "core.constants"
 local GET = CONST.METHOD.GET
 local POST = CONST.METHOD.POST
 
+local _M = {
+    request_mapping = "rate"
+}
+
 --[[
     根据主机名称删除指定路由规则
-    请求路径：/router/del
+    请求路径：/rate/del
     请求方式：GET
     数据格式：hostkey=xxx
 ]] --
@@ -35,7 +27,7 @@ _M.del = {
         local hostkey = request.args["hostkey"]
         local ok, err
         if hostkey then
-            ok, err = self.routerService:delRouterPolicy(hostkey)
+            ok, err = self.rateLimitingService:delLimitPolicy(hostkey)
             if ok then
                 Response.success()
             end
@@ -45,9 +37,10 @@ _M.del = {
         Response.failure(err)
     end
 }
+
 --[[
     添加路由规则，请求格式为json
-    请求路径：/router/add
+    请求路径：/rate/add
     请求方式：POST
     数据格式：
     {
@@ -69,14 +62,21 @@ _M.add = {
         if not hostkey then
             Response.failure("hostkey不能为空！")
         end
-        if not body.data.default then
-            Response.failure("必须设置默认路由服务器！")
+        local policy = body.data
+
+        if #policy > 1 then
+            for _, p in policy do
+                if not p.type then
+                    Response.failure("必须设置限流规则类型！")
+                end
+            end
+        else
+            if not policy.type then
+                Response.failure("必须设置限流规则类型！")
+            end
         end
-        local policies = body.data.policies
-        if not policies or #policies < 1 then
-            Response.failure("policies不能为空！")
-        end
-        local ok, err = self.routerService:setRouterPolicy(hostkey, body.data)
+
+        local ok, err = self.rateLimitingService:setLimitPolicy(hostkey, policy)
         if ok then
             Response.success()
         else
@@ -84,9 +84,10 @@ _M.add = {
         end
     end
 }
+
 --[[
-    根据hostkey查询路由规则，也可以起到提前加载缓存的目的
-    请求路径：/router/get
+    根据hostkey查询限流规则，也可以起到提前加载缓存的目的
+    请求路径：/rate/get
     请求方式：GET
     数据格式：hostkey=xxx
  ]]
@@ -96,7 +97,7 @@ _M.get = {
         local hostkey = request.args["hostkey"]
         local policies, err
         if hostkey then
-            policies, err = self.routerService:getRouterPolicy(hostkey)
+            policies, err = self.rateLimitingService:getLimitPolicy(hostkey)
             if policies then
                 Response.success(policies)
             end
@@ -106,9 +107,10 @@ _M.get = {
         Response.failure(err)
     end
 }
+
 --[[
     查询所有路由规则
-    请求路径：/router/getAll
+    请求路径：/rate/getAll
     请求方式：GET
     数据格式：cursor=0&count=10
     首次查询cursor请输入0，响应数据中会包含当前指针cursor的值，下次查询请传递此参数到服务器端，以此进行分页
@@ -119,7 +121,7 @@ _M.getAll = {
         local from = request.args.from
         local count = request.args.count
         if from and count then
-            local res, err = self.routerService:getAllRouterPolicy(from, count)
+            local res, err = self.rateLimitingService:getAllLimitPolicy(from, count)
             if err then
                 Response.failure(err)
             end
