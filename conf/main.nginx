@@ -3,6 +3,7 @@ worker_processes auto;
 #worker_cpu_affinity auto;
 error_log E:/work/phi/logs/error.log debug;
 working_directory E:/work/phi/conf;
+
 events {
     worker_connections 10240;
 }
@@ -17,7 +18,7 @@ http{
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $remote_addr;
-    lua_package_path 'D:/soft/ZeroBraneStudioEduPack-1.70-win32/lualibs/?/?.lua;D:/soft/ZeroBraneStudioEduPack-1.70-win32/lualibs/?.lua;E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
+    lua_package_path 'E:/work/phi/openresty/?.lua;E:/work/phi/phi/?.lua;E:/work/phi/lib/?.lua;;';
     lua_code_cache on;
 
     lua_shared_dict phi                     5m;
