@@ -44,13 +44,13 @@ function _M:init_worker(observer)
     self.observer = observer
     -- 关注dynamic upstream的更新操作
     observer.register(function(data, event, source, pid)
-        LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", pretty_write(data),
-            ", from process ", pid)
         if worker_pid() == pid then
             LOGGER(NOTICE, "do not process the event send from self")
         else
+            LOGGER(DEBUG, "received event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
             -- server增删情况下，重建balancer
             self.cache:update()
             self:getUpstreamBalancer(data)

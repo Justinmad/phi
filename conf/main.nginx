@@ -1,7 +1,7 @@
 #user  yangyang.zhang;
 worker_processes auto;
 #worker_cpu_affinity auto;
-error_log E:/work/phi/logs/error.log debug;
+error_log E:/work/phi/logs/error.log error;
 working_directory E:/work/phi/conf;
 
 events {
@@ -94,7 +94,7 @@ http{
         balancer_by_lua_block {
             PHI:balancer();
         }
-        keepalive 20;
+        keepalive 200;
     }
 
     include vhost.nginx;

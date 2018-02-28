@@ -54,7 +54,7 @@ function _M:access(ctx)
                 end
                 local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
                 if err then
-                    LOGGER(ERR, "Routing rules calculation err:", err)
+                    LOGGER(NOTICE, "Routing rules calculation err:", err)
                 elseif upstream then
                     result = upstream
                     break
