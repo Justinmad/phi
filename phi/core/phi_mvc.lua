@@ -97,19 +97,22 @@ end
 
 local function parseRequest()
     local request = {}
-    request.method = ngx.req.get_method():upper()
-    request.uri = ngx.var.uri
-    request.args = ngx.req.get_uri_args()
-    request.headers = ngx.req.get_headers();
+    local req = ngx.req
+    local var = ngx.var
+
+    request.method = req.get_method():upper()
+    request.uri = var.uri
+    request.args = req.get_uri_args()
+    request.headers = req.get_headers();
     if request.method ~= "GET" then
-        ngx.req.read_body()
-        request.body = ngx.req.get_body_data()
+        req.read_body()
         local content_type = request.headers["Content-Type"]
         if content_type then
             if string.find(content_type, "json") then
+                request.body = req.get_body_data()
                 request.body = cjson.decode(request.body)
             elseif string.find(content_type, "x%-www%-form%-urlencoded") then
-                local form_args = ngx.decode_args(request.body)
+                local form_args = req.get_post_args()
                 setmetatable(request.args, { __index = form_args })
             end
         end
