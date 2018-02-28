@@ -44,7 +44,7 @@ end
 
 local function createTrafficLimiter(policy, mapper_holder)
     if #policy < 2 then
-        LOGGER(ERR, "创建Traffic limiter失败，至少需要配置两条以上规则！")
+        LOGGER(ERR, "create traffic limiter failed，at least 2 rules are required,find ", #policy)
         return exit(500)
     end
     local limiters = new_tab(0, #policy)
@@ -101,7 +101,7 @@ function _M:incoming(ctx, commit)
     if not delay then
         -- TODO 考虑的降级策略
         if err == "rejected" then
-            return response.failure("Limited access, please try again later :-)", 503)
+            return response.failure("Limited access,Service Temporarily Unavailable,please try again later :-)", 503)
         end
         LOGGER(ERR, "failed to limit req: ", err)
         return response.failure("failed to limit req :-( ", 500)
