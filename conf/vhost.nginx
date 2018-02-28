@@ -67,7 +67,7 @@ server {
 --        end
 --      end
 --            ngx.say(ngx.var.binary_remote_addr,"  this is the fake backend peer... listen port 8888"  .. "-------" .. uuidstr .. ".............." , ngx.var.connections_active);
-            ngx.say("this is the fake backend peer... listen port 8888 ........... ",ngx.var.connections_active);
+            ngx.say("this is the fake backend peer... listen port 8888");
         }
     }
 }
