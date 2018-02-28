@@ -61,7 +61,8 @@ return {
         },
         RATE_LIMITING_EVENTS = {
             SOURCE = "rate_limiting",
-            UPDATE = "update"
+            UPDATE = "update",
+            REBUILD = "rebuild",
         }
     }
 }

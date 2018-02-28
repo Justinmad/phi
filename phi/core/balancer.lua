@@ -26,14 +26,14 @@ function _M:load(ctx)
     if upstream then
         local upstreamBalancer, err = self.service:getUpstreamBalancer(upstream)
         if err then
-            LOGGER(ERR, "upstream查询出现错误，err：", err)
+            LOGGER(ERR, "search upstream err：", err)
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer
         end
     else
-        LOGGER(ALERT, "upstream为nil，转发到默认upstream:", self.default_upstream)
+        LOGGER(ALERT, "upstream is nil，dispatch to default upstream:", self.default_upstream)
     end
     ngx.var.backend = upstream or self.default_upstream
 end
@@ -42,7 +42,7 @@ function _M:balance(ctx)
     local ups_balancer = ctx.balancer
     if ups_balancer then
         local server = ups_balancer:find(ctx)
-        LOGGER(DEBUG, "select server:", server)
+        LOGGER(DEBUG, "select server：", server)
         local ok, err = balancer.set_current_peer(server)
         if not ok then
             LOGGER(ERR, "failed to set the current peer: ", err)

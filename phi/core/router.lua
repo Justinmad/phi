@@ -54,7 +54,7 @@ function _M:access(ctx)
                 end
                 local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
                 if err then
-                    LOGGER(ERR, "路由规则计算出现错误，err：", err)
+                    LOGGER(ERR, "Routing rules calculation err:", err)
                 elseif upstream then
                     result = upstream
                     break
@@ -62,13 +62,13 @@ function _M:access(ctx)
             end
             if result then
                 ctx.backend = result
-                LOGGER(NOTICE, "请求将被路由到，upstream：", result)
+                LOGGER(NOTICE, "will be routed to upstream:", result)
             end
         else
-            LOGGER(ERR, "路由规则查询出现错误或者规则格式错误，err：", err, ", policies:", tostring(rules))
+            LOGGER(ERR, "routing rules query error or bad policy type ,err：", err, ", policies:", tostring(rules))
         end
     else
-        LOGGER(ALERT, "hostkey为nil，无法执行路由操作")
+        LOGGER(ALERT, "hostkey is nil，can not perform routing operation")
     end
 end
 

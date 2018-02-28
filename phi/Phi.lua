@@ -25,7 +25,7 @@ local PHI = {
     context = {}
 }
 
-local router, balancer
+local router, balancer, components
 
 -- 开启lua_code_cache情况下，每个worker只有一个Lua VM
 -- require函数或者VM级别的变量（例如LRUCACHE）初始化应该在每个worker中都执行，而shared_DICT是跨worker共享的，那么初始化一次即可
@@ -34,6 +34,7 @@ function PHI:init()
     require "core.init"
     router = PHI.context["router"]
     balancer = PHI.context["balancer"]
+    components = PHI.components
 end
 
 function PHI:init_worker()
@@ -44,6 +45,9 @@ function PHI.balancer()
     local ctx = ngx.ctx
     -- 负载均衡
     balancer:balance(ctx)
+    for _, c in pairs(components) do
+        c:balancer()
+    end
 end
 
 function PHI:rewrite()
@@ -55,14 +59,22 @@ function PHI:rewrite()
     -- 动态upstream映射
     balancer:load(ctx)
 
-
+    for _, c in pairs(components) do
+        c:rewrite(ctx)
+    end
 end
 
 function PHI:access()
+    for _, c in pairs(components) do
+        c:access()
+    end
 end
 
 function PHI:log()
-    print("this is log by lua block")
+    local ctx = ngx.ctx
+    for _, c in pairs(components) do
+        c:log(ctx)
+    end
 end
 
 function PHI:handle_error()

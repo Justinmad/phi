@@ -26,10 +26,11 @@ local LOGGER = ngx.log
 
 local _M = {}
 
+-- 所有的规则中order越大就有越高的优先级
 local function sortSerializer(row)
     if not row.skipRouter then
         -- 排序
-        table.sort(row.policies, function(r1, r2) return r1.order < r2.order end)
+        table.sort(row.policies, function(r1, r2) return r1.order > r2.order end)
     end
     return row
 end
@@ -37,7 +38,6 @@ end
 -- 初始化worker
 function _M:init_worker(observer)
     self.observer = observer
-
     -- 注册关注事件handler到指定事件源
     observer.register(function(data, event, source, pid)
         if worker_pid() == pid then
@@ -45,6 +45,7 @@ function _M:init_worker(observer)
         else
             -- 更新缓存
             self.cache:update()
+            self:getRouterPolicy(data)
             LOGGER(DEBUG, "received event; source=", source,
                 ", event=", event,
                 ", data=", pretty_write(data),

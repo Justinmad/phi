@@ -25,7 +25,8 @@
             "burst"     : 100,          // 突发速率 100 并发连接
             "mapper"    : "host",       // 限流flag
             "tag"       : "xxx",        // mapper函数的可选参数
-            "rejected"  : "xxx"         // 拒绝策略
+            "rejected"  : "xxx",        // 拒绝策略
+            "delay"     : 0.5           // 延迟时长
         }
     count   限制指定时间内的调用总次数
     @see https://github.com/openresty/lua-resty-limit-traffic/blob/master/lib/resty/limit/count.md
@@ -97,6 +98,7 @@ function _M:init_worker(observer)
             -- 更新缓存
             if event == REBUILD then
                 self.cache:update()
+                self:getLimiter(data)
             else
                 self:getLimiter(data.hostkey):update(data.policy)
             end
@@ -140,13 +142,16 @@ function _M:setLimitPolicy(hostkey, policy)
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
         local updated = oldVal and oldVal.type == policy.type and policy.type ~= "traffic"
-        policy.wrapper = self:getLimiter(hostkey)
-        print(oldVal.type, policy.type, "--------------", require("pl.pretty").write(policy))
-        ok, err = self.cache:set(hostkey, updated and { l1_serializer = updateLimiterWrapper } or nil, policy)
+        local opts
+        if updated then
+            policy.wrapper = self:getLimiter(hostkey)
+            opts = { l1_serializer = updateLimiterWrapper }
+        end
+        ok, err = self.cache:set(hostkey, opts, policy)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到shared_dict失败！err:", err)
         else
-            self:updateEvent(updated, updated and { hostkey = hostkey, policy = policy } or nil)
+            self:updateEvent(updated, updated and { hostkey = hostkey, policy = policy } or hostkey)
         end
     end
     return ok, err
@@ -154,13 +159,13 @@ end
 
 -- 删除限流规则
 function _M:delLimitPolicy(hostkey)
-    local ok, err = self.dao:delRouterPolicy(hostkey)
+    local ok, err = self.dao:delLimitPolicy(hostkey)
     if ok then
         ok, err = self.cache:set(hostkey, nil, { skip = true })
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除限流规则失败！err:", err)
         else
-            self:updateEvent(hostkey)
+            self:updateEvent(false, hostkey)
         end
     end
     return ok, err
@@ -180,16 +185,15 @@ local class = {}
 function class:new(dao, config)
     -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
     local cache, err = mlcache.new("rate_limiting_cache", SHARED_DICT_NAME, {
-        lru_size = config.limiter_lrucache_size or 1000, -- L1缓存大小，默认取1000
-        ttl = 0, -- 缓存失效时间
-        neg_ttl = 0, -- 未命中缓存失效时间
-        resty_lock_opts = {
-            -- 回源DB的锁配置
-            exptime = 10, -- 锁失效时间
-            timeout = 5 -- 获取锁超时时间
+        lru_size = config.limiter_lrucache_size or 1000,    -- L1缓存大小，默认取1000
+        ttl = 0,                                            -- 缓存失效时间
+        neg_ttl = 0,                                        -- 未命中缓存失效时间
+        resty_lock_opts = {                                 -- 回源DB的锁配置
+            exptime = 10,                                   -- 锁失效时间
+            timeout = 5                                     -- 获取锁超时时间
         },
-        ipc_shm = PHI_EVENTS_DICT_NAME, -- 通知其他worker的事件总线
-        l1_serializer = newLimiterWrapper -- 结果排序处理
+        ipc_shm = PHI_EVENTS_DICT_NAME,                     -- 通知其他worker的事件总线
+        l1_serializer = newLimiterWrapper                   -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)

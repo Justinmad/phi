@@ -41,7 +41,23 @@ do
     PHI.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
 
     -- 初始化context
-    PHI.context = require "core.application_context":init(config.application_context_conf)
+    local context = require "core.application_context":init(config.application_context_conf)
+    PHI.context = context
+
+    -- 初始化components
+    local components = {}
+    for _, bean in pairs(context) do
+        if string.lower(bean.__definition.type or "") == "component" then
+            table.insert(components, bean)
+        end
+    end
+    -- 组件排序，所有的组件中order越大就有越高的优先级
+    table.sort(components, function(c1, c2)
+        local o1 = c1.order or 0
+        local o2 = c2.order or 0
+        return o1 > o2
+    end)
+    PHI.components = components
 
     -- 初始化admin规则
     if config.enabled_admin then

@@ -11,7 +11,7 @@ local limit_conn = require "resty.limit.conn"
 local limit_count = require "resty.limit.count"
 local limit_req = require "resty.limit.req"
 local limit_traffic = require "resty.limit.traffic"
-local tablex = require "pl.tablex"
+local response = require "core.response"
 
 local LIMIT_REQ_DICT_NAME = DICTS.PHI_LIMIT_REQ
 local LIMIT_CONN_DICT_NAME = DICTS.PHI_LIMIT_CONN
@@ -31,13 +31,13 @@ end
 local function createLimiter(policy)
     local typeStr = policy.type
     if typeStr == "req" then
-        return limit_req:new(LIMIT_REQ_DICT_NAME, policy.rate, policy.burst)
+        return limit_req.new(LIMIT_REQ_DICT_NAME, policy.rate, policy.burst)
     elseif typeStr == "conn" then
-        return limit_conn:new(LIMIT_CONN_DICT_NAME, policy.conn, policy.burst)
+        return limit_conn.new(LIMIT_CONN_DICT_NAME, policy.conn, policy.burst, policy.delay)
     elseif typeStr == "count" then
-        return limit_count:new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
+        return limit_count.new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
     else
-        LOGGER(ERR, "创建limiter失败，错误的policy类型：", typeStr)
+        LOGGER(ERR, "create limiter failed，bad policy type：", typeStr)
         return exit(500)
     end
 end
@@ -76,18 +76,16 @@ local function createTrafficLimiter(policy, mapper_holder)
 end
 
 local function connLeaving(ctx, lim, key, delay)
+    local var = ngx.var
+    local latency = var.upstream_response_time or (tonumber(var.request_time) - delay)
     if lim:is_committed() then
-        if not ctx.finally_func then
-            ctx.finally_func = {}
-        else
-            table.insert(ctx.finally_func, function()
-                local conn, err = lim:leaving(key, delay)
-                if not conn then
-                    LOGGER(ERR,
-                        "failed to record the connection leaving ",
-                        "request: ", err)
-                end
-            end)
+        ctx.leaving = function()
+            local conn, err = lim:leaving(key, latency)
+            if not conn then
+                LOGGER(ERR,
+                    "failed to record the connection leaving ",
+                    "request: ", err)
+            end
         end
     end
 end
@@ -103,10 +101,10 @@ function _M:incoming(ctx, commit)
     if not delay then
         -- TODO 考虑的降级策略
         if err == "rejected" then
-            return exit(503)
+            return response.failure("Limited access, please try again later :-)", 503)
         end
         LOGGER(ERR, "failed to limit req: ", err)
-        return exit(500)
+        return response.failure("failed to limit req :-( ", 500)
     end
 
     if delay >= 0.001 then
@@ -125,7 +123,6 @@ function _M:incoming(ctx, commit)
 end
 
 function _M:update(policy)
-    print("++++++++++++++++++++++++++++++++++")
     local typeStr = policy.type
     if typeStr == "req" then
         local limiter = self.limiter
@@ -136,31 +133,33 @@ function _M:update(policy)
         limiter:set_conn(policy.conn)
         limiter:set_burst(policy.burst)
     elseif typeStr == "count" then
-        self.limiter = limit_count:new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
+        self.limiter = limit_count.new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
     elseif typeStr == "traffic" then
         self.limiter = createTrafficLimiter(policy, PHI.mapper_holder)
     else
-        LOGGER(ERR, "更新limiter失败，错误的policy类型:", typeStr)
+        LOGGER(ERR, "update limiter err，bad policy type:", typeStr)
     end
     policy.wrapper = nil
-    return policy
+    return self
 end
 
 local class = {}
 
 function class:new(policy)
     local mapper_holder = PHI.mapper_holder
-    local limiter
-    local get_key = function(ctx)
-        return policy.mapper and mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
-    end
+    local limiter, get_key
     local typeStr = policy.type
     if typeStr == "traffic" then
         limiter, get_key = createTrafficLimiter(policy, mapper_holder)
     else
         limiter = createLimiter(policy)
+        get_key = function(ctx)
+            return policy.mapper and mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
+        end
     end
+
     return setmetatable({
+        type = typeStr,
         get_key = get_key,
         limiter = limiter
     }, { __index = _M })

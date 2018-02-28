@@ -53,6 +53,7 @@ function _M:init_worker(observer)
         else
             -- server增删情况下，重建balancer
             self.cache:update()
+            self:getUpstreamBalancer(data)
         end
     end, EVENTS.DYNAMIC_UPS_SOURCE)
     -- 关注配置中的peer的启停
@@ -62,17 +63,6 @@ function _M:init_worker(observer)
             ", data=", pretty_write(data),
             ", from process ", pid)
         if worker_pid() == pid and type(data[4]) ~= "boolean" then
-            --            local _, _, upstreamInfo = self.cache:peek(data[1])
-            --            if upstreamInfo then
-            --                for k, v in pairs(upstreamInfo) do
-            --                    if k == data[2] then
-            --                        LOGGER(NOTICE, "update L2 cache,upstreamName:", data[1], ",server:", data[2])
-            --                        local tmpJson = cjson.decode(v)
-            --                        tmpJson.weight = data[3]
-            --                        upstreamInfo[k] = cjson.encode(tmpJson)
-            --                    end
-            --                end
-            --            end
             LOGGER(NOTICE, "do not process the event send from self")
         else
             if type(data[4]) == "boolean" then
