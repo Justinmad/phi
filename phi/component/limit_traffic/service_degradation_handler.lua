@@ -3,7 +3,7 @@
 -- User: yangyang.zhang
 -- Date: 2018/2/28
 -- Time: 14:55
--- 服务降级策略
+-- 服务降级
 --
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
