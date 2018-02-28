@@ -206,8 +206,8 @@ function _M:getUpstreamServers(upstream)
     return data, err
 end
 
-local ok, new_tab = pcall(require, "table.new")
-if not ok or type(new_tab) ~= "function" then
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 

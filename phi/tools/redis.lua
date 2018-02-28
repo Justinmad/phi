@@ -14,8 +14,8 @@ local DEBUG = ngx.DEBUG
 local WARN = ngx.WARN
 local LOGGER = ngx.log
 
-local ok, new_tab = pcall(require, "table.new")
-if not ok or type(new_tab) ~= "function" then
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
     new_tab = function(narr, nrec) return {} end
 end
 

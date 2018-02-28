@@ -23,8 +23,8 @@ local LOGGER = ngx.log
 local sleep = ngx.sleep
 local exit = ngx.exit
 
-local ok, new_tab = pcall(require, "table.new")
-if not ok or type(new_tab) ~= "function" then
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 
