@@ -65,6 +65,15 @@ function _M:delUpstreamServers(upstream, serverNames)
     return ok, err
 end
 
+function _M:delUpstream(upstream)
+    local cacheKey = UPSTREAM_PREFIX .. upstream
+    local ok, err = self.db:del(cacheKey)
+    if not ok then
+        LOGGER(ERR, "删除upstream：[" .. upstream .. "]失败！err:", err)
+    end
+    return ok, err
+end
+
 -- 修改指定upstream中的server
 function _M:downUpstreamServer(upstream, serverName, down)
     local cacheKey = UPSTREAM_PREFIX .. upstream

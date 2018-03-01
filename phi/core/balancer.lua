@@ -6,11 +6,12 @@
 -- 动态upstream模块，由proxy_next_upstream 和 proxy_next_upstream_tries 配置指令来控制retry，balancer_by_lua* 会在 retry 的时候自动被重新调用
 --
 local balancer = require "ngx.balancer"
+local response = require "core.response"
 
-local exit = ngx.exit
 local type = type
 local setmetatable = setmetatable
 
+local ngx = ngx
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
@@ -31,13 +32,21 @@ function _M:load(ctx)
         local upstreamBalancer, err = self.service:getUpstreamBalancer(upstream)
         if err then
             LOGGER(ERR, "search upstream err：", err)
+            return response.failure("Failed to load upstream balancer ,please try again latter :-(", 500)
+        elseif upstreamBalancer.notExists then
+            LOGGER(ERR, "upstream is not exists !")
+            return response.failure("Upstream:" .. upstream .. " does not exist ! :-(", 500)
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer
+        elseif upstreamBalancer ~= "stable" then
+            LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
+            return response.failure("failed to load upstream balancer ,upstream is nil :-(", 500)
         end
     else
-        LOGGER(ALERT, "upstream is nil，dispatch to default upstream:", self.default_upstream)
+        LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
+        return response.failure("failed to load upstream balancer ,upstream is nil :-(", 500)
     end
     ngx.var.backend = upstream or self.default_upstream
 end
@@ -50,11 +59,11 @@ function _M:balance(ctx)
         local ok, err = balancer.set_current_peer(server)
         if not ok then
             LOGGER(ERR, "failed to set the current peer: ", err)
-            return exit(500)
+            return response.failure("Failed to set the current peer :-(", 500)
         end
     else
         LOGGER(ERR, "failed to dispatch to backend: ups_balancer is nil?")
-        return exit(500)
+        return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
     end
 end
 

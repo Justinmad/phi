@@ -8,14 +8,13 @@
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local tonumber = tonumber
-local type = type
 local pairs = pairs
 
 local modulo_policy = {}
 
 function modulo_policy.calculate(arg, routerTable)
-    arg = tonumber(arg)
-    if type(arg) ~= "number" then
+    local key = tonumber(arg)
+    if not key then
         return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
     local upstream, err;
@@ -26,12 +25,12 @@ function modulo_policy.calculate(arg, routerTable)
         if policy ~= "number" and (policy < 0 or policy > 9) then
             return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
         end
-        if arg % 10 == policy then
+        if key % 10 == policy then
             upstream = up
-            LOGGER(DEBUG, "匹配到规则:", arg, ",modulo:[" .. policy .. "]")
+            LOGGER(DEBUG, "匹配到规则:", key, ",modulo:[" .. policy .. "]")
             break
         end
-        LOGGER(DEBUG, "未匹配的规则参数:", arg, ",modulo:[" .. policy .. "]")
+        LOGGER(DEBUG, "未匹配的规则参数:", key, ",modulo:[" .. policy .. "]")
     end
     return upstream, err
 end

@@ -8,7 +8,6 @@
 local resty_roundrobin = require "resty.roundrobin"
 local phi = require "Phi"
 local setmetatable = setmetatable
-local exit = ngx.exit
 
 local ok, resty_chash = pcall(require, "resty.chash")
 if not ok then
@@ -25,7 +24,7 @@ function _M:find(ctx)
         local tag, err = self.mapper_holder:map(ctx, self.mapper, self.tag)
         if err then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
-            return exit(500)
+            return response.failure("Failed to calculate the hash :-(", 500)
         end
         return self.balancer:find(tag)
     else

@@ -159,11 +159,12 @@ end
 -- 刷新缓存
 function _M:refreshCache(upstreamName)
     local res, err = self.dao:getUpstreamServers(upstreamName)
-    -- 更新缓存
     if err then
         LOGGER(ERR, "could not retrieve upstream servers:", err)
     elseif res == nil then
         LOGGER(ERR, "could not find upstream servers")
+        self.cache:set(upstreamName, nil, { notExists = true })
+        self:dynamicUpsChangeEvent(upstreamName)
     else
         self.cache:set(upstreamName, nil, res)
         -- 通知其它worker更新缓存
@@ -213,6 +214,27 @@ function _M:delUpstreamServers(upstream, servers)
     return ok, err
 end
 
+-- 动态添加upstream中的server
+function _M:delUpstream(upstream)
+    -- 查询
+    local _, err, upstreamInfo = self.cache:peek(upstream)
+    local ok
+    if not err then
+        if upstreamInfo == "stable" then
+            err = "暂不支持对配置文件中的upstream进行编辑！"
+        else
+            ok, err = self.dao:delUpstream(upstream)
+            if ok then
+                --通知其它worker进行更新缓存,并且重建balancer
+                self:refreshCache(upstream)
+            end
+        end
+    else
+        LOGGER(ERR, "查询upstream信息出现错误，err:", err)
+    end
+    return ok, err
+end
+
 -- 查询upstream中的所有server信息
 function _M:getUpstreamServers(upstream)
     local _, err, upstreamInfo = self.cache:peek(upstream)
@@ -242,7 +264,7 @@ local function newBalancer(res)
             "host:port":"str"
         }
     ]]
-    if type(res) == "table" then
+    if type(res) == "table" and not res.notExists then
         local server_list = new_tab(0, #res)
         local strategy, mapper, tag
         for k, v in pairs(res) do
@@ -253,14 +275,6 @@ local function newBalancer(res)
             elseif k == "tag" then
                 tag = v
             else
-                --                local hostAndPort = split(k, ":")
-                --                server.host = hostAndPort[1]
-                --                server.port = hostAndPort[2]
-                --                server.down = info.down
-                --                server.weight = info.weight
-                --                server.max_fails = infos.max_fails
-                --                server.fail_timeout = infos.fail_timeout
-                --                server.backup = infos.ackup
                 if not v.down then
                     server_list[k] = v.weight
                 end
@@ -277,11 +291,11 @@ function _M:getUpstreamBalancer(upstream)
     local result, err = self.cache:get(upstream, nil, function()
         local res, err = self.dao:getUpstreamServers(upstream)
         if err then
-            -- 查询出现错误，10秒内不再查询
+            -- 查询出现错误，60秒内不再查询
             LOGGER(ERR, "could not retrieve upstream servers:", err)
-            return nil, err, 10
+            return { notExists = true }, nil, 60
         end
-        return res
+        return res or { notExists = true }
     end)
     return result, err
 end
@@ -292,14 +306,15 @@ function class:new(ref, config)
     -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
     local cache, err = mlcache.new("dynamic_ups_cache", PHI_UPSTREAM_DICT_NAME, {
         lru_size = config.router_lrucache_size or 1000, -- L1缓存大小，默认取1000
-        ttl = 0,                                        -- 缓存失效时间
-        neg_ttl = 0,                                    -- 未命中缓存失效时间
-        resty_lock_opts = {                             -- 回源DB的锁配置
-            exptime = 10,                               -- 锁失效时间
-            timeout = 5                                 -- 获取锁超时时间
+        ttl = 0, -- 缓存失效时间
+        neg_ttl = 0, -- 未命中缓存失效时间
+        resty_lock_opts = {
+            -- 回源DB的锁配置
+            exptime = 10, -- 锁失效时间
+            timeout = 5 -- 获取锁超时时间
         },
-        ipc_shm = PHI_EVENTS_DICT_NAME,                 -- 通知其他worker的事件总线
-        l1_serializer = newBalancer                     -- 数据序列化
+        ipc_shm = PHI_EVENTS_DICT_NAME, -- 通知其他worker的事件总线
+        l1_serializer = newBalancer -- 数据序列化
     })
     if err then
         error("could not create mlcache for dynamic upstream cache ! err :" .. err)

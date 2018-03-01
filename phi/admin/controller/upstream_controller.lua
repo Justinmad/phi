@@ -8,7 +8,9 @@
 local CONST = require "core.constants"
 local type = type
 local ipairs = ipairs
+local insert = table.insert
 local POST = CONST.METHOD.POST
+local GET = CONST.METHOD.GET
 
 local _M = {
     request_mapping = "upstream"
@@ -61,11 +63,79 @@ _M.addUpstreamServers = {
             Response.failure("请至少指定一个server列表！")
         end
         for _, server in ipairs(servers) do
-            if type(server.name) ~= "string" then
+            if type(server.name) ~= "string" or (server.name == "strategy" or server.name == "mapper") then
                 Response.failure("请检查servers列表的数据格式是否正确!")
             end
         end
         local ok, err = self.upstreamService:addUpstreamServers(upstreamName, servers)
+        if ok then
+            Response.success()
+        else
+            Response.failure(err)
+        end
+    end
+}
+
+--[[
+    添加或者更新upstream
+    请求路径：/upstream/addOrUpdateUps
+    请求方式：POST
+    请求数据格式：JSON
+    请求数据示例：{
+        upstreamName:"a new upstream",
+        strategy:"resty_chash",
+        mapper:"mapper",
+        tag:"tag",
+        servers:[{
+            addr:"127.0.0.1:8989",
+            weight:100,
+            backup:false,
+            down:true
+        }]
+    }
+-- ]]
+_M.addOrUpdateUps = {
+    method = POST,
+    handler = function(self, request)
+        local body = request.body
+        local upstreamName = body.upstreamName
+        local strategy = body.strategy
+        local mapper = body.mapper
+        local tag = body.tag
+        local servers = body.servers
+        if not body or not upstreamName or not servers or not strategy or not mapper then
+            Response.failure("缺少必须的请求参数！")
+        end
+        if #(body.servers) < 1 then
+            Response.failure("请至少指定一个server列表！")
+        end
+        for _, server in ipairs(servers) do
+            if type(server.name) ~= "string" or (server.name == "strategy" or server.name == "mapper") then
+                Response.failure("请检查servers列表的数据格式是否正确!")
+            end
+        end
+        insert(servers, { name = "strategy", info = strategy })
+        insert(servers, { name = "mapper", info = mapper })
+        if tag then
+            insert(servers, { name = "tag", info = tag })
+        end
+        local ok, err = self.upstreamService:addUpstreamServers(upstreamName, servers)
+        if ok then
+            Response.success()
+        else
+            Response.failure(err)
+        end
+    end
+}
+
+_M.delUps = {
+    method = GET,
+    handler = function(self, request)
+        local upstreamName = request.args.upstreamName
+        if not upstreamName then
+            Response.failure("缺少必须的请求参数！upstreamName")
+        end
+        local ok, err = self.upstreamService:delUpstream(upstreamName)
         if ok then
             Response.success()
         else

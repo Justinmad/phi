@@ -23,8 +23,8 @@ local type = type
 local range_policy = {}
 
 function range_policy.calculate(arg, routerTable)
-    arg = tonumber(arg)
-    if not arg then
+    local key = tonumber(arg)
+    if not key then
         return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
     local upstream, err
@@ -34,15 +34,15 @@ function range_policy.calculate(arg, routerTable)
         if policy and type(policy) == "table" then
             local fromNum = policy[1]
             local endNum = policy[2]
-            local selected = (type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and arg >= endNum) --gt
-                    or (type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and arg <= fromNum) --lt
-                    or (type(fromNum) == 'number' and type(endNum) == 'number' and arg >= fromNum and arg <= endNum) -- between
+            local selected = (type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and key >= endNum) --gt
+                    or (type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and key <= fromNum) --lt
+                    or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum) -- between
             if selected then
                 upstream = up
-                LOGGER(DEBUG, "匹配到规则:", arg, ",range:[", fromNum, ",", endNum, "]")
+                LOGGER(DEBUG, "匹配到规则:", key, ",range:[", fromNum, ",", endNum, "]")
                 break
             end
-            LOGGER(DEBUG, "未匹配的规则参数:", arg, ",range:[", fromNum, ",", endNum, "]")
+            LOGGER(DEBUG, "未匹配的规则参数:", key, ",range:[", fromNum, ",", endNum, "]")
         else
             err = "非法的规则表！"
             LOGGER(ERR, err)

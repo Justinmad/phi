@@ -10,6 +10,7 @@ local ngx_chash = ngx.crc32_long
 local floor = math.floor
 local pairs = pairs
 local setmetatable = setmetatable
+local getn = table.getn
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
@@ -40,7 +41,7 @@ local _M = {}
 
 function _M:find(key)
     local hash = ngx_chash(key);
-    hash = (hash % #(self.nodes)) + 1
+    hash = (hash % getn(self.nodes)) + 1
     return self.nodes[hash]
 end
 
