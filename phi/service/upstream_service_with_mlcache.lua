@@ -110,23 +110,28 @@ function _M:setPeerDown(upstreamName, peerId, down)
     local ok
     if upstreamInfo == "stable" then
         local serversInfo = self:getUpstreamServers(upstreamName)
-        for _,s in serversInfo.primary do
+        for _, s in serversInfo.primary do
             if s.name == peerId then
                 peerId = s.id
                 isBackup = false
             end
         end
         if isBackup == nil then
-            for _,s in serversInfo.backup do
+            for _, s in serversInfo.backup do
                 if s.name == peerId then
                     peerId = s.id
                     isBackup = false
                 end
             end
         end
-        ok, err = ngx_upstream.set_peer_down(upstreamName, isBackup, peerId, down)
-        if ok then
-            self:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
+        if isBackup == nil then
+            err = "错误的server name：" .. peerId
+            LOGGER(ERR, err)
+        else
+            ok, err = ngx_upstream.set_peer_down(upstreamName, isBackup, peerId, down)
+            if ok then
+                self:peerStateChangeEvent(upstreamName, isBackup, peerId, down)
+            end
         end
     else
         if not upstreamInfo then
