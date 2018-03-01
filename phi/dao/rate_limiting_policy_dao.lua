@@ -7,6 +7,8 @@
 --
 local CONST = require "core.constants"
 local cjson = require "cjson.safe"
+local ipairs = ipairs
+local type = type
 
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR

@@ -7,6 +7,7 @@
 --
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
+local type = type
 
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG

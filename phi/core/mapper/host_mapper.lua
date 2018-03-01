@@ -5,6 +5,7 @@
 -- Time: 14:49
 -- To change this template use File | Settings | File Templates.
 --
+local ngx = ngx
 local _M = {}
 
 function _M.map(ctx)

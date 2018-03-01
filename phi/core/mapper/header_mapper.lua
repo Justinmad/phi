@@ -5,6 +5,7 @@
 -- Time: 17:55
 -- 根据指定的头名称，获取头信息的值
 --
+local ngx = ngx
 local _M = {}
 
 function _M.map(ctx, header)

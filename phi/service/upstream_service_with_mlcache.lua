@@ -18,6 +18,10 @@ local balancer_warpper = require "core.balancer.balancer_warpper"
 local get_upstreams = ngx_upstream.get_upstreams
 local set_peer_down = ngx_upstream.set_peer_down
 local worker_pid = ngx.worker.pid
+local ipairs = ipairs
+local type = type
+local gsub = string.gsub
+local pairs = pairs
 
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
@@ -91,7 +95,7 @@ function _M:getAllRuntimeInfo()
     local result = {}
     local upsNames = SHARED_DICT:get_keys()
     for _, name in ipairs(upsNames) do
-        name = string.gsub(name, "dynamic_ups_cache", "")
+        name = gsub(name, "dynamic_ups_cache", "")
         local info = self:getUpstreamServers(name)
         result[name] = info
     end
@@ -99,11 +103,27 @@ function _M:getAllRuntimeInfo()
 end
 
 -- 关闭指定的peer，暂时不参与负载均衡
-function _M:setPeerDown(upstreamName, peerId, down, isBackup)
+function _M:setPeerDown(upstreamName, peerId, down)
     -- 查询L2
+    local isBackup
     local _, err, upstreamInfo = self.cache:peek(upstreamName)
     local ok
     if upstreamInfo == "stable" then
+        local serversInfo = self:getUpstreamServers(upstreamName)
+        for _,s in serversInfo.primary do
+            if s.name == peerId then
+                peerId = s.id
+                isBackup = false
+            end
+        end
+        if isBackup == nil then
+            for _,s in serversInfo.backup do
+                if s.name == peerId then
+                    peerId = s.id
+                    isBackup = false
+                end
+            end
+        end
         ok, err = ngx_upstream.set_peer_down(upstreamName, isBackup, peerId, down)
         if ok then
             self:peerStateChangeEvent(upstreamName, isBackup, peerId, down)

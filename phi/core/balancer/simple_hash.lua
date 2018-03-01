@@ -5,12 +5,17 @@
 -- Time: 15:24
 -- 简单hash算法
 --
+local type = type
+local ngx_chash = ngx.crc32_long
+local floor = math.floor
+local pairs = pairs
+local setmetatable = setmetatable
+
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
-local ngx_chash = ngx.crc32_long
-local floor = math.floor
+
 
 local function rehash(server_list)
     local total_weight = 0

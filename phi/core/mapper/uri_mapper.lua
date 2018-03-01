@@ -5,6 +5,7 @@
 -- Time: 14:37
 -- 获取请求的uri,区别于ngx.var.request_uri，此uri不会包含任何路径参数
 --
+local ngx = ngx
 local _M = {}
 
 function _M.map(ctx, tag)

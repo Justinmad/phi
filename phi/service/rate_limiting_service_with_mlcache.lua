@@ -46,6 +46,8 @@ local limiter_wrapper = require "component.limit_traffic.limiter_wrapper"
 local CONST = require("core.constants")
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
+local ipairs = ipairs
+local insert = table.insert
 
 local PHI_EVENTS_DICT_NAME = CONST.DICTS.PHI_EVENTS
 local SHARED_DICT_NAME = CONST.DICTS.PHI_LIMITER
@@ -70,7 +72,7 @@ local function newLimiterWrapper(policy)
         if #policy > 0 then
             limiter = new_tab(0, #policy)
             for _, p in ipairs(policy) do
-                table.insert(limiter, limiter_wrapper:new(p))
+                insert(limiter, limiter_wrapper:new(p))
             end
         else
             limiter = limiter_wrapper:new(policy)

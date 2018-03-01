@@ -6,11 +6,14 @@
 -- To change this template use File | Settings | File Templates.
 --
 local resty_roundrobin = require "resty.roundrobin"
+local phi = require "Phi"
+local setmetatable = setmetatable
+local exit = ngx.exit
+
 local ok, resty_chash = pcall(require, "resty.chash")
 if not ok then
     resty_chash = require "core.balancer.simple_hash"
 end
-
 
 local LOGGER = ngx.log
 local ERR = ngx.ERR
@@ -22,7 +25,7 @@ function _M:find(ctx)
         local tag, err = self.mapper_holder:map(ctx, self.mapper, self.tag)
         if err then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
-            return ngx.exit(500)
+            return exit(500)
         end
         return self.balancer:find(tag)
     else
@@ -42,7 +45,7 @@ function class:new(strategy, server_list, mapper, tag)
         balancer = balancer,
         mapper = mapper,
         tag = tag,
-        mapper_holder = PHI.mapper_holder
+        mapper_holder = phi.mapper_holder
     }, { __index = _M })
 end
 

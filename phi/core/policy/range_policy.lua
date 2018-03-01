@@ -16,6 +16,9 @@
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
+local tonumber = tonumber
+local pairs = pairs
+local type = type
 
 local range_policy = {}
 

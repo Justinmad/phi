@@ -25,6 +25,12 @@
 --]]
 
 local utils = require "utils"
+local phi = require "Phi"
+local type = type
+local ipairs = ipairs
+local setmetatable = setmetatable
+local tostring = tostring
+
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
@@ -79,8 +85,8 @@ local class = {}
 function class:new(ref)
     local instance = {}
     instance.service = ref
-    instance.policy_holder = PHI.policy_holder
-    instance.mapper_holder = PHI.mapper_holder
+    instance.policy_holder = phi.policy_holder
+    instance.mapper_holder = phi.mapper_holder
     return setmetatable(instance, { __index = _M })
 end
 

@@ -6,6 +6,8 @@
 -- 查询upstream信息，启停upstream中的server
 --
 local CONST = require "core.constants"
+local type = type
+local ipairs = ipairs
 local POST = CONST.METHOD.POST
 
 local _M = {
@@ -118,14 +120,13 @@ _M.delUpstreamServers = {
 -- ]]
 function _M:setPeerDown(request)
     local upstreamName = request.args["upstreamName"]
-    local isBackup = request.args["isBackup"]
     local peerId = request.args["peerId"]
     local down = request.args["down"]
     if (not upstreamName) or (down == nil) or (not peerId) then
         Response.failure("缺少必须参数！")
     end
 
-    local ok, err = self.upstreamService:setPeerDown(upstreamName, peerId, down == "true", isBackup and isBackup == "true")
+    local ok, err = self.upstreamService:setPeerDown(upstreamName, peerId, down == "true")
     if ok then
         Response.success()
     else

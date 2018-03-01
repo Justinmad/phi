@@ -5,6 +5,7 @@
 -- Time: 17:57
 -- 根据指定的uri参数名称，获取uri参数的值
 --
+local ngx = ngx
 local _M = {}
 
 function _M.map(ctx, arg_name)

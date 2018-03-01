@@ -24,7 +24,8 @@ local PHI = {
     -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
     context = {}
 }
-
+local ngx = ngx
+local ipairs = ipairs
 local router, balancer, components
 
 -- 开启lua_code_cache情况下，每个worker只有一个Lua VM
@@ -45,7 +46,7 @@ function PHI.balancer()
     local ctx = ngx.ctx
     -- 负载均衡
     balancer:balance(ctx)
-    for _, c in pairs(components) do
+    for _, c in ipairs(components) do
         c:balancer()
     end
 end
@@ -59,20 +60,20 @@ function PHI:rewrite()
     -- 动态upstream映射
     balancer:load(ctx)
 
-    for _, c in pairs(components) do
+    for _, c in ipairs(components) do
         c:rewrite(ctx)
     end
 end
 
 function PHI:access()
-    for _, c in pairs(components) do
+    for _, c in ipairs(components) do
         c:access()
     end
 end
 
 function PHI:log()
     local ctx = ngx.ctx
-    for _, c in pairs(components) do
+    for _, c in ipairs(components) do
         c:log(ctx)
     end
 end

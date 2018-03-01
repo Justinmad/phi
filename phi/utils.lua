@@ -5,8 +5,8 @@
 -- Time: 17:32
 -- 封装一些常用的方法
 --
+local ngx = ngx
 local utils = {}
-
 -- 判断文件是否存在
 -- 所有io操作都应谨慎使用，在openresty中非官方库的io操作很可能会阻塞整个worker进程
 function utils.file_exists(path)
@@ -35,22 +35,6 @@ function utils.getHost(ctx)
                 result = hostkey
             end
             ctx.__host = result;
-        end
-    end
-
-    return result
-end
-
-function getHeader(header)
-    local ctx = ngx.ctx
-    local field = "_cache_" .. header
-    local result = ctx[field];
-
-    if not result then
-        -- 获取到请求头中的Host
-        result = ngx.req.get_headers()[header]
-        if result then
-            ctx[field] = result;
         end
     end
 

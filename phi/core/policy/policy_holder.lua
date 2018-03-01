@@ -5,11 +5,16 @@
 -- Time: 20:31
 -- 持有应用中定义的所有policy实例
 --
+local type = type
+local require = require
+local ipairs = ipairs
+local setmetatable = setmetatable
+
 local _M = {}
 local mt = { __index = _M }
+
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
-local ERR = ngx.ERR
 
 function _M:new(config)
     if type(config) == "table" then
@@ -37,7 +42,7 @@ function _M:calculate(policyType, arg, routerTable)
         return nil, "未查询到可用的路由规则:" .. policyType
     end
 
-    local upstream, err = policy.calculate(arg, routerTable)
+    local upstream, err = policy.calculate(arg, routerTable, self)
 
     -- 未查询到
     if err or not upstream then

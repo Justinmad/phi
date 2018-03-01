@@ -15,6 +15,9 @@ local ERR = ngx.ERR
 local LOGGER = ngx.log
 local cjson = require "cjson.safe"
 local CONST = require "core.constants"
+local ipairs = ipairs
+local unpack = unpack
+local type = type
 local UPSTREAM_PREFIX = CONST.CACHE_KEY.UPSTREAM
 local MATCH = UPSTREAM_PREFIX .. "*"
 

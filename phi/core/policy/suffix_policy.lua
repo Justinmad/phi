@@ -16,6 +16,8 @@
 --]]
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
+local pairs = pairs
+local sub = string.sub
 
 local suffix_policy = {}
 
@@ -28,7 +30,7 @@ function suffix_policy.calculate(arg, routerTable)
         for up, policy in pairs(routerTable) do
             local policyLength = #policy
             if argLength >= policyLength then
-                local selected = string.sub(arg, argLength - policyLength + 1) == policy
+                local selected = sub(arg, argLength - policyLength + 1) == policy
                 if selected then
                     upstream = up
                     LOGGER(DEBUG, "匹配到规则:", arg, ",suffix:[" .. policy .. "]")

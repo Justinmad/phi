@@ -12,6 +12,8 @@
 --
 local cjson = require "cjson.safe"
 local CONST = require "core.constants"
+local ipairs = ipairs
+local type = type
 
 local ALERT = ngx.ALERT
 local ERR = ngx.ERR

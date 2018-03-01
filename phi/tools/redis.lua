@@ -13,6 +13,13 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local WARN = ngx.WARN
 local LOGGER = ngx.log
+local pairs = pairs
+local null = ngx.null
+local type = type
+local rawget = rawget
+local ipairs = ipairs
+local unpack = unpack
+local remove = table.remove
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
@@ -30,11 +37,11 @@ end
 local function _is_null(res)
     if type(res) == "table" then
         for _, v in pairs(res) do
-            if v ~= ngx.null then
+            if v ~= null then
                 return false
             end
         end
-    elseif res == ngx.null or res == nil then
+    elseif res == null or res == nil then
         return true
     end
 
@@ -163,7 +170,7 @@ function _M:commit_pipeline()
         -- vals[1] is redis cmd
         local fun = redis[vals[1]]
         -- get params without cmd
-        table.remove(vals, 1)
+        remove(vals, 1)
         -- invoke redis cmd
         fun(redis, unpack(vals))
     end

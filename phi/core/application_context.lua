@@ -11,6 +11,11 @@ local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
 local NOTICE = ngx.NOTICE
+local pairs = pairs
+local ipairs = ipairs
+local require = require
+local type = type
+local error = error
 local _M = {}
 
 local function loadConf(context, beanDefinitions, location)

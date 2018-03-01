@@ -12,6 +12,7 @@ local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
+local sort = table.sort
 
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_EVENTS
 local UPDATE = EVENTS.UPDATE
@@ -30,7 +31,7 @@ local _M = {}
 local function sortSerializer(row)
     if not row.skipRouter then
         -- 排序
-        table.sort(row.policies, function(r1, r2) return r1.order > r2.order end)
+        sort(row.policies, function(r1, r2) return r1.order > r2.order end)
     end
     return row
 end
@@ -78,7 +79,7 @@ function _M:setRouterPolicy(hostkey, policies)
     if ok then
         ok, err = self.cache:set(hostkey, nil, policies)
         if not ok then
-            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到shared_dict失败！err:", err)
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存路由规则到mlcache失败！err:", err)
         else
             self:updateEvent(hostkey)
         end

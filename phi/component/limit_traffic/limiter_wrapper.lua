@@ -12,6 +12,12 @@ local limit_count = require "resty.limit.count"
 local limit_req = require "resty.limit.req"
 local limit_traffic = require "resty.limit.traffic"
 local response = require "core.response"
+local phi = require "Phi"
+
+local ipairs = ipairs
+local insert = table.insert
+local tonumber = tonumber
+local setmetatable = setmetatable
 
 local LIMIT_REQ_DICT_NAME = DICTS.PHI_LIMIT_REQ
 local LIMIT_CONN_DICT_NAME = DICTS.PHI_LIMIT_CONN
@@ -50,8 +56,8 @@ local function createTrafficLimiter(policy, mapper_holder)
     local limiters = new_tab(0, #policy)
     local keys = new_tab(0, #policy)
     for _, p in ipairs(policy) do
-        table.insert(limiters, createLimiter(p))
-        table.insert(keys, function(ctx)
+        insert(limiters, createLimiter(p))
+        insert(keys, function(ctx)
             return p.mapper and mapper_holder:map(ctx, p.mapper, p.tag) or get_host(ctx)
         end)
     end
@@ -67,7 +73,7 @@ local function createTrafficLimiter(policy, mapper_holder)
     local get_key = function(ctx)
         local res = new_tab(0, #policy)
         for _, func in ipairs(keys) do
-            table.insert(res, func(ctx))
+            insert(res, func(ctx))
         end
         return res
     end
@@ -135,7 +141,7 @@ function _M:update(policy)
     elseif typeStr == "count" then
         self.limiter = limit_count.new(LIMIT_COUNT_DICT_NAME, policy.rate, policy.time_window)
     elseif typeStr == "traffic" then
-        self.limiter = createTrafficLimiter(policy, PHI.mapper_holder)
+        self.limiter = createTrafficLimiter(policy, self.mapper_holder)
     else
         LOGGER(ERR, "update limiter err，bad policy type:", typeStr)
     end
@@ -146,7 +152,7 @@ end
 local class = {}
 
 function class:new(policy)
-    local mapper_holder = PHI.mapper_holder
+    local mapper_holder = phi.mapper_holder
     local limiter, get_key
     local typeStr = policy.type
     if typeStr == "traffic" then
@@ -161,7 +167,8 @@ function class:new(policy)
     return setmetatable({
         type = typeStr,
         get_key = get_key,
-        limiter = limiter
+        limiter = limiter,
+        mapper_holder = mapper_holder
     }, { __index = _M })
 end
 

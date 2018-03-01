@@ -55,6 +55,11 @@ end
 --    end
 --    return ips
 --end
+local tonumber = tonumber
+local ngx = ngx
+local find = string.find
+local sub = string.sub
+local pcall = pcall
 
 local ip2long_c = function(ip)
     local inp = ffi.new("struct in_addr[1]")
@@ -70,9 +75,9 @@ function _M.map(ctx, tag)
     if ClientIP == nil then
         ClientIP = headers["X-Forwarded-For"]
         if ClientIP then
-            local colonPos = string.find(ClientIP, ' ')
+            local colonPos = find(ClientIP, ' ')
             if colonPos then
-                ClientIP = string.sub(ClientIP, 1, colonPos - 1)
+                ClientIP = sub(ClientIP, 1, colonPos - 1)
             end
         end
     end

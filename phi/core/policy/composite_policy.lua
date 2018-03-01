@@ -40,26 +40,28 @@
         }
     }
 --]]
+local type = type
+
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 
-local range_policy = {}
+local composite_policy = {}
 
-local function doCalculate(policyItem)
+local function doCalculate(policyItem, holder)
     local tag
     if policyItem.mapper then
-        tag = PHI.mapper_holder:map(policyItem.mapper, policyItem.tag)
+        tag = holder:map(policyItem.mapper, policyItem.tag)
     end
     -- 计算路由
-    return PHI.policy_holder[policyItem.policy].calculate(tag, policyItem.routerTable)
+    return holder[policyItem.policy].calculate(tag, policyItem.routerTable)
 end
 
-function range_policy.calculate(_, routerTable)
+function composite_policy.calculate(_, routerTable, holder)
     local upstream, err
     local primary = routerTable.primary
     if primary and type(primary) == "table" then
-        upstream, err = doCalculate(primary)
+        upstream, err = doCalculate(primary, holder)
         if not err and upstream then
             -- 如果计算结果存在在当前的路由表中，则继续计算
             local secondary = routerTable[upstream]
@@ -75,4 +77,4 @@ function range_policy.calculate(_, routerTable)
     return upstream, err
 end
 
-return range_policy
+return composite_policy
