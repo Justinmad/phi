@@ -33,16 +33,13 @@ function _M:load(ctx)
         if err then
             LOGGER(ERR, "search upstream err：", err)
             return response.failure("Failed to load upstream balancer ,please try again latter :-(", 500)
-        elseif upstreamBalancer.notExists then
+        elseif upstreamBalancer and upstreamBalancer.notExists then
             LOGGER(ERR, "upstream is not exists !")
             return response.failure("Upstream:" .. upstream .. " does not exist ! :-(", 500)
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer
-        elseif upstreamBalancer ~= "stable" then
-            LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
-            return response.failure("failed to load upstream balancer ,upstream is nil :-(", 500)
         end
     else
         LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")

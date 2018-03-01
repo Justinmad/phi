@@ -22,7 +22,7 @@ local _M = {}
 function _M:find(ctx)
     if self.mapper then
         local tag, err = self.mapper_holder:map(ctx, self.mapper, self.tag)
-        if err then
+        if err or not tag then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
             return response.failure("Failed to calculate the hash :-(", 500)
         end

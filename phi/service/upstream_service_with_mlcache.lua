@@ -291,11 +291,11 @@ function _M:getUpstreamBalancer(upstream)
     local result, err = self.cache:get(upstream, nil, function()
         local res, err = self.dao:getUpstreamServers(upstream)
         if err then
-            -- 查询出现错误，60秒内不再查询
+            -- 查询出现错误，10秒内不再查询
             LOGGER(ERR, "could not retrieve upstream servers:", err)
-            return { notExists = true }, nil, 60
+            return { notExists = true }, nil, 10
         end
-        return res or { notExists = true }
+        return res
     end)
     return result, err
 end
