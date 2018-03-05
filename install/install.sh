@@ -1,18 +1,19 @@
+#!/usr/bin/env bash
 # assuming your luajit is installed to /opt/luajit:
-export LUAJIT_LIB=/opt/luajit/lib
+export LUAJIT_LIB=/usr/local/lib
 
 # assuming you are using LuaJIT v2.1:
-export LUAJIT_INC=/opt/luajit/include/luajit-2.1
+export LUAJIT_INC=/usr/local/include/luajit-2.1
 
-export lua_upstream_nginx_module=/home/young/soft/lua-upstream-nginx-module-0.07
+export lua_upstream_nginx_module=/home/tengine-2.2.0/lua-upstream-nginx-module-0.07
 
-export lua_nginx_module=/home/young/soft/resty-lib/lua-nginx-module-0.10.12rc2
+export lua_nginx_module=/home/tengine-2.2.0/lua-nginx-module-0.10.11
 
 # Here we assume you would install you nginx under /opt/nginx/.
-./configure --prefix=/home/young/soft/nginx \
+./configure --prefix=/home/phi-0.0.1 \
     --with-ld-opt="-Wl,-rpath,$LUAJIT_LIB" \
-    --add-module=/home/young/soft/resty-lib/lua-nginx-module-0.10.12rc2 \
-    --add-module=/home/young/soft/resty-lib/lua-upstream-nginx-module-0.07
+    --add-module=$lua_nginx_module \
+    --add-module=$lua_upstream_nginx_module
 
 make -j2
 make install
