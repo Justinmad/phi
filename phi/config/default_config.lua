@@ -10,9 +10,9 @@ return {
     enabled_policies = { "RANGE", "SUFFIX", "COMPOSITE", "MODULO" },
     enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },
     default_paths = {
-        "E:/work/phi/conf/phi.ini", "/home/young/IdeaProjects/phi/conf/phi.ini"
+        "E:/work/phi/conf/phi.ini", "/home/young/IdeaProjects/phi/conf/phi.ini", "/home/phi/conf/application.ini"
     },
-    application_context_conf = { 
-        "E:/work/phi/phi/config/application.ini", "/home/young/IdeaProjects/phi/phi/config/application.ini" 
+    application_context_conf = {
+        "E:/work/phi/phi/config/application.ini", "/home/young/IdeaProjects/phi/phi/config/application.ini", "/home/phi/phi/config/application.ini"
     }
 }
