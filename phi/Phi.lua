@@ -7,6 +7,8 @@
 -- 需要在init_by_lua阶段加载本项目，并保存为全局变量PHI
 --
 local meta = require "meta"
+local ngx = ngx
+local ipairs = ipairs
 
 local PHI = {
     -- 属性
@@ -24,10 +26,8 @@ local PHI = {
     -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
     context = {}
 }
-local ngx = ngx
-local ipairs = ipairs
-local router, balancer, components
 
+local router, balancer, components
 -- 开启lua_code_cache情况下，每个worker只有一个Lua VM
 -- require函数或者VM级别的变量（例如LRUCACHE）初始化应该在每个worker中都执行，而shared_DICT是跨worker共享的，那么初始化一次即可
 -- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
