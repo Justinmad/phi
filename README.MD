@@ -5,7 +5,7 @@
 ```
 ## 管理控制台API
 - **枚举值**
-    - ####mapper
+    - #### mapper<br>
         mapper是一组映射函数，会将请求映射到一个具体的值，以便将这个值交给policy进行运算,
         有一些mapper需要指定tag，例如{"mapper":"header","tag":"x-uid"}，会取出请求头中的x-uid的值
         
@@ -16,7 +16,7 @@
         | `ip`               | 取请求头中的用户ip，无需指定tag                           
         | `uri_args`         | 取请求中的uri参数，配合tag字段使用，tag值表示参数名称      
         | `uri`              | 取请求行中的uri                                          
-    - ####policy
+    - #### policy<br>
         policy是一组计算函数，`string calculate(arg, hashTable)`，此函数接收一个具体值和一个哈希表，
         经过运算后将结果与哈希表中的规则值进行匹配，匹配成功后会返回对应的哈希KEY值
     
