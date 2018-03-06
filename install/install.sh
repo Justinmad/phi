@@ -9,11 +9,13 @@ export lua_upstream_nginx_module=/home/tengine-2.2.0/lua-upstream-nginx-module-0
 
 export lua_nginx_module=/home/tengine-2.2.0/lua-nginx-module-0.10.11
 
+export ngx_src=/home/tengine-2.2.0
+
 # Here we assume you would install you nginx under /opt/nginx/.
 
 mkdir -p /home/phi-0.0.1
 
-cd /home/phi-0.0.1
+cd $ngx_src
 
 ./configure --prefix=/home/phi-0.0.1 \
     --with-ld-opt="-Wl,-rpath,$LUAJIT_LIB" \

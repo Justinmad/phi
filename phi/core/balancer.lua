@@ -15,7 +15,6 @@ local ngx = ngx
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
-local ALERT = ngx.ALERT
 
 local _M = {}
 

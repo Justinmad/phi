@@ -22,10 +22,14 @@ function _M:getAllRuntimeInfo()
     Response.success(self.upstreamService:getAllRuntimeInfo())
 end
 
+function _M:getAllUpsInfo()
+    Response.success(self.upstreamService:getAllUpsInfo())
+end
+
 function _M:getUpstreamServers(request)
     local upstreamName = request.args.upstreamName
     if not upstreamName then
-        Response.failure("upstream不能为空！")
+        Response.failure("upstreamName不能为空！")
     end
     local res, err = self.upstreamService:getUpstreamServers(upstreamName)
     if res then
@@ -40,30 +44,34 @@ end
     请求路径：/upstream/addUpstreamServers
     请求方式：POST
     请求数据格式：JSON
-    请求数据示例：{
-        upstreamName:"a new upstream",
-        servers:[{
-            addr:"127.0.0.1:8989",
-            weight:100,
-            backup:false,
-            down:true
-        }]
-    }
+    请求数据示例：
+        {
+            "upstreamName":"an exists upstream name",
+            "servers":[{
+              "name":"127.0.0.1:8989",
+              "info":{
+                  "weight":100
+              }
+            }]
+        }
 -- ]]
 _M.addUpstreamServers = {
     method = POST,
     handler = function(self, request)
         local body = request.body
+        if not body then
+            Response.failure("缺少请求参数！".. body)
+        end
         local upstreamName = body.upstreamName
         local servers = body.servers
-        if not body or not upstreamName or not servers then
+         if not upstreamName or not servers then
             Response.failure("缺少必须的请求参数！")
         end
         if #(body.servers) < 1 then
             Response.failure("请至少指定一个server列表！")
         end
         for _, server in ipairs(servers) do
-            if type(server.name) ~= "string" or (server.name == "strategy" or server.name == "mapper") then
+            if type(server.name) ~= "string" or server.name == "strategy" or server.name == "mapper" then
                 Response.failure("请检查servers列表的数据格式是否正确!")
             end
         end
@@ -98,19 +106,22 @@ _M.addOrUpdateUps = {
     method = POST,
     handler = function(self, request)
         local body = request.body
+        if not body then
+            Response.failure("缺少请求参数！")
+        end
         local upstreamName = body.upstreamName
         local strategy = body.strategy
         local mapper = body.mapper
         local tag = body.tag
         local servers = body.servers
-        if not body or not upstreamName or not servers or not strategy or not mapper then
+        if not upstreamName or not servers or not strategy or not mapper then
             Response.failure("缺少必须的请求参数！")
         end
         if #(body.servers) < 1 then
             Response.failure("请至少指定一个server列表！")
         end
         for _, server in ipairs(servers) do
-            if type(server.name) ~= "string" or (server.name == "strategy" or server.name == "mapper") then
+            if type(server.name) ~= "string" or (server.name == "strategy" or server.name == "mapper") or type(server.info) ~= "table" then
                 Response.failure("请检查servers列表的数据格式是否正确!")
             end
         end
@@ -119,7 +130,7 @@ _M.addOrUpdateUps = {
         if tag then
             insert(servers, { name = "tag", info = tag })
         end
-        local ok, err = self.upstreamService:addUpstreamServers(upstreamName, servers)
+        local ok, err = self.upstreamService:addOrUpdateUps(upstreamName, servers)
         if ok then
             Response.success()
         else
@@ -151,12 +162,7 @@ _M.delUps = {
     请求数据格式：JSON
     请求数据示例：{
         upstreamName:"a new upstream",
-        servers:[{
-            addr:"127.0.0.1:8989",
-            weight:100,
-            backup:false,
-            down:true
-        }]
+        servers:["127.0.0.1:8989"]
     }
 -- ]]
 _M.delUpstreamServers = {
@@ -183,14 +189,13 @@ _M.delUpstreamServers = {
 --[[
     从指定upstream中摘除指定后端server
     请求路径：/upstream/setPeerDown
-    @param upstream_name:
-    @param is_backup: 根据查询信息中返回的backup属性
-    @param peer_id: 根据查询信息中返回的id属性
-    @param down_value: true=关闭/false=开启
+    @param upstreamName:
+    @param serverName: 根据查询信息中返回的id属性
+    @param down: true=关闭/false=开启
 -- ]]
 function _M:setPeerDown(request)
     local upstreamName = request.args["upstreamName"]
-    local peerId = request.args["peerId"]
+    local peerId = request.args["serverName"]
     local down = request.args["down"]
     if (not upstreamName) or (down == nil) or (not peerId) then
         Response.failure("缺少必须参数！")

@@ -16,6 +16,7 @@ local ipairs = ipairs
 local require = require
 local type = type
 local error = error
+local remove = table.remove
 local _M = {}
 
 local function loadConf(context, beanDefinitions, location)
@@ -96,7 +97,7 @@ local function createBean(id, beanDefinitions, inCreation, context)
             end
         end
         if exists then
-            table.remove(inCreation, exists)
+            remove(inCreation, exists)
         end
     end
 end

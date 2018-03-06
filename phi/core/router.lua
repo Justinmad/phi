@@ -26,6 +26,7 @@
 
 local utils = require "utils"
 local phi = require "Phi"
+local response = require "core.response"
 local type = type
 local ipairs = ipairs
 local setmetatable = setmetatable
@@ -71,10 +72,12 @@ function _M:access(ctx)
                 LOGGER(NOTICE, "will be routed to upstream:", result)
             end
         else
-            LOGGER(ERR, "routing rules query error or bad policy type ,err：", err, ", policies:", tostring(rules))
+            LOGGER(ERR, "Routing rules query error or bad policy type ,err：", err, ", policies:", tostring(rules))
+            return response.failure("Routing rules query error or bad policy type :-(", 500)
         end
     else
         LOGGER(ALERT, "hostkey is nil，can not perform routing operation")
+        return response.failure("Hostkey is nil，can not perform routing operation :-(", 500)
     end
 end
 

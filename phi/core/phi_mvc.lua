@@ -11,6 +11,9 @@ local INFO = ngx.INFO
 local LOGGER = ngx.log
 local Response = require "core.response"
 local cjson = require 'cjson.safe'
+local find = string.find
+local setmetatable = setmetatable
+local ngx = ngx
 local class = {}
 local _M = {}
 local function mappingStrProcessor(request_mapping)
@@ -108,10 +111,10 @@ local function parseRequest()
         req.read_body()
         local content_type = request.headers["Content-Type"]
         if content_type then
-            if string.find(content_type, "json") then
+            if find(content_type, "json") then
                 request.body = req.get_body_data()
                 request.body = cjson.decode(request.body)
-            elseif string.find(content_type, "x%-www%-form%-urlencoded") then
+            elseif find(content_type, "x%-www%-form%-urlencoded") then
                 local form_args = req.get_post_args()
                 setmetatable(request.args, { __index = form_args })
             end

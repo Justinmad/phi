@@ -7,6 +7,7 @@
 --
 local resty_roundrobin = require "resty.roundrobin"
 local phi = require "Phi"
+local response = require "core.response"
 local setmetatable = setmetatable
 
 local ok, resty_chash = pcall(require, "resty.chash")
@@ -39,7 +40,22 @@ end
 local class = {}
 
 function class:new(strategy, server_list, mapper, tag)
-    local balancer = strategy == "resty_chash" and resty_chash:new(server_list) or resty_roundrobin:new(server_list)
+    local balancer
+    if strategy == "resty_chash" then
+        if not phi.mapper_holder[mapper] then
+            return nil, "can't create balancer , bad mapper name :" .. mapper
+        end
+        balancer = resty_chash:new(server_list)
+    elseif strategy == "roundrobin" then
+        balancer = resty_roundrobin:new(server_list)
+    else
+        return nil, "can't create balancer , bad strategy type :" .. strategy
+    end
+    if mapper == "" or mapper == nil then
+        mapper, tag = nil, nil
+    elseif not phi.mapper_holder[mapper] then
+        return nil, "can't create balancer , bad mapper name :" .. mapper
+    end
     return setmetatable({
         balancer = balancer,
         mapper = mapper,

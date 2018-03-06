@@ -13,7 +13,7 @@ local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
 local pretty_write = require("pl.pretty").write
 
-local balancer_warpper = require "core.balancer.balancer_warpper"
+local balancer_wrapper = require "core.balancer.balancer_wrapper"
 
 local get_upstreams = ngx_upstream.get_upstreams
 local set_peer_down = ngx_upstream.set_peer_down
@@ -22,6 +22,12 @@ local ipairs = ipairs
 local type = type
 local gsub = string.gsub
 local pairs = pairs
+local getn = table.getn
+
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
+    new_tab = function() return {} end
+end
 
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
@@ -92,12 +98,34 @@ end
 
 -- 获取所有运行时信息,这个方法最多会获取1024条信息
 function _M:getAllRuntimeInfo()
+    local upsNames = SHARED_DICT:get_keys()
+    local result = new_tab(0, getn(upsNames))
+    for _, name in ipairs(upsNames) do
+        name = gsub(name, "dynamic_ups_cache", "")
+        local info = self:getUpstreamServers(name)
+        result[name] = info
+    end
+    return result
+end
+
+-- 获取所有运行时信息,这个方法最多会获取1024条信息
+function _M:getAllUpsInfo()
     local result = {}
     local upsNames = SHARED_DICT:get_keys()
     for _, name in ipairs(upsNames) do
         name = gsub(name, "dynamic_ups_cache", "")
         local info = self:getUpstreamServers(name)
         result[name] = info
+    end
+    local dynamicUps, err = self.dao:getAllUpstreams(0, 1024)
+    if not err then
+        for k, v in pairs(dynamicUps.data) do
+            if not result[k] then
+                result[k] = v
+            end
+        end
+    else
+        LOGGER(NOTICE, "find upstream servers error : ", err)
     end
     return result
 end
@@ -158,17 +186,29 @@ end
 
 -- 刷新缓存
 function _M:refreshCache(upstreamName)
+    local ok
     local res, err = self.dao:getUpstreamServers(upstreamName)
     if err then
         LOGGER(ERR, "could not retrieve upstream servers:", err)
+        return ok, err
     elseif res == nil then
-        LOGGER(ERR, "could not find upstream servers")
-        self.cache:set(upstreamName, nil, { notExists = true })
-        self:dynamicUpsChangeEvent(upstreamName)
+        LOGGER(NOTICE, "could not find upstream servers")
+        ok, err = self.cache:set(upstreamName, nil, { notExists = true })
+        if ok then
+            self:dynamicUpsChangeEvent(upstreamName)
+        else
+            LOGGER(ERR, "could not update cache, upstreamName:", upstreamName)
+            return ok, err
+        end
     else
         self.cache:set(upstreamName, nil, res)
+        ok, err = self:getUpstreamBalancer(upstreamName, nil, res)
         -- 通知其它worker更新缓存
-        self:dynamicUpsChangeEvent(upstreamName)
+        if ok then
+            self:dynamicUpsChangeEvent(upstreamName)
+        else
+            return ok, err
+        end
     end
 end
 
@@ -184,7 +224,28 @@ function _M:addUpstreamServers(upstream, servers)
             ok, err = self.dao:addUpstreamServers(upstream, servers)
             if ok then
                 --通知其它worker进行更新缓存,并且重建balancer
-                self:refreshCache(upstream)
+                ok, err = self:refreshCache(upstream)
+            end
+        end
+    else
+        LOGGER(ERR, "查询upstream信息出现错误，err:", err)
+    end
+    return ok, err
+end
+
+-- 添加或者更新upstream
+function _M:addOrUpdateUps(upstream, servers)
+    -- 查询
+    local _, err, upstreamInfo = self.cache:peek(upstream)
+    local ok
+    if not err then
+        if upstreamInfo == "stable" then
+            err = "暂不支持对配置文件中的upstream进行编辑！"
+        else
+            ok, err = self.dao:addOrUpdateUps(upstream, servers)
+            if ok then
+                --通知其它worker进行更新缓存,并且重建balancer
+                ok, err = self:refreshCache(upstream)
             end
         end
     else
@@ -205,7 +266,7 @@ function _M:delUpstreamServers(upstream, servers)
             ok, err = self.dao:delUpstreamServers(upstream, servers)
             if ok then
                 --通知其它worker进行更新缓存,并且重建balancer
-                self:refreshCache(upstream)
+                ok, err = self:refreshCache(upstream)
             end
         end
     else
@@ -226,7 +287,7 @@ function _M:delUpstream(upstream)
             ok, err = self.dao:delUpstream(upstream)
             if ok then
                 --通知其它worker进行更新缓存,并且重建balancer
-                self:refreshCache(upstream)
+                ok, err = self:refreshCache(upstream)
             end
         end
     else
@@ -239,15 +300,14 @@ end
 function _M:getUpstreamServers(upstream)
     local _, err, upstreamInfo = self.cache:peek(upstream)
     local data
-    if upstreamInfo then
-        if upstreamInfo == "stable" then
-            data = {}
-            data["primary"] = ngx_upstream.get_primary_peers(upstream)
-            data["backup"] = ngx_upstream.get_backup_peers(upstream)
-        else
-            data = self.dao:getUpstreamServers(upstream)
-        end
+    if upstreamInfo == "stable" then
+        data = {}
+        data["primary"] = ngx_upstream.get_primary_peers(upstream)
+        data["backup"] = ngx_upstream.get_backup_peers(upstream)
     else
+        data, err = self.dao:getUpstreamServers(upstream)
+    end
+    if not err and not data then
         err = "不存在的upstream！"
     end
     return data, err
@@ -276,11 +336,11 @@ local function newBalancer(res)
                 tag = v
             else
                 if not v.down then
-                    server_list[k] = v.weight
+                    server_list[k] = v.weight or 1
                 end
             end
         end
-        return balancer_warpper:new(strategy, server_list, mapper, tag)
+        return balancer_wrapper:new(strategy, server_list, mapper, tag)
     else
         return res
     end
