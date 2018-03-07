@@ -41,4 +41,23 @@ function utils.getHost(ctx)
     return result
 end
 
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
+    new_tab = function() return {} end
+end
+local getn = table.getn
+local insert = table.insert
+local concat = table.concat
+
+local SHARED_DICT = ngx.shared
+function utils.printDict(dictName)
+    local dict = SHARED_DICT[dictName]
+    local keys = dict:get_keys()
+    local t = new_tab(0, getn(keys))
+    for _, k in ipairs(keys) do
+        insert(t, k .. " = ".. dict:get(k))
+    end
+    print(concat(t, "\r\n"))
+end
+
 return utils

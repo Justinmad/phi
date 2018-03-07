@@ -15,6 +15,7 @@ local ngx = ngx
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
+local exit = ngx.exit
 
 local _M = {}
 
@@ -32,9 +33,11 @@ function _M:load(ctx)
         if err then
             LOGGER(ERR, "search upstream err：", err)
             return response.failure("Failed to load upstream balancer ,please try again latter :-(", 500)
+        elseif upstream == self.default_upstream and upstreamBalancer == "stable" then
+            return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif upstreamBalancer and upstreamBalancer.notExists then
             LOGGER(ERR, "upstream is not exists !")
-            return response.failure("Upstream:" .. upstream .. " does not exist ! :-(", 500)
+            return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
@@ -44,7 +47,7 @@ function _M:load(ctx)
         LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
         return response.failure("failed to load upstream balancer ,upstream is nil :-(", 500)
     end
-    ngx.var.backend = upstream or self.default_upstream
+    ngx.var.backend = upstream
 end
 
 function _M:balance(ctx)
@@ -55,11 +58,12 @@ function _M:balance(ctx)
         local ok, err = balancer.set_current_peer(server)
         if not ok then
             LOGGER(ERR, "failed to set the current peer: ", err)
-            return response.failure("Failed to set the current peer :-(", 500)
+--            return response.failure("Failed to set the current peer :-(", 500)
+            exit(500)
         end
     else
         LOGGER(ERR, "failed to dispatch to backend: ups_balancer is nil?")
-        return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
+        exit(500)
     end
 end
 

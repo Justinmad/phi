@@ -640,9 +640,10 @@ function _M:set(key, opts, value)
         local ttl, neg_ttl, l1_serializer = check_opts(self, opts)
         local namespaced_key = self.name .. key
 
-        set_lru(self, key, value, ttl, neg_ttl, l1_serializer)
-
-        local ok, err = set_shm(self, namespaced_key, value, ttl, neg_ttl)
+        local ok, err = set_lru(self, key, value, ttl, neg_ttl, l1_serializer)
+        if ok then
+            ok, err = set_shm(self, namespaced_key, value, ttl, neg_ttl)
+        end
         if not ok then
             return nil, err
         end

@@ -190,7 +190,6 @@ function _M:refreshCache(upstreamName)
     local res, err = self.dao:getUpstreamServers(upstreamName)
     if err then
         LOGGER(ERR, "could not retrieve upstream servers:", err)
-        return ok, err
     elseif res == nil then
         LOGGER(NOTICE, "could not find upstream servers")
         ok, err = self.cache:set(upstreamName, nil, { notExists = true })
@@ -198,18 +197,17 @@ function _M:refreshCache(upstreamName)
             self:dynamicUpsChangeEvent(upstreamName)
         else
             LOGGER(ERR, "could not update cache, upstreamName:", upstreamName)
-            return ok, err
         end
     else
-        self.cache:set(upstreamName, nil, res)
-        ok, err = self:getUpstreamBalancer(upstreamName, nil, res)
+        ok, err = self.cache:set(upstreamName, nil, res)
         -- 通知其它worker更新缓存
         if ok then
             self:dynamicUpsChangeEvent(upstreamName)
         else
-            return ok, err
+            LOGGER(ERR, "could not update cache, upstreamName:", upstreamName)
         end
     end
+    return ok, err
 end
 
 -- 动态添加upstream中的server

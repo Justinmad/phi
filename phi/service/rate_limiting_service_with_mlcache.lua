@@ -81,7 +81,7 @@ local function newLimiterWrapper(policy)
                 local ll
                 ll, err = limiter_wrapper:new(p)
                 if err then
-                    break
+                    return nil ,err
                 else
                     insert(limiter, ll)
                 end
@@ -154,17 +154,18 @@ function _M:setLimitPolicy(hostkey, policy)
     local ok
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
-        local updated = oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and policy.type ~= "traffic"
+        local inCache = self.cache:peek(hostkey) ~= nil
+        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and policy.type ~= "traffic"
         local opts
         if updated then
             policy.wrapper = self:getLimiter(hostkey)
             opts = { l1_serializer = updateLimiterWrapper }
         end
         ok, err = self.cache:set(hostkey, opts, policy)
-        if not ok then
-            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到缓存失败！err:", err)
-        else
+        if ok then
             self:updateEvent(updated, updated and { hostkey = hostkey, policy = policy } or hostkey)
+        else
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到缓存失败！err:", err)
         end
     end
     return ok, err

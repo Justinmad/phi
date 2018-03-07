@@ -6,7 +6,8 @@
 -- 包装所有的limiter
 --
 local DICTS = require("core.constants").DICTS
-local get_host = require("utils").getHost
+local utils = require("utils")
+local get_host = utils.getHost
 local limit_conn = require "resty.limit.conn"
 local limit_count = require "resty.limit.count"
 local limit_req = require "resty.limit.req"
@@ -14,10 +15,13 @@ local limit_traffic = require "resty.limit.traffic"
 local response = require "core.response"
 local pretty_write = require("pl.pretty").write
 local phi = require "Phi"
+
 local getn = table.getn
+local concat = table.concat
+local insert = table.insert
 
 local ipairs = ipairs
-local insert = table.insert
+local type = type
 local tonumber = tonumber
 local setmetatable = setmetatable
 
@@ -79,7 +83,25 @@ local function createTrafficLimiter(policy, mapper_holder)
         end
         insert(limiters, ll)
         insert(keys, function(ctx)
-            return p.mapper and mapper_holder:map(ctx, p.mapper, p.tag) or get_host(ctx)
+            local key = get_host(ctx)
+            local mapper = policy.mapper
+            local tag = policy.tag
+            if mapper then
+                local mappedKey = mapper_holder:map(ctx, mapper, tag)
+                if mappedKey == nil then
+                    response.failure("Limiter key is nil !")
+                else
+                    local tmp = new_tab(0, 2)
+                    insert(tmp, key)
+                    insert(tmp, mapper)
+                    if tag then
+                        insert(tmp, tag)
+                    end
+                    insert(tmp, mappedKey)
+                    key = concat(tmp, ":")
+                end
+            end
+            return key
         end)
     end
 
@@ -92,7 +114,7 @@ local function createTrafficLimiter(policy, mapper_holder)
     }
 
     local get_key = function(ctx)
-        local res = new_tab(0, #policy)
+        local res = new_tab(0, getn(policy))
         for _, func in ipairs(keys) do
             insert(res, func(ctx))
         end
@@ -120,10 +142,11 @@ end
 local _M = {}
 
 function _M:incoming(ctx, commit)
+    utils.printDict(LIMIT_COUNT_DICT_NAME)
     local key = self.get_key(ctx)
     local lim = self.limiter
 
-    local delay, err = lim:incoming(key or get_host(ctx), commit)
+    local delay, err = lim:incoming(key, commit)
 
     if not delay then
         -- TODO 考虑的降级策略
@@ -160,7 +183,7 @@ function _M:update(policy)
             local limiter = self.limiter
             limiter:set_rate(rate)
             limiter:set_burst(burst)
-            return
+            return self
         end
     elseif typeStr == "conn" then
         local conn = tonumber(policy.conn)
@@ -169,7 +192,7 @@ function _M:update(policy)
             local limiter = self.limiter
             limiter:set_conn(conn)
             limiter:set_burst(burst)
-            return
+            return self
         end
     elseif typeStr == "count" then
         local rate = tonumber(policy.rate)
@@ -181,7 +204,7 @@ function _M:update(policy)
             --            self.get_key = function(ctx)
             --                return policy.mapper and self.mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
             --            end
-            return
+            return self
         end
     elseif typeStr == "traffic" then
         local ll, get_keys
@@ -189,12 +212,12 @@ function _M:update(policy)
         if not err then
             self.limiter = ll
             self.get_key = get_keys
-            return
+            return self
         end
     end
     err = err or "update limiter err，bad policy !\r\n"
     LOGGER(ERR, err, pretty_write(policy))
-    return self, err
+    return nil, err
 end
 
 local class = {}
@@ -208,7 +231,25 @@ function class:new(policy)
     else
         limiter, err = createLimiter(policy)
         get_key = function(ctx)
-            return policy.mapper and mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
+            local key = get_host(ctx)
+            local mapper = policy.mapper
+            local tag = policy.tag
+            if mapper then
+                local mappedKey = mapper_holder:map(ctx, mapper, tag)
+                if mappedKey == nil then
+                    response.failure("Limiter key is nil !")
+                else
+                    local tmp = new_tab(0, 2)
+                    insert(tmp, key)
+                    insert(tmp, mapper)
+                    if tag then
+                        insert(tmp, tag)
+                    end
+                    insert(tmp, mappedKey)
+                    key = concat(tmp, ":")
+                end
+            end
+            return key
         end
     end
     if err then

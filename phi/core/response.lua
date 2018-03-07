@@ -24,7 +24,7 @@ function _M.success(data, msg)
 end
 
 function _M.failure(msg, code, data)
-    resp(code or 200, false, msg or "ok", data)
+    resp(code or 200, false, msg or "error", data)
 end
 
 return _M
