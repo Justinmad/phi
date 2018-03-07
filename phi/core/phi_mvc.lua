@@ -13,7 +13,11 @@ local Response = require "core.response"
 local cjson = require 'cjson.safe'
 local find = string.find
 local setmetatable = setmetatable
+local getmetatable = getmetatable
+local tostring = tostring
+local pairs = pairs
 local ngx = ngx
+local type = type
 local class = {}
 local _M = {}
 local function mappingStrProcessor(request_mapping)
@@ -135,6 +139,11 @@ function _M:content_by_lua()
         end
     end
     Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
+end
+
+-- 做动态映射，方便扩展插件提供自己的api
+function _M:mapping(name, instance)
+    doMapping(self.context, name, instance)
 end
 
 function class:init(applicationContext)

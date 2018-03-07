@@ -9,6 +9,7 @@
 local meta = require "meta"
 local ngx = ngx
 local ipairs = ipairs
+local require = require
 
 local PHI = {
     -- 属性
@@ -71,15 +72,12 @@ function PHI:access()
     end
 end
 
+-- TODO 需要在这里做一些统计的功能
 function PHI:log()
     local ctx = ngx.ctx
     for _, c in ipairs(components) do
         c:log(ctx)
     end
-end
-
-function PHI:handle_error()
-    print("this is handle_error by lua block")
 end
 
 return PHI
