@@ -18,6 +18,7 @@ local _M = {
     request_mapping = "router"
 }
 local Response = require "core.response"
+local tonumber = tonumber
 local CONST = require "core.constants"
 local GET = CONST.METHOD.GET
 local POST = CONST.METHOD.POST
@@ -116,8 +117,8 @@ _M.get = {
 _M.getAll = {
     method = GET,
     handler = function(self, request)
-        local from = request.args.from
-        local count = request.args.count
+        local from = tonumber(request.args.from) or 0
+        local count = tonumber(request.args.count) or 1024
         if from and count then
             local res, err = self.routerService:getAllRouterPolicy(from, count)
             if err then

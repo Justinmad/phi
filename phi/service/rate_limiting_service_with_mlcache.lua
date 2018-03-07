@@ -48,6 +48,7 @@ local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
 local ipairs = ipairs
 local insert = table.insert
+local sort = table.sort
 
 local PHI_EVENTS_DICT_NAME = CONST.DICTS.PHI_EVENTS
 local SHARED_DICT_NAME = CONST.DICTS.PHI_LIMITER
@@ -68,16 +69,27 @@ local LOGGER = ngx.log
 
 local function newLimiterWrapper(policy)
     if not policy.skip then
-        local limiter
+        local limiter, err
         if #policy > 0 then
+            sort(policy, function(r1, r2)
+                local o1 = r1.order or 0
+                local o2 = r2.order or 0
+                return o1 > o2
+            end)
             limiter = new_tab(0, #policy)
             for _, p in ipairs(policy) do
-                insert(limiter, limiter_wrapper:new(p))
+                local ll
+                ll, err = limiter_wrapper:new(p)
+                if err then
+                    break
+                else
+                    insert(limiter, ll)
+                end
             end
         else
-            limiter = limiter_wrapper:new(policy)
+            limiter, err = limiter_wrapper:new(policy)
         end
-        return limiter
+        return limiter, err
     else
         return policy
     end
@@ -137,13 +149,12 @@ function _M:getLimitPolicy(hostkey)
     return res, err
 end
 
--- TODO 这个方法并非线程安全，如果可能会有并发调用的情况，需要进行同步处理
 function _M:setLimitPolicy(hostkey, policy)
     local oldVal, err = self.dao:setLimitPolicy(hostkey, policy)
     local ok
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
-        local updated = oldVal and oldVal.type == policy.type and policy.type ~= "traffic"
+        local updated = oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and policy.type ~= "traffic"
         local opts
         if updated then
             policy.wrapper = self:getLimiter(hostkey)
@@ -151,7 +162,7 @@ function _M:setLimitPolicy(hostkey, policy)
         end
         ok, err = self.cache:set(hostkey, opts, policy)
         if not ok then
-            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到shared_dict失败！err:", err)
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到缓存失败！err:", err)
         else
             self:updateEvent(updated, updated and { hostkey = hostkey, policy = policy } or hostkey)
         end
@@ -187,15 +198,16 @@ local class = {}
 function class:new(dao, config)
     -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
     local cache, err = mlcache.new("rate_limiting_cache", SHARED_DICT_NAME, {
-        lru_size = config.limiter_lrucache_size or 1000,    -- L1缓存大小，默认取1000
-        ttl = 0,                                            -- 缓存失效时间
-        neg_ttl = 0,                                        -- 未命中缓存失效时间
-        resty_lock_opts = {                                 -- 回源DB的锁配置
-            exptime = 10,                                   -- 锁失效时间
-            timeout = 5                                     -- 获取锁超时时间
+        lru_size = config.limiter_lrucache_size or 1000, -- L1缓存大小，默认取1000
+        ttl = 0, -- 缓存失效时间
+        neg_ttl = 0, -- 未命中缓存失效时间
+        resty_lock_opts = {
+            -- 回源DB的锁配置
+            exptime = 10, -- 锁失效时间
+            timeout = 5 -- 获取锁超时时间
         },
-        ipc_shm = PHI_EVENTS_DICT_NAME,                     -- 通知其他worker的事件总线
-        l1_serializer = newLimiterWrapper                   -- 结果排序处理
+        ipc_shm = PHI_EVENTS_DICT_NAME, -- 通知其他worker的事件总线
+        l1_serializer = newLimiterWrapper -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)

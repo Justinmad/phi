@@ -31,7 +31,6 @@ local function doMapping(context, id, bean, realBean)
     request_mapping = mappingStrProcessor(request_mapping)
     local base_url = "/" .. request_mapping
     for k, v in pairs(bean) do
---        print("--------------",k)
         -- 忽略_开始的函数，new函数，init函数，init_worker函数
         if k:find("_") ~= 1 and k ~= "new" and k ~= "init" and k ~= "init_worker" then
             -- 如果是函数，直接映射到路径

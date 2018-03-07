@@ -1,7 +1,77 @@
 
-## 启动管理控制台
+## 启动PHI项目
+在nginx配置中添加如下内容
 ```nginx
+    # xxx表示项目根路径，需要在nginx中编译lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
+    lua_package_path 'xxx/phi/openresty/?.lua;xxx/phi/phi/?.lua;xxx/phi/lib/?.lua;;';
+    lua_package_cpath 'xxx/phi/openresty/?.so;xxx/phi/lib/?.so;;';
     
+    # 如果使用了openresty，那么只需引入下面的包
+    # lua_package_path 'xxx/phi/phi/?.lua;xxx/phi/lib/?.lua;;';
+    # lua_package_cpath 'xxx/phi/lib/?.so;;';
+    
+    lua_code_cache on;
+
+    # 共享内存的大小按需调整
+    lua_shared_dict phi                     5m;
+    lua_shared_dict phi_events              5m;
+    lua_shared_dict phi_lock                5m;
+    lua_shared_dict phi_router              10m;
+    lua_shared_dict phi_upstream            10m;
+    lua_shared_dict phi_limiter             10m;
+    lua_shared_dict phi_limit_req           128m;
+    lua_shared_dict phi_limit_conn          128m;
+    init_by_lua_block {
+        PHI = require 'Phi'
+        PHI:init();
+    }
+
+    init_worker_by_lua_block {
+        PHI:init_worker();
+    }
+    server {
+        listen 8080;
+
+        location / {
+            set $backend '';
+
+            rewrite_by_lua_block {
+                PHI:rewrite()
+            }
+
+            access_by_lua_block {
+                PHI:access()
+            }
+
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_pass http://$backend;
+
+            log_by_lua_block {
+                PHI:log()
+            }
+        }
+    }
+    upstream phi_upstream {
+        server 0.0.0.1;
+        balancer_by_lua_block {
+            PHI:balancer();
+        }
+        keepalive 200;
+    }
+```
+## 启动管理控制台:
+在nginx配置中添加如下server
+```nginx
+server {
+    listen 12345;
+    location / {
+        default_type application/json;
+        content_by_lua_block {
+            PHI.admin:content_by_lua()
+        }
+    }
+}
 ```
 ## 管理控制台API
 - **枚举值**
@@ -69,12 +139,77 @@
               }
             }
             ```
+    - 查询路由规则
+        - 请求路径：/router/get
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx
+            ```
+        - 返回数据格式：JSON
+        - 返回数据示例：
+            ```json
+            {
+              "status": {
+                "message": "ok",
+                "success": true
+              },
+              "code": 200,
+              "data": {
+                "policies": [
+                  {
+                    "order": 3,
+                    "policy": "range",
+                    "tag": "uid",
+                    "mapper": "uri_args",
+                    "routerTable": {
+                      "upstream4": [
+                        1001,
+                        2000
+                      ]
+                    }
+                  },
+                  {
+                    "order": 2,
+                    "policy": "range",
+                    "tag": "ip",
+                    "mapper": "ip",
+                    "routerTable": {
+                      "upstream1": [
+                        1001,
+                        100
+                      ]
+                    }
+                  }
+                ],
+                "default": "phi_upstream"
+              }
+            }
+            ```
+    - 查询所有路由规则
+        - 请求路径：/router/getAll
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx
+            ```
+        - 返回数据格式：JSON
+    - 删除路由规则
+        - 请求路径：/router/del
+        - 请求方式：GET
+        - 请求数据格式: uri参数
+        - 请求数据示例:
+            ```text
+            hostkey=xxx
+            ```
 - **Dynamic Upstream** : 动态的upstream列表，简单的负载均衡功能
     - 查询所有运行中的upstream信息
         - 请求路径：/upstream/getAllRuntimeInfo
         - 请求方式：GET
-        - 返回数据格式:JSON
-        - 返回数据示例:
+        - 返回数据格式：JSON
+        - 返回数据示例：
             ```json
             {
                 "status": {
@@ -264,3 +399,58 @@
                 }]
             }
             ```
+- **Rate Limiting** : 动态路由，实现分流/灰度功能
+    - 添加路由规则
+        - 请求路径：/rate/add
+        - 请求方式：POST
+        - 返回数据格式:JSON
+        - 请求字段说明
+            - type：枚举值，多个规则排序，数值越大优先级越高
+            
+                |value|Description       
+                |---:|:---
+                |`req`|限制请求速率，type=req时，需传递rate(速率)，burst(允许突发值)两个参数<br>例如：rate=200,burst=100，表示允许200req/sec，流量突发时最多允许达到300req/sec，其中超过200req的请求将被delay
+                |`conn`|限制并发连接数，type=conn时，需传递conn(连接数)，burst(允许突发连接数)，delay(延迟时间)三个参数<br>例如conn=100,burst=100,delay=0.05,表示正常允许100并发连接，突发流量下最大允许200并发连接，其中超出的部分，将被deplay
+                |`count`|限制单位时间窗口内的调用次数，type=count时，需传递rate(速率)，time_window(单位时间窗口)两个参数<br>例如rate=1000,time_window=60，表示60秒内最多允许调用1000次，超出的请求会被拒绝
+                |`traffic`|当参数data=[]，即data为数组时，会启动组合限流，启动组合限流时，请在每一条限流数据里多添加一个order字段进行排序
+            - mapper：可选值，未传递此参数的情况下，所有限流粒度都是以host作为限流key，请求映射函数，对应枚举[mapper](#mapper)
+            - tag：参考[mapper](#mapper)中对tag的说明
+        - 请求数据示例：
+            ```json
+            {
+              "hostkey": "www.sample.com",
+              "data": {
+                "time_window": 10,
+                "rejected": "xxx",
+                "rate": 1,
+                "type": "count"
+              }
+            }
+            ```
+    - 查询路由规则
+        - 请求路径：/rate/get
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx
+            ```
+        - 返回数据格式：JSON
+    - 查询所有路由规则
+        - 请求路径：/rate/getAll
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx
+            ```
+        - 返回数据格式：JSON
+    - 删除路由规则
+        - 请求路径：/rate/del
+        - 请求方式：GET
+        - 请求数据格式: uri参数
+        - 请求数据示例:
+            ```text
+            hostkey=xxx
+            ```
+            

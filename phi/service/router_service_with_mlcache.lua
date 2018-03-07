@@ -31,8 +31,11 @@ local _M = {}
 local function sortSerializer(row)
     if not row.skipRouter then
         -- 排序
-        sort(row.policies, function(r1, r2) return r1.order > r2.order end)
-    end
+        sort(row.policies, function(r1, r2)
+            local o1 = r1.order or 0
+            local o2 = r2.order or 0
+            return o1 > o2 end)
+        end
     return row
 end
 
