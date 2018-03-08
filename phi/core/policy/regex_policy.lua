@@ -28,7 +28,7 @@ function regex_policy.calculate(arg, routerTable)
             local from, to
             from, to, err = find(arg, policy, "jo")
             if from then
-                LOGGER(DEBUG, "参数[", arg, "]匹配到规则,", "regex:[", policy, "]")
+                LOGGER(DEBUG, "参数[", arg, "]匹配到规则,regex:[", policy, "]")
                 upstream = up
                 break
             else

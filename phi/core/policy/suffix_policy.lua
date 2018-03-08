@@ -33,10 +33,10 @@ function suffix_policy.calculate(arg, routerTable)
                 local selected = sub(arg, argLength - policyLength + 1) == policy
                 if selected then
                     upstream = up
-                    LOGGER(DEBUG, "参数[", arg, "]匹配到规则", ",suffix:[", policy, "]")
+                    LOGGER(DEBUG, "参数[", arg, "]匹配到规则,suffix:[", policy, "]")
                     break
                 else
-                    LOGGER(DEBUG, "参数[", arg, "]未匹配到规则", ",suffix:[", policy, "]")
+                    LOGGER(DEBUG, "参数[", arg, "]未匹配到规则,suffix:[", policy, "]")
                 end
             end
         end

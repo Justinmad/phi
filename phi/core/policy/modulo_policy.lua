@@ -27,10 +27,10 @@ function modulo_policy.calculate(arg, routerTable)
         end
         if val == policy then
             upstream = up
-            LOGGER(DEBUG, "参数[", key, "]匹配到规则", ",modulo:[" .. policy .. "]")
+            LOGGER(DEBUG, "参数[", key, "]匹配到规则,modulo:[" .. policy .. "]")
             break
         end
-        LOGGER(DEBUG, "参数[", key, "]未匹配到规则", ",modulo:[" .. policy .. "]")
+        LOGGER(DEBUG, "参数[", key, "]未匹配到规则,modulo:[" .. policy .. "]")
     end
     return upstream, err
 end
