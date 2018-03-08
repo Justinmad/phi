@@ -10,12 +10,18 @@ local req_get_headers = ngx.req.get_headers
 local getn = table.getn
 local insert = table.insert
 local concat = table.concat
+local ipairs = ipairs
+local print = print
+local pcall = pcall
+local require = require
+local type = type
+local io_open = io.open
 local utils = {}
 -- 判断文件是否存在
 -- 所有io操作都应谨慎使用，在openresty中非官方库的io操作很可能会阻塞整个worker进程
 function utils.file_exists(path)
 
-    local status, file = pcall(io.open, path, "rb")
+    local status, file = pcall(io_open, path, "rb")
     if status then
         if file then file:close() end
     end
@@ -23,18 +29,12 @@ function utils.file_exists(path)
     return file ~= nil
 end
 
--- 获取请求头中Host的值，使用此字段作为默认情况下的路由key
--- 特殊情况下可以设置ngx.var.hostkey的值作为路由key
--- 同一请求，直接将结果放入ngx.ctx，避免多次调用ngx.var，这个api性能开销很大
--- @see https://github.com/openresty/lua-nginx-module#ngxvarvariable
+-- 获取host，优先级ngx.var.hostkey->请求行中的host->请求头中的host
 function utils.getHost(ctx)
     local result = ctx.__host;
     if not result then
         local var = ngx.var
-        result = var.hostkey or var.http_host
-        if not result then
-            result = req_get_headers()['Host']
-        end
+        result = var.hostkey or var.host or var.http_host or req_get_headers()['Host']
         ctx.__host = result
     end
     return result
