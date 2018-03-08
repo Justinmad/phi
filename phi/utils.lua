@@ -28,20 +28,15 @@ end
 -- 同一请求，直接将结果放入ngx.ctx，避免多次调用ngx.var，这个api性能开销很大
 -- @see https://github.com/openresty/lua-nginx-module#ngxvarvariable
 function utils.getHost(ctx)
+    local var = ngx.var
     local result = ctx.__host;
     if not result then
-        -- 获取到请求头中的Host
-        result = req_get_headers()['Host']
-        if result then
-            -- 获取到变量中的HostKey，则优先使用
-            local hostkey = ngx.var.hostkey
-            if hostkey then
-                result = hostkey
-            end
-            ctx.__host = result;
+        result = var.hostkey or var.http_host
+        if not result then
+            result = req_get_headers()['Host']
         end
+        ctx.__host = result
     end
-
     return result
 end
 
