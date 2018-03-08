@@ -37,7 +37,7 @@ return {
         PHI_EVENTS = "phi_events",                              -- 存储事件消息
         PHI_LIMIT_REQ = "phi_limit_req",                        -- 存储限流标记req
         PHI_LIMIT_CONN = "phi_limit_conn",                      -- 存储限流标记conn
-        PHI_LIMIT_COUNT = "phi_limit_conn"                      -- 存储限流标记count
+        PHI_LIMIT_COUNT = "phi_limit_count"                     -- 存储限流标记count
     },
     CACHE_KEY = {
         UPSTREAM = "PHI:UPSTREAM:",                             -- 作为redis中upstream的key

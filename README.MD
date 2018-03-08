@@ -2,7 +2,7 @@
 ## 启动PHI项目
 在nginx配置中添加如下内容
 ```nginx
-    # xxx表示项目根路径，需要在nginx中编译lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
+    # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
     lua_package_path 'xxx/phi/openresty/?.lua;xxx/phi/phi/?.lua;xxx/phi/lib/?.lua;;';
     lua_package_cpath 'xxx/phi/openresty/?.so;xxx/phi/lib/?.so;;';
     
@@ -21,6 +21,8 @@
     lua_shared_dict phi_limiter             10m;
     lua_shared_dict phi_limit_req           128m;
     lua_shared_dict phi_limit_conn          128m;
+    lua_shared_dict phi_limit_count         128m;
+    
     init_by_lua_block {
         PHI = require 'Phi'
         PHI:init();
@@ -80,34 +82,37 @@ server {
         有一些mapper需要指定tag，例如{"mapper":"header","tag":"x-uid"}，会取出请求头中的x-uid的值
         
         | value              | Description                                               
-        | ------------------:|---------------------------------------------------------
+        | ------------------:|:---------------------------------------------------------
         | `header`           | 取请求头中指定字段，配合tag字段使用，tag值表示请求头的名称       
         | `host`             | 取请求头/请求行中的host，无需指定tag                         
         | `ip`               | 取请求头中的用户ip，无需指定tag                           
         | `uri_args`         | 取请求中的uri参数，配合tag字段使用，tag值表示参数名称      
         | `uri`              | 取请求行中的uri                                          
+        | `cookie`           | 取请求头中的cookie,配合tag字段使用，tag值表示cookie名称                                          
     - ### policy
         policy是一组计算函数，`string calculate(arg, hashTable)`，此函数接收一个具体值和一个哈希表，
         经过运算后将结果与哈希表中的规则值进行匹配，匹配成功后会返回对应的哈希KEY值
     
         | value              | Description     |哈希表结构示例            
-        | ------------------:|----------------:|------------------------------
-        | `modulo`           | 对10取模运算|{"default":"stable_upstream","upstream_name_1":1,"upstream_name_2":2}
-        | `range`            | 范围运算 |{"default":"stable_upstream","upstream_name_1":\[min,max],"upstream_name_2":\[min,"NONE"],"upstream_name_3":\["NONE",max]}                                    
-        | `suffix`           | 取后缀匹配 |{"default":"stable_upstream","upstream_name_1":".html","upstream_name_2":".css"}                          
-        | `composite`        | 组合规则 |{"default":"stable_upstream",<br>"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":{"secondary":\[1,100],"upstream":\["NONE",1000]}},<br>"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":{"upstream2":\[1,10]}}}
+        | ------------------:|----------------:|:------------------------------
+        | `modulo`           | 对10取模运算     |{"default":"stable_upstream","upstream_name_1":1,"upstream_name_2":2}
+        | `range`            | 范围运算         |{"default":"stable_upstream","upstream_name_1":\[min,max],"upstream_name_2":\[min,"NONE"],"upstream_name_3":\["NONE",max]}                                    
+        | `prefix`           | 取前缀匹配       |{"default":"stable_upstream","upstream_name_1":"/api","upstream_name_2":"/openApi"}                          
+        | `suffix`           | 取后缀匹配       |{"default":"stable_upstream","upstream_name_1":".html","upstream_name_2":".css"}                          
+        | `regex`            | lua正则匹配*     |{"default":"stable_upstream","upstream_name_1":"regex1","upstream_name_2":"regex2"}                          
+        | `composite`        | 组合规则         |{"default":"stable_upstream",<br>"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":{"secondary":\[1,100],"upstream":\["NONE",1000]}},<br>"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":{"upstream2":\[1,10]}}}
              
 - **Router** : 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/router/add
         - 请求方式：POST
-        - 返回数据格式:JSON
-        - 请求字段说明
-            - order：number，多个规则排序，数值越大优先级越高
-            - policy：路由规则计算方式，对应枚举[policy](#policy)
-            - routerTable：路由规则表，对应枚举[policy](#policy)中哈希表结构示例
-            - mapper：请求映射函数，对应枚举[mapper](#mapper)
-            - tag：参考[mapper](#mapper)中对tag的说明
+        - 返回数据格式：JSON
+        - 请求字段说明：
+            - order：数字，多个规则排序，数值越大优先级越高
+            - policy：枚举值，路由规则计算方式，对应枚举[policy](#policy)
+            - routerTable：对象路由规则表，对应枚举[policy](#policy)中哈希表结构示例
+            - mapper：枚举值，请求映射函数，对应枚举[mapper](#mapper)
+            - tag：字符串，参考[mapper](#mapper)中对tag的说明
         - 请求数据示例：
             - 以下示例表示：从uri参数中提取uid的值，根据值的范围进行匹配，小于2000的将会被路由到upstream1，
         2001到3000之间的将被路由到upstream2，大于3000的将被路由到upstream3
@@ -199,12 +204,12 @@ server {
     - 删除路由规则
         - 请求路径：/router/del
         - 请求方式：GET
-        - 请求数据格式: uri参数
-        - 请求数据示例:
+        - 请求数据格式： uri参数
+        - 请求数据示例：
             ```text
             hostkey=xxx
             ```
-- **Dynamic Upstream** : 动态的upstream列表，简单的负载均衡功能
+- **Dynamic Upstream** ： 动态的upstream列表，简单的负载均衡功能
     - 查询所有运行中的upstream信息
         - 请求路径：/upstream/getAllRuntimeInfo
         - 请求方式：GET
@@ -254,8 +259,8 @@ server {
     - 查询所有upstream信息
         - 请求路径：/upstream/getAllUpsInfo
         - 请求方式：GET
-        - 返回数据格式:JSON
-        - 返回数据示例:
+        - 返回数据格式：JSON
+        - 返回数据示例：
             ```json
             {
                 "status": {
@@ -297,12 +302,12 @@ server {
         - 请求路径：/upstream/getUpstreamServers
         - 请求方式：GET/POST
         - 请求数据格式：uri参数/表单参数
-        - 请求数据示例:
+        - 请求数据示例：
             ```text
                 upstreamName=xxxx
             ``` 
-        - 返回数据格式:JSON
-        - 返回数据示例:
+        - 返回数据格式：JSON
+        - 返回数据示例：
             ```json
             {
                 "status": {
@@ -330,7 +335,7 @@ server {
         - 请求路径：/upstream/setPeerDown
         - 请求方式：GET/POST
         - 请求数据格式：uri参数/表单参数
-        - 请求数据示例:
+        - 请求数据示例：
             ```text
             upstreamName=xxxx&serverName=xxx&down=true
             ```
@@ -338,8 +343,21 @@ server {
         - 请求路径：/upstream/addOrUpdateUps
         - 请求方式：POST
         - 请求数据格式：JSON
-        - 枚举值：负载均衡策略 strategy：\[resty_chash|roundrobin]
-        - 请求数据示例:
+        - 字段说明：
+            - mapper：请求映射函数，对应枚举[mapper](#mapper)
+            - tag：参考[mapper](#mapper)中对tag的说明
+            - strategy：枚举值，根据权重值分配负载均衡调用比例
+            
+                |value         |Description
+                |-------------:|--------------------------:
+                |resty_chash   |简单hash算法
+                |roundrobin    |轮训算法
+            - severs：数组，表示一组server，每一条记录有两个字段
+                - name：表示server地址，ip:port
+                - info：对象，目前支持2个字段
+                    - weight：数字，表示该服务器的权重
+                    - down：布尔型，表示是否参与负载均衡
+        - 请求数据示例：
             ```json
             {
               "upstreamName": "a new upstream",
@@ -366,7 +384,7 @@ server {
         - 请求路径：/upstream/delUps
         - 请求方式：GET
         - 请求数据格式：uri参数
-        - 请求数据示例:
+        - 请求数据示例：
             ```text
                 upstreamName=xxxx
             ```
@@ -399,22 +417,23 @@ server {
                 }]
             }
             ```
-- **Rate Limiting** : 动态路由，实现分流/灰度功能
+- **Rate Limiting** ： 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/rate/add
         - 请求方式：POST
-        - 返回数据格式:JSON
+        - 返回数据格式：JSON
         - 请求字段说明
             - type：枚举值，多个规则排序，数值越大优先级越高
             
-                |value|Description       
-                |---:|:---
-                |`req`|限制请求速率，type=req时，需传递rate(速率)，burst(允许突发值)两个参数<br>例如：rate=200,burst=100，表示允许200req/sec，流量突发时最多允许达到300req/sec，其中超过200req的请求将被delay
-                |`conn`|限制并发连接数，type=conn时，需传递conn(连接数)，burst(允许突发连接数)，delay(延迟时间)三个参数<br>例如conn=100,burst=100,delay=0.05,表示正常允许100并发连接，突发流量下最大允许200并发连接，其中超出的部分，将被deplay
-                |`count`|限制单位时间窗口内的调用次数，type=count时，需传递rate(速率)，time_window(单位时间窗口)两个参数<br>例如rate=1000,time_window=60，表示60秒内最多允许调用1000次，超出的请求会被拒绝
-                |`traffic`|当参数data=[]，即data为数组时，会启动组合限流，启动组合限流时，请在每一条限流数据里多添加一个order字段进行排序
+                |value      |Description       
+                |----------:|:-----------------------------------------------
+                |`req`      |限制请求速率，type=req时，需传递rate(速率)，burst(允许突发值)两个参数<br>例如：rate=200,burst=100，表示允许200req/sec，流量突发时最多允许达到300req/sec，其中超过200req的请求将被delay
+                |`conn`     |限制并发连接数，type=conn时，需传递conn(连接数)，burst(允许突发连接数)，delay(延迟时间)三个参数<br>例如conn=100,burst=100,delay=0.05,表示正常允许100并发连接，突发流量下最大允许200并发连接，其中超出的部分，将被deplay
+                |`count`    |限制单位时间窗口内的调用次数，type=count时，需传递rate(速率)，time_window(单位时间窗口)两个参数<br>例如rate=1000,time_window=60，表示60秒内最多允许调用1000次，超出的请求会被拒绝
+                |`traffic`  |当参数data=[]，即data为数组时，会启动组合限流，启动组合限流时，请在每一条限流数据里多添加一个order字段进行排序
             - mapper：可选值，未传递此参数的情况下，所有限流粒度都是以host作为限流key，请求映射函数，对应枚举[mapper](#mapper)
             - tag：参考[mapper](#mapper)中对tag的说明
+            - rejected：拒绝策略，未完成(TODO)
         - 请求数据示例：
             ```json
             {
@@ -448,9 +467,8 @@ server {
     - 删除路由规则
         - 请求路径：/rate/del
         - 请求方式：GET
-        - 请求数据格式: uri参数
-        - 请求数据示例:
+        - 请求数据格式： uri参数
+        - 请求数据示例：
             ```text
             hostkey=xxx
             ```
-            

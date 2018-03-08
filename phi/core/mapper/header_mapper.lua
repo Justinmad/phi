@@ -5,11 +5,11 @@
 -- Time: 17:55
 -- 根据指定的头名称，获取头信息的值
 --
-local ngx = ngx
+local req_get_headers = ngx.req.get_headers
 local _M = {}
 
-function _M.map(ctx, header)
-    return ngx.req.get_headers()[header]
+function _M.map(_, header)
+    return req_get_headers[header]
 end
 
 return _M
