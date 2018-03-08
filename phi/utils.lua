@@ -28,9 +28,9 @@ end
 -- 同一请求，直接将结果放入ngx.ctx，避免多次调用ngx.var，这个api性能开销很大
 -- @see https://github.com/openresty/lua-nginx-module#ngxvarvariable
 function utils.getHost(ctx)
-    local var = ngx.var
     local result = ctx.__host;
     if not result then
+        local var = ngx.var
         result = var.hostkey or var.http_host
         if not result then
             result = req_get_headers()['Host']
@@ -51,7 +51,7 @@ function utils.printDict(dictName)
     local keys = dict:get_keys()
     local t = new_tab(0, getn(keys))
     for _, k in ipairs(keys) do
-        insert(t, k .. " = ".. dict:get(k))
+        insert(t, k .. " = " .. dict:get(k))
     end
     print(concat(t, "\r\n"))
 end
