@@ -39,10 +39,10 @@ function range_policy.calculate(arg, routerTable)
                     or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum) -- between
             if selected then
                 upstream = up
-                LOGGER(DEBUG, "匹配到规则:", key, ",range:[", fromNum, ",", endNum, "]")
+                LOGGER(DEBUG, key, "匹配到规则,", "range:[", fromNum, ",", endNum, "]")
                 break
             end
-            LOGGER(DEBUG, "未匹配的规则参数:", key, ",range:[", fromNum, ",", endNum, "]")
+            LOGGER(DEBUG, key, "未匹配到规则", ",range:[", fromNum, ",", endNum, "]")
         else
             err = "非法的规则表！"
             LOGGER(ERR, err)

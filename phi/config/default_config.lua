@@ -7,7 +7,7 @@
 --
 return {
     enabled_admin = true,
-    enabled_policies = { "RANGE", "SUFFIX", "COMPOSITE", "MODULO" },
+    enabled_policies = { "RANGE", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
     enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },
     default_paths = {
         "E:/work/phi/conf/phi.ini", "/home/young/IdeaProjects/phi/conf/phi.ini", "/home/phi/conf/application.ini"

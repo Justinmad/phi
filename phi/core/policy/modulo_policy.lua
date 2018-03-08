@@ -25,12 +25,12 @@ function modulo_policy.calculate(arg, routerTable)
         if policy ~= "number" and (policy < 0 or policy > 9) then
             return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
         end
-        if  val == policy then
+        if val == policy then
             upstream = up
-            LOGGER(DEBUG, "匹配到规则:", key, ",modulo:[" .. policy .. "]")
+            LOGGER(DEBUG, "参数[", key, "]匹配到规则", ",modulo:[" .. policy .. "]")
             break
         end
-        LOGGER(DEBUG, "未匹配的规则参数:", key, ",modulo:[" .. policy .. "]")
+        LOGGER(DEBUG, "参数[", key, "]未匹配到规则", ",modulo:[" .. policy .. "]")
     end
     return upstream, err
 end
