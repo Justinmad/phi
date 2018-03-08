@@ -29,12 +29,12 @@ function utils.file_exists(path)
     return file ~= nil
 end
 
--- 获取host，优先级ngx.var.hostkey->请求行中的host->请求头中的host
+-- 获取host，优先级ngx.var.hostkey->请求头中的host
 function utils.getHost(ctx)
     local result = ctx.__host;
     if not result then
         local var = ngx.var
-        result = var.hostkey or var.host or var.http_host or req_get_headers()['Host']
+        result = var.hostkey or var.http_host or req_get_headers()['Host']
         ctx.__host = result
     end
     return result
