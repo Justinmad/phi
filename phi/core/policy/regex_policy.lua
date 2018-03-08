@@ -32,7 +32,7 @@ function regex_policy.calculate(arg, routerTable)
                 upstream = up
                 break
             else
-                LOGGER(DEBUG, "参数[", arg, "]未匹配的规则参数:[", policy, "]")
+                LOGGER(DEBUG, "参数[", arg, "]未匹配到规则,regex:[", policy, "]")
             end
         end
     end
