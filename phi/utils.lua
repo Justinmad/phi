@@ -6,6 +6,10 @@
 -- 封装一些常用的方法
 --
 local ngx = ngx
+local req_get_headers = ngx.req.get_headers
+local getn = table.getn
+local insert = table.insert
+local concat = table.concat
 local utils = {}
 -- 判断文件是否存在
 -- 所有io操作都应谨慎使用，在openresty中非官方库的io操作很可能会阻塞整个worker进程
@@ -27,7 +31,7 @@ function utils.getHost(ctx)
     local result = ctx.__host;
     if not result then
         -- 获取到请求头中的Host
-        result = ngx.req.get_headers()['Host']
+        result = req_get_headers()['Host']
         if result then
             -- 获取到变量中的HostKey，则优先使用
             local hostkey = ngx.var.hostkey
@@ -45,9 +49,6 @@ local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
-local getn = table.getn
-local insert = table.insert
-local concat = table.concat
 
 local SHARED_DICT = ngx.shared
 function utils.printDict(dictName)
