@@ -17,6 +17,8 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local exit = ngx.exit
 
+local match = ngx.re.match
+
 local _M = {}
 
 function _M:init()
@@ -36,8 +38,12 @@ function _M:load(ctx)
         elseif upstream == self.default_upstream and upstreamBalancer == "stable" then
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif upstreamBalancer and upstreamBalancer.notExists then
-            LOGGER(ERR, "upstream is not exists !")
-            return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
+            -- 简单判断一下是否属于IP
+            local m = match(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
+            if not m then
+                LOGGER(ERR, "upstream is not exists !")
+                return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
+            end
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
@@ -58,7 +64,7 @@ function _M:balance(ctx)
         local ok, err = balancer.set_current_peer(server)
         if not ok then
             LOGGER(ERR, "failed to set the current peer: ", err)
---            return response.failure("Failed to set the current peer :-(", 500)
+            --            return response.failure("Failed to set the current peer :-(", 500)
             exit(500)
         end
     else
