@@ -17,7 +17,7 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local exit = ngx.exit
 
-local match = ngx.re.match
+local find = ngx.re.find
 
 local _M = {}
 
@@ -39,7 +39,7 @@ function _M:load(ctx)
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif upstreamBalancer and upstreamBalancer.notExists then
             -- 简单判断一下是否属于IP
-            local m = match(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
+            local m = find(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
             if not m then
                 LOGGER(ERR, "upstream is not exists !")
                 return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
