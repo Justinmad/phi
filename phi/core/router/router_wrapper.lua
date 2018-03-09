@@ -81,8 +81,6 @@ local ipairs = ipairs
 local ngx = ngx
 
 local LOGGER = ngx.log
-local ERR = ngx.ERR
-local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 
 local _M = {}

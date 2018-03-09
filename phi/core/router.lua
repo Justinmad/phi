@@ -28,14 +28,12 @@ local utils = require "utils"
 local phi = require "Phi"
 local response = require "core.response"
 local type = type
-local ipairs = ipairs
 local setmetatable = setmetatable
 local tostring = tostring
 
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 local ALERT = ngx.ALERT
-local NOTICE = ngx.NOTICE
 local _M = {}
 
 function _M.before(ctx)
@@ -46,31 +44,12 @@ function _M:access(ctx)
     local hostkey = utils.getHost(ctx);
     if hostkey then
         -- 查询多级缓存
-        local rules, err = self.service:getRouterPolicy(hostkey)
-        if not err and rules and type(rules) == "table" then
-            if rules.skipRouter then
+        local router, err = self.service:getRouter(hostkey)
+        if not err and router and type(router) == "table" then
+            if router.skipRouter then
                 return
             end
-            -- 先取默认值
-            local result = rules.default
-            -- 计算路由结果
-            for _, t in ipairs(rules.policies) do
-                local tag
-                if t.mapper then
-                    tag = self.mapper_holder:map(ctx, t.mapper, t.tag)
-                end
-                local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
-                if err then
-                    LOGGER(NOTICE, "Routing rules calculation err:", err)
-                elseif upstream then
-                    result = upstream
-                    break
-                end
-            end
-            if result then
-                ctx.backend = result
-                LOGGER(NOTICE, "will be routed to upstream:", result)
-            end
+            router:route(ctx)
         else
             LOGGER(ERR, "Routing rules query error or bad policy type ,err：", err, ", policies:", tostring(rules))
             return response.failure("Routing rules query error or bad policy type :-(", 500)
