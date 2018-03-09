@@ -17,7 +17,7 @@ local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local tonumber = tonumber
-local pairs = pairs
+local ipairs = ipairs
 local type = type
 
 local range_policy = {}
@@ -30,7 +30,7 @@ function range_policy.calculate(arg, routerTable)
     local upstream, err
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
-    for _, item in pairs(routerTable) do
+    for _, item in ipairs(routerTable) do
         local up, policy = item.result, item.expression
         if policy and type(policy) == "table" then
             local fromNum = policy[1]
