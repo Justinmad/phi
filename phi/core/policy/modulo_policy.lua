@@ -8,7 +8,7 @@
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local tonumber = tonumber
-local pairs = pairs
+local ipairs = ipairs
 
 local modulo_policy = {}
 
@@ -21,7 +21,8 @@ function modulo_policy.calculate(arg, routerTable)
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
     local val = key % 10
-    for up, policy in pairs(routerTable) do
+    for _, item in ipairs(routerTable) do
+        local up, policy = item.result, item.expression
         if policy ~= "number" and (policy < 0 or policy > 9) then
             return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
         end

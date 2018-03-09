@@ -16,19 +16,21 @@
 --]]
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
-local pairs = pairs
+local ipairs = ipairs
 local sub = string.sub
+local string_len = string.len
 
 local suffix_policy = {}
 
 function suffix_policy.calculate(arg, routerTable)
     local upstream, err;
     if arg then
-        local argLength = #arg
+        local argLength = string_len(arg)
         -- 遍历规则表，寻找正确匹配的规则
         -- 范围匹配规则：允许符合后缀名的请求路由到预定义的upstream中
-        for up, policy in pairs(routerTable) do
-            local policyLength = #policy
+        for _, item in ipairs(routerTable) do
+            local up, policy = item.result, item.expression
+            local policyLength = string_len(policy)
             if argLength >= policyLength then
                 local selected = sub(arg, argLength - policyLength + 1) == policy
                 if selected then

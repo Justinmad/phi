@@ -30,7 +30,8 @@ function range_policy.calculate(arg, routerTable)
     local upstream, err
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
-    for up, policy in pairs(routerTable) do
+    for _, item in pairs(routerTable) do
+        local up, policy = item.result, item.expression
         if policy and type(policy) == "table" then
             local fromNum = policy[1]
             local endNum = policy[2]

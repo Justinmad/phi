@@ -81,7 +81,7 @@ local function newLimiterWrapper(policy)
                 local ll
                 ll, err = limiter_wrapper:new(p)
                 if err then
-                    return nil ,err
+                    return nil, err
                 else
                     insert(limiter, ll)
                 end
@@ -128,16 +128,18 @@ function _M:updateEvent(updated, data)
     self.observer.post(EVENTS.SOURCE, updated and UPDATE or REBUILD, data)
 end
 
+local function getFromDb(self, hostkey)
+    local res, err = self.dao:getLimitPolicy(hostkey)
+    if err then
+        -- 查询出现错误，10秒内不再查询
+        LOGGER(ERR, "could not retrieve limiter:", err)
+        return { skip = true }, nil, 10
+    end
+    return res or { skip = true }
+end
+
 function _M:getLimiter(hostkey)
-    local result, err = self.cache:get(hostkey, nil, function()
-        local res, err = self.dao:getLimitPolicy(hostkey)
-        if err then
-            -- 查询出现错误，10秒内不再查询
-            LOGGER(ERR, "could not retrieve limiter:", err)
-            return { skip = true }, nil, 10
-        end
-        return res or { skip = true }
-    end)
+    local result, err = self.cache:get(hostkey, nil, getFromDb, self, hostkey)
     return result, err
 end
 

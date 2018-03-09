@@ -30,7 +30,7 @@ function BaseComponent:access()
     LOGGER(DEBUG, "executing component \"", self._name, "\": access")
 end
 
-function BaseComponent:balancer()
+function BaseComponent:balance()
     LOGGER(DEBUG, "executing component \"", self._name, "\": balancer")
 end
 

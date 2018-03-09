@@ -28,5 +28,11 @@ mkdir -p /home/phi-0.0.1
     --add-module=$lua_nginx_module \
     --add-module=$lua_upstream_nginx_module
 
+if [ $# -lt 4 ] then
+    echo "useage:) $0 type[c/lua] pid time target"
+    exit 1
+fi
+
+
 make -j2
 make install

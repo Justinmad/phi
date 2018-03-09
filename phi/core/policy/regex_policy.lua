@@ -16,7 +16,7 @@
 --]]
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
-local pairs = pairs
+local ipairs = ipairs
 local find = ngx.re.find
 
 local regex_policy = {}
@@ -24,7 +24,8 @@ local regex_policy = {}
 function regex_policy.calculate(arg, routerTable)
     local upstream, err;
     if arg then
-        for up, policy in pairs(routerTable) do
+        for _, item in ipairs(routerTable) do
+            local up, policy = item.result, item.expression
             local from, to
             from, to, err = find(arg, policy, "jo")
             if from then

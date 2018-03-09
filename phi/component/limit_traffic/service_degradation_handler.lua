@@ -16,7 +16,7 @@ local LOGGER = ngx.log
 local rate_limiting_handler = base_component:extend()
 
 function rate_limiting_handler:new(ref, config)
-    rate_limiting_handler.super.new(self, "rate-limiting")
+    rate_limiting_handler.super.new(self, "service-degradation")
     rate_limiting_handler.order = config.order
     rate_limiting_handler.service = ref
     return rate_limiting_handler

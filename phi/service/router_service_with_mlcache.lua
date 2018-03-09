@@ -10,6 +10,7 @@
 --
 local CONST = require "core.constants"
 local mlcache = require "resty.mlcache"
+local router_wrapper = require "core.router.router_wrapper"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
 local sort = table.sort
@@ -25,6 +26,11 @@ local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
+    new_tab = function() return {} end
+end
+
 local _M = {}
 
 -- 所有的规则中order越大就有越高的优先级
@@ -34,8 +40,10 @@ local function sortSerializer(row)
         sort(row.policies, function(r1, r2)
             local o1 = r1.order or 0
             local o2 = r2.order or 0
-            return o1 > o2 end)
-        end
+            return o1 > o2
+        end)
+        return router_wrapper:new(row)
+    end
     return row
 end
 
@@ -62,18 +70,29 @@ function _M:updateEvent(hostkey)
     self.observer.post(EVENTS.SOURCE, UPDATE, hostkey)
 end
 
+local function getFromDb(self, hostkey)
+    local res, err = self.dao:getRouterPolicy(hostkey)
+    if err then
+        -- 查询出现错误，10秒内不再查询
+        LOGGER(ERR, "could not retrieve router policy:", err)
+        return { skipRouter = true }, nil, 10
+    end
+    return res or { skipRouter = true }
+end
+
 -- 获取单个路由规则
-function _M:getRouterPolicy(hostkey)
-    local result, err = self.cache:get(hostkey, nil, function()
-        local res, err = self.dao:getRouterPolicy(hostkey)
-        if err then
-            -- 查询出现错误，10秒内不再查询
-            LOGGER(ERR, "could not retrieve router policy:", err)
-            return { skipRouter = true }, nil, 10
-        end
-        return res or { skipRouter = true }
-    end)
+function _M:getRouter(hostkey)
+    local result, err = self.cache:get(hostkey, nil, getFromDb, self, hostkey)
     return result, err
+end
+
+function _M:getRouterPolicy(hostkey)
+    local res, err = self.dao:getRouterPolicy(hostkey)
+    if err then
+        -- 查询出现错误，10秒内不再查询
+        LOGGER(ERR, "could not retrieve router policy:", err)
+    end
+    return res, err
 end
 
 -- 新增or更新路由规则
@@ -119,14 +138,15 @@ function class:new(ref, config)
     -- new函数我会在init阶段调用，我在这里就初始化cache，并且在init函数中load部分数据，worker进程会fork这部分内存，相当于缓存的预热
     local cache, err = mlcache.new("router_cache", SHARED_DICT_NAME, {
         lru_size = config.router_lrucache_size or 1000, -- L1缓存大小，默认取1000
-        ttl = 0,                                        -- 缓存失效时间
-        neg_ttl = 0,                                    -- 未命中缓存失效时间
-        resty_lock_opts = {                             -- 回源DB的锁配置
-            exptime = 10,                               -- 锁失效时间
-            timeout = 5                                 -- 获取锁超时时间
+        ttl = 0, -- 缓存失效时间
+        neg_ttl = 0, -- 未命中缓存失效时间
+        resty_lock_opts = {
+            -- 回源DB的锁配置
+            exptime = 10, -- 锁失效时间
+            timeout = 5 -- 获取锁超时时间
         },
-        ipc_shm = PHI_EVENTS_DICT_NAME,                 -- 通知其他worker的事件总线
-        l1_serializer = sortSerializer                  -- 结果排序处理
+        ipc_shm = PHI_EVENTS_DICT_NAME, -- 通知其他worker的事件总线
+        l1_serializer = sortSerializer -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)
