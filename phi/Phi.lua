@@ -48,7 +48,7 @@ function PHI.balancer()
     -- 负载均衡
     balancer:balance(ctx)
     for _, c in ipairs(components) do
-        c:balancer()
+        c:balance()
     end
 end
 
