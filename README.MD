@@ -90,17 +90,18 @@ server {
         | `uri`              | 取请求行中的uri                                          
         | `cookie`           | 取请求头中的cookie,配合tag字段使用，tag值表示cookie名称                                          
     - ### policy
-        policy是一组计算函数，`string calculate(arg, hashTable)`，此函数接收一个具体值和一个哈希表，
-        经过运算后将结果与哈希表中的规则值进行匹配，匹配成功后会返回对应的哈希KEY值
+        policy是一组计算函数，`string calculate(arg, hashTable)`，此函数接收一个具体值和一个规则对象，
+        该对象中的数据结构应符合{"result":"xxx","expression":"xxxxxxxx"}的规则（组合规则除外），
+        calculate函数会根据expression字段的表达式计算出一个boolean值，如果为true就立即返回result的值，否则就继续执行
     
         | value              | Description     |哈希表结构示例            
         | ------------------:|----------------:|:------------------------------
-        | `modulo`           | 对10取模运算     |{"default":"stable_upstream","upstream_name_1":1,"upstream_name_2":2}
-        | `range`            | 范围运算         |{"default":"stable_upstream","upstream_name_1":\[min,max],"upstream_name_2":\[min,"NONE"],"upstream_name_3":\["NONE",max]}                                    
-        | `prefix`           | 取前缀匹配       |{"default":"stable_upstream","upstream_name_1":"/api","upstream_name_2":"/openApi"}                          
-        | `suffix`           | 取后缀匹配       |{"default":"stable_upstream","upstream_name_1":".html","upstream_name_2":".css"}                          
-        | `regex`            | lua正则匹配*     |{"default":"stable_upstream","upstream_name_1":"regex1","upstream_name_2":"regex2"}                          
-        | `composite`        | 组合规则         |{"default":"stable_upstream",<br>"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":{"secondary":\[1,100],"upstream":\["NONE",1000]}},<br>"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":{"upstream2":\[1,10]}}}
+        | `modulo`           | 对10取模运算     |[{"result":"upstream1","expression":1},{"result":"upstream2","expression":2},{"result":"upstream3","expression":3}]
+        | `range`            | 范围运算         |[{"result":"hehehehe","expression":[1001,2000]},{"result":"upstream1","expression":[min,"NONE"]},{"result":"upstream2","expression":[min,max]},{"result":"upstream3","expression":["NONE",max]}]                                   
+        | `prefix`           | 取前缀匹配       |[{"result":"upstream1","expression":"/api"},{"result":"upstream2","expression":"/openApi"}]                          
+        | `suffix`           | 取后缀匹配       |[{"result":"upstream1","expression":".js"},{"result":"upstream2","expression":".css"}]                       
+        | `regex`            | lua正则匹配      |[{"result":"upstream1","expression":"regex1"},{"result":"upstream2","expression":"regex2"}]                         
+        | `composite`        | 组合规则         |{"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]},{"result":"upstream","expression":["NONE",1000]}]},"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]}]}}
              
 - **Router** : 动态路由，实现分流/灰度功能
     - 添加路由规则
@@ -472,3 +473,19 @@ server {
             ```text
             hostkey=xxx
             ```
+##性能测试
+我在自己的笔记本上使用ab进行了简单的负载测试：
+- 测试准备
+    - nginx配置：开启一个worker进程，并且最多占用一个cpu
+        ```nginx
+        worker_processes 1;
+        worker_cpu_affinity auto;
+        ```
+    - 开启另外一台nginx，作为一个静态文件服务器，目标文件大小为1Kb
+    - 测试机器配置
+        I7-6700HQ + 16GB
+- 使用AB进行压力测试，20个并发，发起1000000次请求，worker进程cpu达到100%
+    - 我测试了原生的nginx反向代理进行对比：50K~55K T/S
+    - 开启router功能后测试结果：35K-40K T/S
+    - 开启dynamic ups和balancer之后： 30K-35K T/S
+- 测试在2000并发连接数下的系统稳定性：
