@@ -22,7 +22,7 @@ function BaseComponent:init_worker()
     LOGGER(DEBUG, "executing component \"", self._name, "\": init_worker")
 end
 
-function BaseComponent:rewrite()
+function BaseComponent:rewrite(ctx)
     LOGGER(DEBUG, "executing component \"", self._name, "\": rewrite")
 end
 

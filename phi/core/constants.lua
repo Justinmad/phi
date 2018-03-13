@@ -29,10 +29,10 @@ return {
         POST = "POST"                                           -- HTTP METHOD POST
     },
     DICTS = {
-        PHI = "phi",                                            -- 没想好存什么，占位
         PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存
         PHI_UPSTREAM = "phi_upstream",                          -- 存储upstream信息，作为二级缓存
         PHI_LIMITER = "phi_limiter",                            -- 存储limiter规则信息
+        PHI_DEGRADER = "phi_degrader",                          -- 存储degrader规则信息
         PHI_LOCK = "phi_lock",                                  -- 存储锁信息
         PHI_EVENTS = "phi_events",                              -- 存储事件消息
         PHI_LIMIT_REQ = "phi_limit_req",                        -- 存储限流标记req
@@ -63,6 +63,10 @@ return {
             SOURCE = "rate_limiting",
             UPDATE = "update",
             REBUILD = "rebuild",
+        },
+        SERVICE_DEGRADATION_EVENTS = {
+            SOURCE = "service_degradation",
+            UPDATE = "update"
         }
     }
 }

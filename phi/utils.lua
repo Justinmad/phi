@@ -34,7 +34,7 @@ function utils.getHost(ctx)
     local result = ctx.__host;
     if not result then
         local var = ngx.var
-        result = var.hostkey or var.http_host or req_get_headers()['Host']
+        result = var.hostkey or var.host or var.http_host or req_get_headers()['Host']
         ctx.__host = result
     end
     return result

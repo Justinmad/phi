@@ -26,6 +26,7 @@ function rate_limiting_handler:rewrite(ctx)
     local hostkey = get_host(ctx)
     local limiter, err = self.service:getLimiter(hostkey)
     if err or (not limiter) then
+        -- 查询出现错误，放行
         LOGGER(ERR, "failed to get limiter by hostkey :", hostkey, ",err : ", err)
     else
         if limiter.skip then

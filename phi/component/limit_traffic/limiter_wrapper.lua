@@ -143,16 +143,18 @@ end
 local _M = {}
 
 function _M:incoming(ctx, commit)
-    utils.printDict(LIMIT_COUNT_DICT_NAME)
     local key = self.get_key(ctx)
     local lim = self.limiter
 
     local delay, err = lim:incoming(key, commit)
 
     if not delay then
-        -- TODO 考虑的降级策略
         if err == "rejected" then
-            return response.failure("Limited access,Service Temporarily Unavailable,please try again later :-)", 503)
+            if self.rejected == "degraded" then
+                ctx.degraded = true
+            else
+                return response.failure("Limited access,Service Temporarily Unavailable,please try again later :-)", 503)
+            end
         end
         LOGGER(ERR, "failed to limit req: ", err)
         return response.failure("failed to limit req :-( ", 500)
@@ -184,6 +186,7 @@ function _M:update(policy)
             local limiter = self.limiter
             limiter:set_rate(rate)
             limiter:set_burst(burst)
+            self.rejected = policy.rejected
             return self
         end
     elseif typeStr == "conn" then
@@ -193,6 +196,7 @@ function _M:update(policy)
             local limiter = self.limiter
             limiter:set_conn(conn)
             limiter:set_burst(burst)
+            self.rejected = policy.rejected
             return self
         end
     elseif typeStr == "count" then
@@ -202,9 +206,7 @@ function _M:update(policy)
             local ll
             ll, err = limit_count.new(LIMIT_COUNT_DICT_NAME, rate, time_window)
             self.limiter = ll
-            --            self.get_key = function(ctx)
-            --                return policy.mapper and self.mapper_holder:map(ctx, policy.mapper, policy.tag) or get_host(ctx)
-            --            end
+            self.rejected = policy.rejected
             return self
         end
     elseif typeStr == "traffic" then
@@ -213,6 +215,7 @@ function _M:update(policy)
         if not err then
             self.limiter = ll
             self.get_key = get_keys
+            self.rejected = policy.rejected
             return self
         end
     end
@@ -260,6 +263,7 @@ function class:new(policy)
             type = typeStr,
             get_key = get_key,
             limiter = limiter,
+            rejected = policy.rejected,
             mapper_holder = mapper_holder
         }, { __index = _M })
     end
