@@ -8,8 +8,12 @@
 local ngx = ngx
 local _M = {}
 
-function _M.map(ctx, tag)
-    local u = ngx.var.uri
+function _M.map(ctx, _)
+    local u = ctx.__uri
+    if not u then
+        u = ngx.var.uri
+        ctx.__uri = u
+    end
     return u
 end
 

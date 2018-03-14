@@ -31,6 +31,7 @@ local LIMIT_COUNT_DICT_NAME = DICTS.PHI_LIMIT_COUNT
 
 local ngx = ngx
 local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
 local LOGGER = ngx.log
 
 local sleep = ngx.sleep
@@ -75,8 +76,8 @@ local function createTrafficLimiter(policy, mapper_holder)
         LOGGER(ERR, err)
         return nil, nil, err
     end
-    local limiters = new_tab(0, len)
-    local keys = new_tab(0, len)
+    local limiters = new_tab(len,0 )
+    local keys = new_tab(len, 0)
     for _, p in ipairs(policy) do
         local ll, err = createLimiter(p)
         if err then
@@ -92,7 +93,7 @@ local function createTrafficLimiter(policy, mapper_holder)
                 if mappedKey == nil then
                     response.failure("Limiter key is nil !")
                 else
-                    local tmp = new_tab(0, 2)
+                    local tmp = new_tab(2, 0)
                     insert(tmp, key)
                     insert(tmp, mapper)
                     if tag then
@@ -115,7 +116,7 @@ local function createTrafficLimiter(policy, mapper_holder)
     }
 
     local get_key = function(ctx)
-        local res = new_tab(0, getn(policy))
+        local res = new_tab(getn(policy), 0)
         for _, func in ipairs(keys) do
             insert(res, func(ctx))
         end
@@ -145,11 +146,11 @@ local _M = {}
 function _M:incoming(ctx, commit)
     local key = self.get_key(ctx)
     local lim = self.limiter
-
     local delay, err = lim:incoming(key, commit)
 
     if not delay then
         if err == "rejected" then
+            LOGGER(DEBUG, "rejected req for key ", key)
             if self.rejected == "degraded" then
                 ctx.degraded = true
             else
@@ -161,6 +162,7 @@ function _M:incoming(ctx, commit)
     end
 
     if delay >= 0.001 then
+        LOGGER(DEBUG, "delay req for ", delay, " by key ", key)
         sleep(delay)
     end
 
@@ -243,7 +245,7 @@ function class:new(policy)
                 if mappedKey == nil then
                     response.failure("Limiter key is nil !")
                 else
-                    local tmp = new_tab(0, 2)
+                    local tmp = new_tab(2, 0)
                     insert(tmp, key)
                     insert(tmp, mapper)
                     if tag then

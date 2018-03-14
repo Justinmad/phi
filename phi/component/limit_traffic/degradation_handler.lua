@@ -7,11 +7,10 @@
 --
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
-local type = type
+local get_uri = require("phi").mapper_holder["uri"].map
 local response = require "core.response"
 
 local ERR = ngx.ERR
-local DEBUG = ngx.DEBUG
 local LOGGER = ngx.log
 
 local degradation_handler = base_component:extend()
@@ -25,36 +24,25 @@ end
 
 -- 服务降级
 function degradation_handler:rewrite(ctx)
-    local isDegraded, degrader, err = ctx.degraded, nil, nil
     local hostkey = get_host(ctx)
-    if isDegraded then
-        -- 做降级处理 1、fake数据 2、重定向 3、内部请求
-        local _
-        _, degrader, err = getDegrader(hostkey)
-    else
-        isDegraded, degrader, err = getDegrader(hostkey)
-    end
-
+    local isDegraded, degrader, err = ctx.degraded, self.service:getDegrader(hostkey)
     if err then
         -- 查询出现错误，放行
         LOGGER(ERR, "failed to get degrader by hostkey :", hostkey, ",err : ", err)
     else
+        if not isDegraded then
+            -- 上文未触发降级，取全局开关
+            isDegraded = degrader.enabled
+        end
         if isDegraded then
-            if degrader then
-                degrader:content()
+            if not degrader.skip then
+                -- 做降级处理 1、fake数据 2、重定向 3、内部请求
+                degrader:doDegrade(ctx)
             else
                 LOGGER(ERR, "Cannot perform a demotion strategy ,degrader is nil")
-                response.failure("Cannot perform a demotion strategy :-(")
+                response.failure("Cannot perform a degrade strategy :-(")
             end
         end
-    end
-end
-
-function degradation_handler:log(ctx)
-    local leaving_func = ctx.leaving
-    if type(leaving_func) == "function" then
-        LOGGER(DEBUG, "record the connection leaving")
-        leaving_func()
     end
 end
 

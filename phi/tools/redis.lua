@@ -251,7 +251,7 @@ setmetatable(_M, {
 -- 根据配置生成
 function class:new(config)
     -- 初始化Redis
-    local instance = new_tab(0, 60)
+    local instance = new_tab(0, 1)
     instance.conf = {}
     LOGGER(DEBUG, "********************初始化Redis********************")
     instance.conf.redis_host = config.redis_host or "127.0.0.1"

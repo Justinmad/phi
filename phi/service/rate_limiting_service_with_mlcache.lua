@@ -70,13 +70,14 @@ local LOGGER = ngx.log
 local function newLimiterWrapper(policy)
     if not policy.skip then
         local limiter, err
-        if #policy > 0 then
+        local len = #policy
+        if len > 0 then
             sort(policy, function(r1, r2)
                 local o1 = r1.order or 0
                 local o2 = r2.order or 0
                 return o1 > o2
             end)
-            limiter = new_tab(0, #policy)
+            limiter = new_tab(len, 0)
             for _, p in ipairs(policy) do
                 local ll
                 ll, err = limiter_wrapper:new(p)
@@ -151,6 +152,7 @@ function _M:getLimitPolicy(hostkey)
     return res, err
 end
 
+-- 这不是一个并发安全的操作
 function _M:setLimitPolicy(hostkey, policy)
     local oldVal, err = self.dao:setLimitPolicy(hostkey, policy)
     local ok
@@ -167,7 +169,9 @@ function _M:setLimitPolicy(hostkey, policy)
         if ok then
             self:updateEvent(updated, updated and { hostkey = hostkey, policy = policy } or hostkey)
         else
-            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则到缓存失败！err:", err)
+            -- 保证数据一致性，旧值放回db
+            self.dao:setLimitPolicy(hostkey, oldVal)
+            LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存限流规则失败！err:", err)
         end
     end
     return ok, err

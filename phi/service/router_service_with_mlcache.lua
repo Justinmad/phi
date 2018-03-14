@@ -57,7 +57,7 @@ function _M:init_worker(observer)
         else
             -- 更新缓存
             self.cache:update()
-            self:getRouterPolicy(data)
+            self:getRouter(data)
             LOGGER(DEBUG, "received event; source=", source,
                 ", event=", event,
                 ", data=", pretty_write(data),

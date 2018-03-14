@@ -27,4 +27,8 @@ function _M.failure(msg, code, data)
     resp(code or 200, false, msg or "error", data)
 end
 
+function _M.fake(data)
+    responses.send_HTTP_OK(data)
+end
+
 return _M

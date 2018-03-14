@@ -49,7 +49,7 @@ local SHARED_DICT = ngx.shared
 function utils.printDict(dictName)
     local dict = SHARED_DICT[dictName]
     local keys = dict:get_keys()
-    local t = new_tab(0, getn(keys))
+    local t = new_tab(getn(keys), 0)
     for _, k in ipairs(keys) do
         insert(t, k .. " = " .. dict:get(k))
     end
