@@ -11,6 +11,7 @@ local mlcache = require "resty.mlcache"
 local degrader_wrapper = require "component.limit_traffic.degrader_wrapper"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
+local ipairs = ipairs
 
 local EVENTS = CONST.EVENT_DEFINITION.SERVICE_DEGRADATION_EVENTS
 local UPDATE = EVENTS.UPDATE
@@ -30,7 +31,6 @@ end
 
 local _M = {}
 
--- 所有的规则中order越大就有越高的优先级
 local function createDegrader(row)
     if not row.skip then
         return degrader_wrapper:new(row)
@@ -61,8 +61,8 @@ function _M:updateEvent(hostkey)
     self.observer.post(EVENTS.SOURCE, UPDATE, hostkey)
 end
 
-local function getFromDb(self, hostkey)
-    local res, err = self.dao:getDegradation(hostkey)
+local function getFromDb(self, hostkey, uri)
+    local res, err = self.dao:getDegradation(hostkey, uri)
     if err then
         -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve degrader:", err)
@@ -71,25 +71,51 @@ local function getFromDb(self, hostkey)
     return res or { skip = true }
 end
 
-function _M:getDegrader(hostkey)
-    return self.cache:get(hostkey, nil, getFromDb, self, hostkey)
+function _M:getDegrader(hostkey, uri)
+    return self.cache:get(hostkey .. ":" .. uri, nil, getFromDb, self, hostkey, uri)
 end
 
-function _M:getDegradation(hostkey)
-    local res, err = self.dao:getDegradation(hostkey)
+function _M:getDegradations(hostkey)
+    local res, err = self.dao:getDegradations(hostkey)
     if err then
-        -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve degrader:", err)
     end
     return res, err
 end
 
-function _M:setDegradation(hostkey, policies)
-    local ok, err = self.dao:setDegradation(hostkey, policies)
+function _M:getDegradation(hostkey, uri)
+    local res, err = self.dao:getDegradation(hostkey, uri)
+    if err then
+        LOGGER(ERR, "could not retrieve degrader:", err)
+    end
+    return res, err
+end
+
+function _M:addDegradations(hostkey, degradations)
+    local ok, err = self.dao:addDegradations(hostkey, degradations)
     if ok then
-        ok, err = self.cache:set(hostkey, nil, policies)
+        for _, d in ipairs(degradations) do
+            ok, err = self.cache:set(hostkey .. ":" .. d.uri, nil, d.info)
+            if not ok then
+                LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存降级规则到mlcache失败！err:", err)
+                self.dao:delDegradation(hostkey, d.uri)
+            else
+                self:updateEvent(hostkey)
+            end
+        end
+    end
+    return ok, err
+end
+
+function _M:enabled(hostkey, uri, enabled)
+    local ok
+    local data, err = self.dao:enabled(hostkey, uri, enabled)
+    if data then
+        print(pretty_write(data))
+        ok, err = self.cache:set(hostkey .. ":" .. uri, nil, data)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存降级规则到mlcache失败！err:", err)
+            self.dao:enabled(hostkey, uri, not enabled)
         else
             self:updateEvent(hostkey)
         end
@@ -97,10 +123,10 @@ function _M:setDegradation(hostkey, policies)
     return ok, err
 end
 
-function _M:delDegradation(hostkey)
-    local ok, err = self.dao:delDegradation(hostkey)
+function _M:delDegradation(hostkey, uri)
+    local ok, err = self.dao:delDegradation(hostkey, uri)
     if ok then
-        ok, err = self.cache:set(hostkey, nil, { skipRouter = true })
+        ok, err = self.cache:set(hostkey .. ":" .. uri, nil, { skip = true })
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除降级规则失败！err:", err)
         else

@@ -13,6 +13,9 @@ if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 
+local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
+local LOGGER = ngx.log
 
 local function redirect(self)
     ngx_redirect(self.target, HTTP_MOVED_TEMPORARILY)
@@ -29,18 +32,22 @@ local class = {}
 function class:new(info)
     local instance = new_tab(0, 5)
     local t = info.type
-    if t == "fake" then
+    if t == "fake" and info.target then
+        LOGGER(DEBUG, "return fake data")
         instance.doDegrade = fake
-    elseif t == "redirect" then
+    elseif t == "redirect" and info.target then
+        LOGGER(DEBUG, "redirect to ", info.target)
         instance.doDegrade = redirect
     else
-        return nil, "create degrader failed ,bad degrader type " .. t
+        local err = "create degrader failed ,bad degrader type : " .. (t or "nil")
+        LOGGER(ERR, err)
+        return nil, err
     end
 
     instance.target = info.target
     instance.extend = info.extend
     instance.mapper = info.mapper
-    instance.tag = info.tag
+    instance.enabled = info.enabled
     return instance
 end
 

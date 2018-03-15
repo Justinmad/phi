@@ -25,7 +25,6 @@
 --]]
 
 local utils = require "utils"
-local phi = require "Phi"
 local response = require "core.response"
 local type = type
 local setmetatable = setmetatable
@@ -67,8 +66,6 @@ local class = {}
 function class:new(ref)
     local instance = {}
     instance.service = ref
-    instance.policy_holder = phi.policy_holder
-    instance.mapper_holder = phi.mapper_holder
     return setmetatable(instance, { __index = _M })
 end
 

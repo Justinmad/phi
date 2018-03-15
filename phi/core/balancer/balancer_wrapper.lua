@@ -9,6 +9,7 @@ local resty_roundrobin = require "resty.roundrobin"
 local phi = require "Phi"
 local response = require "core.response"
 local setmetatable = setmetatable
+local mapper_holder = phi.mapper_holder
 
 local ok, resty_chash = pcall(require, "resty.chash")
 if not ok then
@@ -22,7 +23,7 @@ local _M = {}
 
 function _M:find(ctx)
     if self.mapper then
-        local tag, err = self.mapper_holder:map(ctx, self.mapper, self.tag)
+        local tag, err = mapper_holder:map(ctx, self.mapper)
         if err or not tag then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
             return response.failure("Failed to calculate the hash :-(", 500)
@@ -42,7 +43,7 @@ local class = {}
 function class:new(strategy, server_list, mapper, tag)
     local balancer
     if strategy == "resty_chash" then
-        if not phi.mapper_holder[mapper] then
+        if not mapper_holder[mapper] then
             return nil, "can't create balancer , bad mapper name :" .. mapper
         end
         balancer = resty_chash:new(server_list)
@@ -53,14 +54,13 @@ function class:new(strategy, server_list, mapper, tag)
     end
     if mapper == "" or mapper == nil then
         mapper, tag = nil, nil
-    elseif not phi.mapper_holder[mapper] then
+    elseif not mapper_holder[mapper] then
         return nil, "can't create balancer , bad mapper name :" .. mapper
     end
     return setmetatable({
         balancer = balancer,
         mapper = mapper,
-        tag = tag,
-        mapper_holder = phi.mapper_holder
+        tag = tag
     }, { __index = _M })
 end
 

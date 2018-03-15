@@ -49,6 +49,7 @@ local worker_pid = ngx.worker.pid
 local ipairs = ipairs
 local insert = table.insert
 local sort = table.sort
+local getn = table.getn
 
 local PHI_EVENTS_DICT_NAME = CONST.DICTS.PHI_EVENTS
 local SHARED_DICT_NAME = CONST.DICTS.PHI_LIMITER
@@ -70,27 +71,15 @@ local LOGGER = ngx.log
 local function newLimiterWrapper(policy)
     if not policy.skip then
         local limiter, err
-        local len = #policy
-        if len > 0 then
-            sort(policy, function(r1, r2)
+        local len = getn(policy)
+        if len > 1 then
+            sort(policy.policies, function(r1, r2)
                 local o1 = r1.order or 0
                 local o2 = r2.order or 0
                 return o1 > o2
             end)
-            limiter = new_tab(len, 0)
-            for _, p in ipairs(policy) do
-                local ll
-                ll, err = limiter_wrapper:new(p)
-                if err then
-                    return nil, err
-                else
-                    insert(limiter, ll)
-                end
-            end
-        else
-            limiter, err = limiter_wrapper:new(policy)
         end
-        return limiter, err
+        return limiter_wrapper:new(policy)
     else
         return policy
     end
@@ -159,7 +148,7 @@ function _M:setLimitPolicy(hostkey, policy)
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
         local inCache = self.cache:peek(hostkey) ~= nil
-        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and policy.type ~= "traffic"
+        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and getn(policy) < 1
         local opts
         if updated then
             policy.wrapper = self:getLimiter(hostkey)

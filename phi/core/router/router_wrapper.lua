@@ -5,6 +5,8 @@
 -- Time: 15:57
 -- To change this template use File | Settings | File Templates.
 local phi = require "Phi"
+local mapper_holder = phi.mapper_holder
+local policy_holder = phi.policy_holder
 
 local setmetatable = setmetatable
 local ipairs = ipairs
@@ -21,9 +23,9 @@ function _M:route(ctx)
     for _, t in ipairs(self.policies) do
         local tag
         if t.mapper then
-            tag = self.mapper_holder:map(ctx, t.mapper, t.tag)
+            tag = mapper_holder:map(ctx, t.mapper)
         end
-        local upstream, err = self.policy_holder:calculate(t.policy, tag, t.routerTable)
+        local upstream, err = policy_holder:calculate(t.policy, tag, t.routerTable)
         if err then
             LOGGER(NOTICE, "Routing rules calculation err:", err)
         elseif upstream then
@@ -44,9 +46,7 @@ function class:new(data)
     end
     return setmetatable({
         default = data.default,
-        policies = data.policies,
-        mapper_holder = phi.mapper_holder,
-        policy_holder = phi.policy_holder
+        policies = data.policies
     }, { __index = _M })
 end
 

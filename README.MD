@@ -79,7 +79,8 @@ server {
 - **枚举值**
     - ### mapper 
         mapper是一组映射函数，会将请求映射到一个具体的值，以便将这个值交给policy进行运算,
-        有一些mapper需要指定tag，例如{"mapper":"header","tag":"x-uid"}，会取出请求头中的x-uid的值
+        请求参数中如果有mapper字段只需要传递相应的枚举值即可，如"mapper":"ip"
+        有一些mapper需要指定tag，此时mapper字段应传递一个json对象,如：{"type":"uri_args","tag":"uid"}，会取出请求参数中的uid的值
         
         | value              | Description                                               
         | ------------------:|:---------------------------------------------------------
@@ -125,8 +126,7 @@ server {
                 "policies": [{
                   "order": 3,
                   "policy": "range",
-                  "tag": "uid",
-                  "mapper": "uri_args",
+                  "mapper": {"type":"uri_args","tag":"uid"},
                   "routerTable": {
                     "upstream1": [
                       2000,
@@ -167,8 +167,7 @@ server {
                   {
                     "order": 3,
                     "policy": "range",
-                    "tag": "uid",
-                    "mapper": "uri_args",
+                    "mapper": {"type":"uri_args","tag":"uid"},
                     "routerTable": {
                       "upstream4": [
                         1001,
@@ -179,7 +178,6 @@ server {
                   {
                     "order": 2,
                     "policy": "range",
-                    "tag": "ip",
                     "mapper": "ip",
                     "routerTable": {
                       "upstream1": [
@@ -431,10 +429,10 @@ server {
                 |`req`      |限制请求速率，type=req时，需传递rate(速率)，burst(允许突发值)两个参数<br>例如：rate=200,burst=100，表示允许200req/sec，流量突发时最多允许达到300req/sec，其中超过200req的请求将被delay
                 |`conn`     |限制并发连接数，type=conn时，需传递conn(连接数)，burst(允许突发连接数)，delay(延迟时间)三个参数<br>例如conn=100,burst=100,delay=0.05,表示正常允许100并发连接，突发流量下最大允许200并发连接，其中超出的部分，将被deplay
                 |`count`    |限制单位时间窗口内的调用次数，type=count时，需传递rate(速率)，time_window(单位时间窗口)两个参数<br>例如rate=1000,time_window=60，表示60秒内最多允许调用1000次，超出的请求会被拒绝
-                |`traffic`  |当参数data=[]，即data为数组时，会启动组合限流，启动组合限流时，请在每一条限流数据里多添加一个order字段进行排序
+                |`traffic`  |组合限流，启动组合限流时，组合限流需在请求数据中添加policies字段，数组类型[{"time_window": 10,"rate": 1,"}],每一条数据为一条限流规则，如需对多个规则进行排序，请在每一条中添加order字段，数字越大优先级越高
             - mapper：可选值，未传递此参数的情况下，所有限流粒度都是以host作为限流key，请求映射函数，对应枚举[mapper](#mapper)
             - tag：参考[mapper](#mapper)中对tag的说明
-            - rejected：拒绝策略，未完成(TODO)
+            - rejected：拒绝策略，rejected:直接拒绝访问，degrade:查询降级策略
         - 请求数据示例：
             ```json
             {
@@ -473,10 +471,70 @@ server {
             ```text
             hostkey=xxx
             ```
+- **Service Degradation** : 接入层的简易降级开关，所有的降级都是以host+uri为依据
+    - 添加降级数据
+      - 请求路径：/degrade/add
+      - 请求方式：POST
+      - 返回数据格式：JSON
+      - 请求字段说明
+          - type：枚举值
+          
+              |value       |Description       
+              |-----------:|:-----------------------------------------------
+              |`fake`      |返回target中指定的数据
+              |`redirect`  |重定向到target指定的路径
+          - "enabled": true/false，针对此uri的降级开关
+      - 请求数据示例：
+          ```json
+          {
+            "hostkey": "auto.deploy.com",
+            "infos": [
+              {
+                "uri": "/uri",
+                "info": {
+                  "type": "redirect",
+                  "enabled": true,
+                  "target": "http://sample.com"
+                }
+              }
+            ]
+          }
+          ```
+    - 查询路由规则
+        - 请求路径：/degrade/enabled
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx&uri=/xxxx
+            ```
+        - 返回数据格式：JSON
+    - 查询路由规则
+        - 请求路径：/degrade/get
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx
+            ```
+        - 返回数据格式：JSON
+    - 查询所有路由规则
+        - 请求路径：/degrade/getAll
+        - 请求方式：GET
+        - 请求数据格式：uri参数
+        - 返回数据格式：JSON
+    - 删除路由规则
+        - 请求路径：/degrade/del
+        - 请求方式：GET
+        - 请求数据格式： uri参数
+        - 请求数据示例：
+            ```text
+            hostkey=xxx&uri=/xxxx
+            ```
 ##性能测试
 我在自己的笔记本上使用ab进行了简单的负载测试：
 - 测试准备
-    - nginx配置：开启一个worker进程，并且最多占用一个cpu
+    - nginx配置：开启一个worker进程，并且最多占用一个cpu核心
         ```nginx
         worker_processes 1;
         worker_cpu_affinity auto;
@@ -488,4 +546,5 @@ server {
     - 我测试了原生的nginx反向代理进行对比：50K~55K T/S
     - 开启router功能后测试结果：35K-40K T/S
     - 开启dynamic ups和balancer之后： 30K-35K T/S
+    - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值，在开启多核情况下没多增加一个核心极限吞吐量应该能增加80%
 - 测试在2000并发连接数下的系统稳定性：
