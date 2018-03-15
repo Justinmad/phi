@@ -40,7 +40,7 @@ end
 
 -- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
 function _M:access(ctx)
-    local hostkey = utils.getHost(ctx);
+    local hostkey = utils.getHost(ctx)
     if hostkey then
         -- 查询多级缓存
         local router, err = self.service:getRouter(hostkey)
