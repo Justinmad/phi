@@ -20,6 +20,7 @@ local mapper_holder = phi.mapper_holder
 local getn = table.getn
 local concat = table.concat
 local insert = table.insert
+local remove = table.remove
 
 local ipairs = ipairs
 local type = type
@@ -42,21 +43,25 @@ if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 
-
 local function getKeyFunc(self, ctx, mapper)
     local key = get_host(ctx)
     if mapper then
+        print(pretty_write(mapper))
         local mappedKey, err = mapper_holder:map(ctx, mapper)
         if mappedKey == nil or err then
-            response.failure("Limiter key is nil !err:" .. (err or "Unknown"))
+            return nil
         else
             local tmp = new_tab(2, 0)
             insert(tmp, key)
             if type(mapper) == "table" then
                 if getn(mapper) > 0 then
                     for _, m in ipairs(mapper) do
-                        insert(tmp, m.type)
-                        insert(tmp, m.tag)
+                        if type(m) == "string" then
+                            insert(tmp, m)
+                        else
+                            insert(tmp, m.type)
+                            insert(tmp, m.tag)
+                        end
                     end
                 else
                     insert(tmp, mapper.type)
@@ -111,9 +116,16 @@ end
 local trafficLimiter = {}
 
 function trafficLimiter:incoming(key)
-    --    print("---------------", pretty_write(self.limiters))
-    --    print("---------------", pretty_write(key))
-    return limit_traffic.combine(self.limiters, key)
+    -- 跳过Key为空的限流器
+    local tmp_limiter = new_tab(getn(self.limiters), 0)
+    for idx, k in ipairs(key) do
+        if k ~= nil then
+            insert(tmp_limiter, self.limiters[idx])
+        else
+            remove(key, idx)
+        end
+    end
+    return limit_traffic.combine(tmp_limiter, key)
 end
 
 local function createTrafficLimiter(policy)
@@ -164,6 +176,9 @@ local _M = {}
 
 function _M:incoming(ctx, commit)
     local key = self:get_key(ctx, self.mapper)
+    if key == nil then
+        return
+    end
     local lim = self.limiter
     local delay, err = lim:incoming(key, commit)
     if not delay then

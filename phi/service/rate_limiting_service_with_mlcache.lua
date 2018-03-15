@@ -148,8 +148,9 @@ function _M:setLimitPolicy(hostkey, policy)
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
         local inCache = self.cache:peek(hostkey) ~= nil
-        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and getn(policy) < 1
+        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and getn(policy.policies) < 1
         local opts
+    print("---------",updated)
         if updated then
             policy.wrapper = self:getLimiter(hostkey)
             opts = { l1_serializer = updateLimiterWrapper }
