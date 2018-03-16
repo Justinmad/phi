@@ -5,8 +5,17 @@
 -- Time: 16:33
 -- 系统默认配置
 --
-local current_path = debug.getinfo(1, 'S').short_src .. "/../"
+local split = require "pl.stringx".split
+local concat = table.concat
+local remove = table.remove
 
+local current_file = debug.getinfo(1, 'S').source
+current_file = current_file:sub(2)
+current_file = current_file:gsub("\\", "/")
+local tmp = split(current_file, "/")
+remove(tmp, #tmp)
+
+local current_path = concat(tmp, "/") .. "/"
 local conf_path = current_path .. "../../conf/"
 
 return {
