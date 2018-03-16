@@ -10,6 +10,10 @@
 require "resty.core"
 local phi = require "Phi"
 do
+    local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
+    if os:match("[L|l]inux") then
+        package.cpath = package.cpath .. "../openresty/?.so;../lib/?.so;;"
+    end
     local constants = require "core.constants"
     local LOGGER = ngx.log
     local DEBUG = ngx.DEBUG
