@@ -12,7 +12,7 @@ local phi = require "Phi"
 do
     local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
     if os:match("[L|l]inux") then
-        package.cpath = package.cpath .. "../openresty/?.so;../lib/?.so;;"
+        package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
     end
     local constants = require "core.constants"
     local LOGGER = ngx.log
