@@ -11,8 +11,8 @@ local ngx = ngx
 local ipairs = ipairs
 local require = require
 
-local v = require "jit.v"
-v.on("/home/phi/logs/jit.log")
+--local v = require "jit.v"
+--v.on("/home/phi/logs/jit.log")
 
 local PHI = {
     -- 属性
