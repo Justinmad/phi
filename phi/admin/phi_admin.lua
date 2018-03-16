@@ -5,9 +5,11 @@
 -- Time: 10:17
 -- 管理控制台
 --
-if not PHI then
+local phi = require("Phi")
+
+local context = phi.context
+if not context then
     error("PHI未初始化完成？")
 end
-local context = PHI.context
 local mvc = require 'core.phi_mvc'
 return mvc:init(context)

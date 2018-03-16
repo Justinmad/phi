@@ -8,6 +8,7 @@
 
 -- 提前加载依赖，提高性能
 require "resty.core"
+local phi = require "Phi"
 do
     local constants = require "core.constants"
     local LOGGER = ngx.log
@@ -32,17 +33,17 @@ do
     if err then
         error("不能加载配置！err：" .. err)
     end
-    PHI.configuration = config
+    phi.configuration = config
 
     -- 加载计算规则
-    PHI.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
+    phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
 
     -- 加载Mapper规则
-    PHI.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
+    phi.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
 
     -- 初始化context
     local context = require "core.application_context":init(config.application_context_conf)
-    PHI.context = context
+    phi.context = context
 
     -- 初始化components
     local components = {}
@@ -57,11 +58,11 @@ do
         local o2 = c2.order or 0
         return o1 > o2
     end)
-    PHI.components = components
+    phi.components = components
 
     -- 初始化admin规则
     if config.enabled_admin then
-        PHI.admin = require "admin.phi_admin"
+        phi.admin = require "admin.phi_admin"
     end
     debug("------------------------PHI初始化完成！------------------------")
 end

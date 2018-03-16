@@ -14,7 +14,7 @@ local require = require
 --local v = require "jit.v"
 --v.on("/home/phi/logs/jit.log")
 
-local PHI = {
+local instance = {
     -- 属性
     meta = meta,
     -- 配置
@@ -35,18 +35,18 @@ local router, balancer, components
 -- 开启lua_code_cache情况下，每个worker只有一个Lua VM
 -- require函数或者VM级别的变量（例如LRUCACHE）初始化应该在每个worker中都执行，而shared_DICT是跨worker共享的，那么初始化一次即可
 -- 同时在init阶段初始化PHI实例，并进行了变量赋值，执行阶段的worker进程不能修改PHI的属性，这是resty的中避免全局变量被滥用的设计
-function PHI:init()
+function instance:init()
     require "core.init"
-    router = PHI.context["router"]
-    balancer = PHI.context["balancer"]
-    components = PHI.components
+    router = instance.context["router"]
+    balancer = instance.context["balancer"]
+    components = instance.components
 end
 
-function PHI:init_worker()
+function instance:init_worker()
     require "core.init_worker"
 end
 
-function PHI.balancer()
+function instance.balancer()
     local ctx = ngx.ctx
     -- 负载均衡
     balancer:balance(ctx)
@@ -55,7 +55,7 @@ function PHI.balancer()
     end
 end
 
-function PHI:rewrite()
+function instance:rewrite()
     local ctx = ngx.ctx
     -- 路由
     router:before(ctx)
@@ -69,18 +69,18 @@ function PHI:rewrite()
     end
 end
 
-function PHI:access()
+function instance:access()
     for _, c in ipairs(components) do
         c:access()
     end
 end
 
 -- TODO 需要在这里做一些统计的功能
-function PHI:log()
+function instance:log()
     local ctx = ngx.ctx
     for _, c in ipairs(components) do
         c:log(ctx)
     end
 end
 
-return PHI
+return instance
