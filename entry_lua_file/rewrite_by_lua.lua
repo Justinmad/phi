@@ -5,4 +5,6 @@
 -- Time: 下午2:00
 -- To change this template use File | Settings | File Templates.
 --
-require('Phi'):rewrite()
+require("debug")
+local phi = require('Phi')
+phi:rewrite()

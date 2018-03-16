@@ -3,4 +3,5 @@
 --- Created by Administrator.
 --- DateTime: 2018/3/16 11:30
 ---
-require('Phi').admin:content_by_lua()
+local admin = require('Phi').admin
+admin:content_by_lua()

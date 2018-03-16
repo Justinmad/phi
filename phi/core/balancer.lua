@@ -33,15 +33,16 @@ function _M:load(ctx)
     if upstream then
         local upstreamBalancer, err = self.service:getUpstreamBalancer(upstream)
         if err then
-            LOGGER(ERR, "search upstream err：", err)
+            LOGGER(ERR, "search upstream err：", err, "for upstream : ", upstream)
             return response.failure("Failed to load upstream balancer ,please try again latter :-(", 500)
         elseif upstream == self.default_upstream and upstreamBalancer == "stable" then
+            LOGGER(ERR, "Failed to dispatch to backend: ups_balancer is nil,", "for upstream : ", upstream)
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif upstreamBalancer and upstreamBalancer.notExists then
             -- 简单判断一下是否属于IP
             local m = find(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
             if not m then
-                LOGGER(ERR, "upstream is not exists !")
+                LOGGER(ERR, "upstream : [", upstream, "]is not exists !")
                 return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
             end
         elseif type(upstreamBalancer) == "table" then

@@ -3,4 +3,5 @@
 --- Created by Administrator.
 --- DateTime: 2018/3/16 11:25
 ---
-require('Phi'):balancer()
+local phi = require('Phi')
+phi:balancer()

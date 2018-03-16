@@ -38,6 +38,17 @@ do
         error("不能加载配置！err：" .. err)
     end
     phi.configuration = config
+    if config.debug then
+        debug("add mobdebug to package path")
+        package.path = "../debug/mobdebug/?.lua;../debug/socket/?.lua;../debug/?.lua;" .. package.path
+        if os:match("[L|l]inux") then
+            debug("add linux lua socket lib to package cpath")
+            package.cpath = "../debug/clibs/?.so;" .. package.cpath
+        else
+            debug("add windows lua socket lib to package cpath")
+            package.cpath = "../debug/clibs/?.dll;" .. package.cpath
+        end
+    end
 
     -- 加载计算规则
     phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)

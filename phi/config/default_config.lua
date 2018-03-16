@@ -19,6 +19,7 @@ local current_path = concat(tmp, "/") .. "/"
 local conf_path = current_path .. "../../conf/"
 
 return {
+    debug = true,
     enabled_admin = true,
     enabled_policies = { "RANGE", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
     enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },

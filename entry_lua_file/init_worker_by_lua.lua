@@ -3,4 +3,5 @@
 --- Created by Administrator.
 --- DateTime: 2018/3/16 11:26
 ---
-require('Phi'):init_worker();
+local phi = require('Phi')
+phi:init_worker();

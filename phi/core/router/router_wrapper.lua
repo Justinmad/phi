@@ -14,6 +14,7 @@ local ngx = ngx
 
 local LOGGER = ngx.log
 local NOTICE = ngx.NOTICE
+local ERR = ngx.ERR
 
 local _M = {}
 function _M:route(ctx)

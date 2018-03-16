@@ -46,11 +46,12 @@ function _M:access(ctx)
         local router, err = self.service:getRouter(hostkey)
         if not err and router and type(router) == "table" then
             if router.skipRouter then
+                LOGGER(ALERT, "skip router for hostkey:", hostkey)
                 return
             end
             router:route(ctx)
         else
-            LOGGER(ERR, "Routing rules query error or bad policy type ,err：", err, ", policies:", tostring(rules))
+            LOGGER(ERR, "Routing rules query error or bad policy type for hostkey : ", hostkey, " err：", err, ", policies:", tostring(rules))
             return response.failure("Routing rules query error or bad policy type :-(", 500)
         end
     else
