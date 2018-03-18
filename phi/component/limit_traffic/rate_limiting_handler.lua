@@ -38,6 +38,7 @@ function rate_limiting_handler:rewrite(ctx)
 end
 
 function rate_limiting_handler:log(ctx)
+    rate_limiting_handler.super.log(ctx)
     local leaving_func = ctx.leaving
     if type(leaving_func) == "function" then
         LOGGER(DEBUG, "record the connection leaving")

@@ -5,6 +5,9 @@
 -- Time: 下午2:00
 -- To change this template use File | Settings | File Templates.
 --
-require("debug")
 local phi = require('Phi')
+local debug = phi.configuration.debug
+if debug then
+    require("mobdebug").start()
+end
 phi:rewrite()

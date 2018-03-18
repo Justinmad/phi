@@ -40,13 +40,13 @@ do
     phi.configuration = config
     if config.debug then
         debug("add mobdebug to package path")
-        package.path = "../debug/mobdebug/?.lua;../debug/socket/?.lua;../debug/?.lua;" .. package.path
+        package.path = "../lib/debug/mobdebug/?.lua;../lib/debug/socket/?.lua;../lib/debug/?.lua;" .. package.path
         if os:match("[L|l]inux") then
             debug("add linux lua socket lib to package cpath")
-            package.cpath = "../debug/clibs/?.so;" .. package.cpath
+            package.cpath = "../lib/debug/clibs/?.so;" .. package.cpath
         else
             debug("add windows lua socket lib to package cpath")
-            package.cpath = "../debug/clibs/?.dll;" .. package.cpath
+            package.cpath = "../lib/debug/clibs/?.dll;" .. package.cpath
         end
     end
 

@@ -102,9 +102,18 @@ function _M.load()
     do
         local conf_arr = {}
         for k, v in pairs(conf) do
-            local to_print = v
+            if v == "true" or v == "false" then
+                conf[k] = v == true
+            end
+            local num = tonumber(v)
+            if num then
+                conf[k] = num
+            end
+            local to_print
             if CONF_SENSITIVE[k] then
                 to_print = CONF_SENSITIVE_PLACEHOLDER
+            else
+                to_print = conf[k]
             end
             conf_arr[#conf_arr + 1] = k .. " = " .. pl_pretty.write(to_print, "")
         end

@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+shift $[$OPTIND-1]
+command -v nginx >/dev/null 2>&1 || { echo >&2 "I require nginx but it's not installed.  Aborting."; exit 1; }
+preffix=`pwd`/../conf
+conf=main.conf
+command=$1
+shift
+while getopts ":Dp:c:" opt; do
+    case ${opt} in
+    D)
+        echo "enable remote debug mode,bind to port 8172"
+        export PHI_DEBUG=false
+        ;;
+    p)
+        preffix=$OPTARG
+        echo "use prefix ${preffix}"
+        ;;
+    c)
+        conf=$OPTARG
+        echo "use config file ${conf}"
+        ;;
+    ?)
+        echo "Invalid option: -$OPTARG"
+        exit 1
+        ;;
+    esac
+done
+startup_command="nginx -c main.conf -p ${preffix}"
+
+function stop(){
+    ngx_master_pid=`ps -ef|grep "${startup_command}"|grep -v grep|awk '{print $2}'`
+    if [ -n ${ngx_master_pid} ] && [ ! -z "${ngx_master_pid}" ] ; then
+        echo "current nginx pid is ${ngx_master_pid}"
+        kill ${ngx_master_pid}
+        echo "wait 3 sec to kill nginx master process"
+        sleep 3
+        echo "kill succeed"
+    else
+        echo "no nginx process is running"
+    fi
+}
+
+function start(){
+    mkdir -p ${preffix}/logs
+    echo "start nginx with ${preffix}/main.conf"
+    nginx -c main.conf -p ${preffix}
+}
+
+function _test(){
+    nginx -c main.conf -p ${preffix} -t
+}
+
+function reload(){
+    nginx -c main.conf -p ${preffix} -s reload
+}
+
+case ${command} in
+    start)
+        start
+    ;;
+    stop)
+        stop
+    ;;
+    restart)
+        stop
+        start
+    ;;
+    reload)
+        reload
+    ;;
+    test)
+        _test
+    ;;
+    *)
+        echo "usage: $0 start|stop|restart|reload|test
+        optional :
+            -d: enable remote debug mode,will be binded to port 8172
+            -p: nginx conf directory prefix
+            -c: nginx config file name"
+    ;;
+esac
