@@ -8,9 +8,9 @@
 - [**管理控制台API**](#管理控制台API)
     - [**枚举值**](#枚举值)
     - [**Router**](#Router)
-    - [**Dynamic Upstream**](#DynamicUpstream)
-    - [**Rate Limiting**](#RateLimiting)
-    - [**Service Degradation**](#ServiceDegradation)
+    - [**Dynamic Upstream**](#Dynamic Upstream)
+    - [**Rate Limiting**](#Rate Limiting)
+    - [**Service Degradation**](#Service Degradation)
 - [**性能测试**](#性能测试)
 - [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
 ## 安装/启动PHI项目
@@ -253,7 +253,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
             ```text
             hostkey=xxx
             ```
-- ### DynamicUpstream
+- ### Dynamic Upstream
     - 动态的upstream列表，简单的负载均衡功能
     - 查询所有运行中的upstream信息
         - 请求路径：/upstream/getAllRuntimeInfo
@@ -462,7 +462,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
                 }]
             }
             ```
-- ### RateLimiting 
+- ### Rate Limiting 
     - 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/rate/add
@@ -518,7 +518,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
             ```text
             hostkey=xxx
             ```
-- ### ServiceDegradation 
+- ### Service Degradation 
     - 接入层的简易降级开关，所有的降级都是以host+uri为依据
     - 添加降级数据
       - 请求路径：/degrade/add
