@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 shift $[$OPTIND-1]
 command -v nginx >/dev/null 2>&1 || { echo >&2 "I require nginx but it's not installed.  Aborting."; exit 1; }
-preffix=`pwd`/../conf
+current_path=$(dirname $(readlink -f $0))
+preffix=${current_path}/../conf
 conf=main.conf
 command=$1
 shift
