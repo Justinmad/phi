@@ -7,7 +7,7 @@
 - [**快速开始**](#快速开始)
 - [**管理控制台API**](#管理控制台api)
     - [**枚举值**](#枚举值)
-    - [**Router**](#Router)
+    - [**Router**](#router)
     - [**Dynamic Upstream**](#dynamicupstream)
     - [**Rate Limiting**](#rateLimiting)
     - [**Service Degradation**](#servicedegradation)
