@@ -119,9 +119,9 @@ http://localhost:12345/router/add
 ```text
 curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
 ```
-## 管理控制台API
+##管理控制台API
 - ###枚举值
-    - ### mapper 
+    - ####mapper 
         mapper是一组映射函数，会将请求映射到一个具体的值，以便将这个值交给policy进行运算,
         请求参数中如果有mapper字段只需要传递相应的枚举值即可，如"mapper":"ip"
         有一些mapper需要指定tag，此时mapper字段应传递一个json对象,如：{"type":"uri_args","tag":"uid"}，会取出请求参数中的uid的值
@@ -134,7 +134,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
         | `uri_args`         | 取请求中的uri参数，配合tag字段使用，tag值表示参数名称      
         | `uri`              | 取请求行中的uri                                          
         | `cookie`           | 取请求头中的cookie,配合tag字段使用，tag值表示cookie名称                                          
-    - ### policy
+    - ####policy
         policy是一组计算函数，`string calculate(arg, hashTable)`，此函数接收一个具体值和一个规则对象，
         该对象中的数据结构应符合{"result":"xxx","expression":"xxxxxxxx"}的规则（组合规则除外），
         calculate函数会根据expression字段的表达式计算出一个boolean值，如果为true就立即返回result的值，否则就继续执行
