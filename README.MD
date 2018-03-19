@@ -590,12 +590,13 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
     - 开启另外一台nginx，作为一个静态文件服务器，目标文件大小为1Kb
     - 测试机器配置
         I7-6700HQ + 16GB
-- 使用AB进行压力测试，20个并发，发起1000000次请求，worker进程cpu达到100%
-    - 我测试了原生的nginx反向代理进行对比：50K~55K T/S
-    - 开启router功能后测试结果：35K-40K T/S
-    - 开启dynamic ups和balancer之后： 30K-35K T/S
+- 使用AB进行压力测试，20个并发，发起1000000次请求，使worker进程cpu达到100%
+    - 我测试了原生的nginx反向代理进行对比：50K T/S
+    - 开启router功能后测试结果：32K T/S
+    - 开启dynamic ups和balancer之后： 25K T/S
     - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值，在开启多核情况下没多增加一个核心极限吞吐量应该能增加80%
 - 测试在2000并发连接数下的系统稳定性：
+   - TODO
 ## 使用的第三方lua库或工具
 - [mobdebug] lua的远程调试工具
 - [classic] 使用lua的模拟面向对象编程
