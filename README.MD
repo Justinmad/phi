@@ -2,15 +2,15 @@
 基于openresty+nginx开发的api网关，实现了基本的动态路由、动态upstream、负载均衡、限流、降级的功能，借鉴kong的插件扩展策略，提供了可供自由添加的插件机制
 ## 目录
 - [**安装/启动PHI项目**](#安装/启动PHI项目)
-- [**启动管理控制台:**](#启动管理控制台:)
+- [**启动管理控制台**](#启动管理控制台)
 - [**启动脚本**](#启动脚本)
 - [**快速开始**](#快速开始)
 - [**管理控制台API**](#管理控制台API)
     - [**枚举值**](#枚举值)
     - [**Router**](#Router)
-    - [**Dynamic Upstream**](#Dynamic Upstream)
-    - [**Rate Limiting**](#Rate Limiting)
-    - [**Service Degradation**](#Service Degradation)
+    - [**Dynamic Upstream**](#DynamicUpstream)
+    - [**Rate Limiting**](#RateLimiting)
+    - [**Service Degradation**](#ServiceDegradation)
 - [**性能测试**](#性能测试)
 - [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
 ## 安装/启动PHI项目
@@ -86,7 +86,7 @@
         - 环境变量中对应的值,环境变量取值会在所有的key前面加PHI_,例如debug对应环境变量中的PHI_DEBUG的值
         - default_paths中指定的ini文件中配置的值
         - default_config.lua中指定的默认值
-## 启动管理控制台:
+## 启动管理控制台
 在nginx配置中添加如下server
 ```nginx
 server {
@@ -98,7 +98,7 @@ server {
     }
 }
 ```
-## 启动脚本：
+## 启动脚本
 - bin目录下的phi：
     - 用法: phi start|stop|restart|reload|test
     - 可选参数 :
@@ -253,7 +253,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
             ```text
             hostkey=xxx
             ```
-- ###Dynamic Upstream
+- ###DynamicUpstream
     - 动态的upstream列表，简单的负载均衡功能
     - 查询所有运行中的upstream信息
         - 请求路径：/upstream/getAllRuntimeInfo
@@ -462,7 +462,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
                 }]
             }
             ```
-- ###Rate Limiting 
+- ###RateLimiting 
     - 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/rate/add
@@ -518,7 +518,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
             ```text
             hostkey=xxx
             ```
-- ###Service Degradation 
+- ###ServiceDegradation 
     - 接入层的简易降级开关，所有的降级都是以host+uri为依据
     - 添加降级数据
       - 请求路径：/degrade/add
