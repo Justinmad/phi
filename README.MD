@@ -3,12 +3,11 @@
 在nginx配置中添加如下内容
 ```nginx
     # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
-    lua_package_path 'xxx/phi/openresty/?.lua;xxx/phi/phi/?.lua;xxx/phi/lib/?.lua;;';
-    lua_package_cpath 'xxx/phi/openresty/?.so;xxx/phi/lib/?.so;;';
-    
+    lua_package_path '../openresty/?.lua;../phi/?.lua;../lib/?.lua;;';
+    lua_package_cpath '../openresty/?.so;../lib/?.so;;';
     # 如果使用了openresty，那么只需引入下面的包
-    # lua_package_path 'xxx/phi/phi/?.lua;xxx/phi/lib/?.lua;;';
-    # lua_package_cpath 'xxx/phi/lib/?.so;;';
+    #lua_package_path '../phi/?.lua;../lib/?.lua;;';
+    #lua_package_cpath '../lib/?.so;;';
     
     lua_code_cache on;
 
@@ -23,42 +22,30 @@
     lua_shared_dict phi_limit_conn          128m;
     lua_shared_dict phi_limit_count         128m;
     
-    init_by_lua_block {
-        PHI = require 'Phi'
-        PHI:init();
-    }
-
-    init_worker_by_lua_block {
-        PHI:init_worker();
-    }
+    init_by_lua_file ../entry_lua_file/init_by_lua.lua;
+    init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
+    
     server {
         listen 8080;
 
         location / {
             set $backend '';
+            
+            rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
 
-            rewrite_by_lua_block {
-                PHI:rewrite()
-            }
-
-            access_by_lua_block {
-                PHI:access()
-            }
+            access_by_lua_file ../entry_lua_file/access_by_lua.lua;
 
             proxy_http_version 1.1;
             proxy_set_header Connection "";
             proxy_pass http://$backend;
 
-            log_by_lua_block {
-                PHI:log()
-            }
+            log_by_lua_file ../entry_lua_file/log_by_lua.lua;
         }
     }
     upstream phi_upstream {
         server 0.0.0.1;
-        balancer_by_lua_block {
-            PHI:balancer();
-        }
+        balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
+        # 请按需调整
         keepalive 200;
     }
 ```
@@ -69,12 +56,20 @@ server {
     listen 12345;
     location / {
         default_type application/json;
-        content_by_lua_block {
-            PHI.admin:content_by_lua()
-        }
+        content_by_lua_file ../entry_lua_file/admin_content_by_lua.lua;
+        log_by_lua_file ../entry_lua_file/log_by_lua.lua;
     }
 }
 ```
+## 启动脚本：
+- bin目录下的phi：
+    - 用法: phi start|stop|restart|reload|test
+    - 可选参数 :
+        - -D: 启动远程debug模式，默认占用端口8172,感谢[[ZeroBrane Studio]]，[[EmmyLua]]
+        - -H: 远程debug 主机名，默认localhost
+        - -P: 远程debug 端口,默认8172
+        - -p: nginx启动目录，同nginx -p参数
+        - -c: nginx启动配置文件名称，同nginx -c参数
 ## 管理控制台API
 - **枚举值**
     - ### mapper 
@@ -548,3 +543,6 @@ server {
     - 开启dynamic ups和balancer之后： 30K-35K T/S
     - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值，在开启多核情况下没多增加一个核心极限吞吐量应该能增加80%
 - 测试在2000并发连接数下的系统稳定性：
+
+[ZeroBrane Studio]:https://studio.zerobrane.com/support
+[EmmyLua]:https://emmylua.github.io/

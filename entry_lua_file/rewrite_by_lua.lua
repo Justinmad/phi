@@ -7,7 +7,9 @@
 --
 local phi = require('Phi')
 local debug = phi.configuration.debug
+local port = phi.configuration.debug_port
+local host = phi.configuration.debug_host
 if debug then
-    require("mobdebug").start()
+    require("mobdebug").start(host, port)
 end
 phi:rewrite()

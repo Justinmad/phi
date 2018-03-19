@@ -5,11 +5,19 @@ preffix=`pwd`/../conf
 conf=main.conf
 command=$1
 shift
-while getopts ":Dp:c:" opt; do
+while getopts ":DP:H:p:c:" opt; do
     case ${opt} in
     D)
-        echo "enable remote debug mode,bind to port 8172"
+        echo "enable remote debug mode"
         export PHI_DEBUG=false
+        ;;
+    P)
+        echo "remote debug bind to port $OPTARG"
+        export PHI_DEBUG_PORT=$OPTARG
+        ;;
+    H)
+        echo "remote debug start with host $OPTARG"
+        export PHI_DEBUG_HOST=$OPTARG
         ;;
     p)
         preffix=$OPTARG
@@ -74,7 +82,9 @@ case ${command} in
     *)
         echo "usage: $0 start|stop|restart|reload|test
         optional :
-            -d: enable remote debug mode,will be binded to port 8172
+            -D: enable remote debug mode,will be binded to port 8172 default
+            -H: remote debug host，default is localhost
+            -P: remote debug port，default is 8172
             -p: nginx conf directory prefix
             -c: nginx config file name"
     ;;
