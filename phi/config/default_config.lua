@@ -19,11 +19,11 @@ local current_path = concat(tmp, "/") .. "/"
 local conf_path = current_path .. "../../conf/"
 
 return {
-    debug = false,
+    debug = true,
     debug_host = "127.0.0.1",
     debug_port = 8172,
     enabled_admin = true,
-    enabled_policies = { "RANGE", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
+    enabled_policies = { "UNIQUE", "RANGE", "PREFIX", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
     enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },
     default_paths = {
         current_path .. "phi.ini", conf_path .. "phi.ini"

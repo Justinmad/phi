@@ -21,17 +21,19 @@ function _M:route(ctx)
     -- 先取默认值
     local result = self.default
     -- 计算路由结果
-    for _, t in ipairs(self.policies) do
-        local tag
-        if t.mapper then
-            tag = mapper_holder:map(ctx, t.mapper)
-        end
-        local upstream, err = policy_holder:calculate(t.policy, tag, t.routerTable)
-        if err then
-            LOGGER(NOTICE, "Routing rules calculation err:", err)
-        elseif upstream then
-            result = upstream
-            break
+    if self.policies then
+        for _, t in ipairs(self.policies) do
+            local tag
+            if t.mapper then
+                tag = mapper_holder:map(ctx, t.mapper)
+            end
+            local upstream, err = policy_holder:calculate(t.policy, tag, t.routerTable)
+            if err then
+                LOGGER(NOTICE, "Routing rules calculation err:", err)
+            elseif upstream then
+                result = upstream
+                break
+            end
         end
     end
     if result then

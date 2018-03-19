@@ -14,6 +14,7 @@ local router_wrapper = require "core.router.router_wrapper"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
 local sort = table.sort
+local type = type
 
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_EVENTS
 local UPDATE = EVENTS.UPDATE
@@ -28,7 +29,9 @@ local LOGGER = ngx.log
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local _M = {}
@@ -37,11 +40,13 @@ local _M = {}
 local function sortSerializer(row)
     if not row.skipRouter then
         -- 排序
-        sort(row.policies, function(r1, r2)
-            local o1 = r1.order or 0
-            local o2 = r2.order or 0
-            return o1 > o2
-        end)
+        if type(row.policies) == "table" then
+            sort(row.policies, function(r1, r2)
+                local o1 = r1.order or 0
+                local o2 = r2.order or 0
+                return o1 > o2
+            end)
+        end
         return router_wrapper:new(row)
     end
     return row
@@ -59,9 +64,9 @@ function _M:init_worker(observer)
             self.cache:update()
             self:getRouter(data)
             LOGGER(DEBUG, "received event; source=", source,
-                ", event=", event,
-                ", data=", pretty_write(data),
-                ", from process ", pid)
+                    ", event=", event,
+                    ", data=", pretty_write(data),
+                    ", from process ", pid)
         end
     end, EVENTS.SOURCE)
 end
@@ -141,7 +146,7 @@ function class:new(ref, config)
         ttl = 0, -- 缓存失效时间
         neg_ttl = 0, -- 未命中缓存失效时间
         resty_lock_opts = {
-            -- 回源DB的锁配置
+        -- 回源DB的锁配置
             exptime = 10, -- 锁失效时间
             timeout = 5 -- 获取锁超时时间
         },

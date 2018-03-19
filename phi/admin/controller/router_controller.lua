@@ -74,7 +74,7 @@ _M.add = {
             Response.failure("必须设置默认路由服务器！")
         end
         local policies = body.data.policies
-        if not policies or #policies < 1 then
+        if policies and #policies < 1 then
             Response.failure("policies不能为空！")
         end
         local ok, err = self.routerService:setRouterPolicy(hostkey, body.data)

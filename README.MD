@@ -1,54 +1,91 @@
-
-## 启动PHI项目
-在nginx配置中添加如下内容
-```nginx
-    # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
-    lua_package_path '../openresty/?.lua;../phi/?.lua;../lib/?.lua;;';
-    lua_package_cpath '../openresty/?.so;../lib/?.so;;';
-    # 如果使用了openresty，那么只需引入下面的包
-    #lua_package_path '../phi/?.lua;../lib/?.lua;;';
-    #lua_package_cpath '../lib/?.so;;';
+## 项目简介
+基于openresty+nginx开发的api网关，实现了基本的动态路由、动态upstream、负载均衡、限流、降级的功能，借鉴kong的插件扩展策略，提供了可供自由添加的插件机制
+## 目录
+- [**安装/启动PHI项目**](#安装/启动PHI项目)
+- [**启动管理控制台:**](#启动管理控制台:)
+- [**启动脚本**](#启动脚本)
+- [**快速开始**](#快速开始)
+- [**管理控制台API**](#管理控制台API)
+    - [**枚举值**](#枚举值)
+    - [**Router**](#Router)
+    - [**Dynamic Upstream**](#Dynamic Upstream)
+    - [**Rate Limiting**](#Rate Limiting)
+    - [**Service Degradation**](#Service Degradation)
+- [**性能测试**](#性能测试)
+- [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
+## 安装/启动PHI项目
+- nginx 配置
+    - 在nginx配置中添加如下内容
+    ```nginx
+        # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
+        lua_package_path '../openresty/?.lua;../phi/?.lua;../lib/?.lua;;';
+        lua_package_cpath '../openresty/?.so;../lib/?.so;;';
+        # 如果使用了openresty，那么只需引入下面的包
+        #lua_package_path '../phi/?.lua;../lib/?.lua;;';
+        #lua_package_cpath '../lib/?.so;;';
+        
+        lua_code_cache on;
     
-    lua_code_cache on;
-
-    # 共享内存的大小按需调整
-    lua_shared_dict phi                     5m;
-    lua_shared_dict phi_events              5m;
-    lua_shared_dict phi_lock                5m;
-    lua_shared_dict phi_router              10m;
-    lua_shared_dict phi_upstream            10m;
-    lua_shared_dict phi_limiter             10m;
-    lua_shared_dict phi_limit_req           128m;
-    lua_shared_dict phi_limit_conn          128m;
-    lua_shared_dict phi_limit_count         128m;
+        # 共享内存的大小按需调整
+        lua_shared_dict phi                     5m;
+        lua_shared_dict phi_events              5m;
+        lua_shared_dict phi_lock                5m;
+        lua_shared_dict phi_router              10m;
+        lua_shared_dict phi_upstream            10m;
+        lua_shared_dict phi_limiter             10m;
+        lua_shared_dict phi_limit_req           128m;
+        lua_shared_dict phi_limit_conn          128m;
+        lua_shared_dict phi_limit_count         128m;
+        
+        init_by_lua_file ../entry_lua_file/init_by_lua.lua;
+        init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
+        
+        server {
+            listen 8080;
     
-    init_by_lua_file ../entry_lua_file/init_by_lua.lua;
-    init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
+            location / {
+                set $backend '';
+                
+                rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
     
-    server {
-        listen 8080;
-
-        location / {
-            set $backend '';
-            
-            rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
-
-            access_by_lua_file ../entry_lua_file/access_by_lua.lua;
-
-            proxy_http_version 1.1;
-            proxy_set_header Connection "";
-            proxy_pass http://$backend;
-
-            log_by_lua_file ../entry_lua_file/log_by_lua.lua;
+                access_by_lua_file ../entry_lua_file/access_by_lua.lua;
+    
+                proxy_http_version 1.1;
+                proxy_set_header Connection "";
+                proxy_pass http://$backend;
+    
+                log_by_lua_file ../entry_lua_file/log_by_lua.lua;
+            }
         }
-    }
-    upstream phi_upstream {
-        server 0.0.0.1;
-        balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
-        # 请按需调整
-        keepalive 200;
-    }
-```
+        upstream phi_upstream {
+            server 0.0.0.1;
+            balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
+            # 请按需调整
+            keepalive 200;
+        }
+    ```
+- phi的配置
+    - phi/config/default_config.lua中定义了默认的配置项
+    ```lua
+        return {
+            debug = true,                 -- 是否开启远程debug
+            debug_host = "127.0.0.1",     -- debug的host
+            debug_port = 8172,            -- 远程debug占用端口
+            enabled_admin = true,         -- 是否启动管理控制台
+            enabled_policies = { "UNIQUE", "RANGE", "PREFIX", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" }, -- 启用的policy规则
+            enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" }, -- 启用的mapper类型
+            default_paths = {             -- 默认的配置文件加载路径 conf/phi.ini 或者./phi.ini
+                current_path .. "phi.ini", conf_path .. "phi.ini"
+            },
+            application_context_conf = {  -- 默认的application容器配置路径 conf/application.ini 或者./application.ini
+                current_path .. "application.ini", conf_path .. "application.ini"
+            }
+        }
+    ```
+    - 配置项读取优先级
+        - 环境变量中对应的值,环境变量取值会在所有的key前面加PHI_,例如debug对应环境变量中的PHI_DEBUG的值
+        - default_paths中指定的ini文件中配置的值
+        - default_config.lua中指定的默认值
 ## 启动管理控制台:
 在nginx配置中添加如下server
 ```nginx
@@ -70,8 +107,20 @@ server {
         - -P: 远程debug 端口,默认8172
         - -p: nginx启动目录，同nginx -p参数
         - -c: nginx启动配置文件名称，同nginx -c参数
+- 你也可以使用nginx启动命令来启动项目
+## 快速开始
+- 添加一个api-server
+```text
+curl -H 'content-type:application/json' -X POST --data \
+'{"hostkey": "sample.com","data": {"default": "127.0.0.1:8081"}}' \
+http://localhost:12345/router/add
+```
+- 访问刚才添加的api server
+```text
+curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
+```
 ## 管理控制台API
-- **枚举值**
+- ###枚举值
     - ### mapper 
         mapper是一组映射函数，会将请求映射到一个具体的值，以便将这个值交给policy进行运算,
         请求参数中如果有mapper字段只需要传递相应的枚举值即可，如"mapper":"ip"
@@ -98,8 +147,9 @@ server {
         | `suffix`           | 取后缀匹配       |[{"result":"upstream1","expression":".js"},{"result":"upstream2","expression":".css"}]                       
         | `regex`            | lua正则匹配      |[{"result":"upstream1","expression":"regex1"},{"result":"upstream2","expression":"regex2"}]                         
         | `composite`        | 组合规则         |{"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]},{"result":"upstream","expression":["NONE",1000]}]},"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]}]}}
-             
-- **Router** : 动态路由，实现分流/灰度功能
+        | `unique`           | 返回唯一结果     |{"result":"upstream1"}         
+- ###Router 
+    - 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/router/add
         - 请求方式：POST
@@ -203,7 +253,8 @@ server {
             ```text
             hostkey=xxx
             ```
-- **Dynamic Upstream** ： 动态的upstream列表，简单的负载均衡功能
+- ###Dynamic Upstream
+    - 动态的upstream列表，简单的负载均衡功能
     - 查询所有运行中的upstream信息
         - 请求路径：/upstream/getAllRuntimeInfo
         - 请求方式：GET
@@ -411,7 +462,8 @@ server {
                 }]
             }
             ```
-- **Rate Limiting** ： 动态路由，实现分流/灰度功能
+- ###Rate Limiting 
+    - 动态路由，实现分流/灰度功能
     - 添加路由规则
         - 请求路径：/rate/add
         - 请求方式：POST
@@ -466,7 +518,8 @@ server {
             ```text
             hostkey=xxx
             ```
-- **Service Degradation** : 接入层的简易降级开关，所有的降级都是以host+uri为依据
+- ###Service Degradation 
+    - 接入层的简易降级开关，所有的降级都是以host+uri为依据
     - 添加降级数据
       - 请求路径：/degrade/add
       - 请求方式：POST
@@ -526,7 +579,7 @@ server {
             ```text
             hostkey=xxx&uri=/xxxx
             ```
-##性能测试
+## 性能测试
 我在自己的笔记本上使用ab进行了简单的负载测试：
 - 测试准备
     - nginx配置：开启一个worker进程，并且最多占用一个cpu核心
@@ -543,6 +596,21 @@ server {
     - 开启dynamic ups和balancer之后： 30K-35K T/S
     - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值，在开启多核情况下没多增加一个核心极限吞吐量应该能增加80%
 - 测试在2000并发连接数下的系统稳定性：
+## 使用的第三方lua库或工具
+- [mobdebug] lua的远程调试工具
+- [classic] 使用lua的模拟面向对象编程
+- [kong] kong的一些lua库
+- [lua-resty-mlcache] lua的多级缓存工具，封装了lrucache和shared_dict的操作
+- [lua-resty-worker-events] worker间异步通信
+- [EmmyLua] IntelliJ idea的lua插件
+- [ZeroBrane Studio] 轻量级的lua ide
+
 
 [ZeroBrane Studio]:https://studio.zerobrane.com/support
-[EmmyLua]:https://emmylua.github.io/
+[EmmyLua]:https://github.com/EmmyLua/IntelliJ-EmmyLua
+[mobdebug]:https://studio.zerobrane.com/doc-remote-debugging
+[classic]:https://github.com/rxi/classic
+[kong]:https://konghq.com/
+[lua-resty-mlcache]:https://github.com/thibaultcha/lua-resty-mlcache
+[lua-resty-worker-events]:https://github.com/Kong/lua-resty-worker-events
+[penlight]:https://github.com/stevedonovan/Penlight
