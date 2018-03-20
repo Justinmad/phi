@@ -112,8 +112,8 @@ server {
 - 添加一个api-server
 ```text
 curl -H 'content-type:application/json' -X POST --data \
-'{"hostkey": "sample.com","data": {"default": "127.0.0.1:8081"}}' \
-http://localhost:12345/router/add
+    '{"hostkey": "sample.com","data": {"default": "127.0.0.1:8081"}}' \
+    http://localhost:12345/router/add
 ```
 - 访问刚才添加的api server
 ```text
@@ -146,7 +146,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
         | `prefix`           | 取前缀匹配       |[{"result":"upstream1","expression":"/api"},{"result":"upstream2","expression":"/openApi"}]                          
         | `suffix`           | 取后缀匹配       |[{"result":"upstream1","expression":".js"},{"result":"upstream2","expression":".css"}]                       
         | `regex`            | lua正则匹配      |[{"result":"upstream1","expression":"regex1"},{"result":"upstream2","expression":"regex2"}]                         
-        | `composite`        | 组合规则         |{"primary":{"order":2,"tag":"ip","mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]},{"result":"upstream","expression":["NONE",1000]}]},"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]}]}}
+        | `composite`        | 组合规则         |{"primary":{"order":2,mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]},{"result":"upstream","expression":["NONE",1000]}]},"secondary":{"order":2,"mapper":"ip","policy":"range_policy","routerTable":[{"result":"secondary","expression":[1,100]}]}}
         | `unique`           | 返回唯一结果     |{"result":"upstream1"}         
 - ### Router 
     - 动态路由，实现分流/灰度功能
@@ -288,7 +288,6 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
                     "127.0.0.1:12346": {
                       "weight": 100
                     },
-                    "tag": "xxx",
                     "127.0.0.1:7777": {
                       "weight": 10
                     },
@@ -364,7 +363,6 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
                   "127.0.0.1:12346": {
                     "weight": 100
                   },
-                  "tag": "xxx",
                   "127.0.0.1:7777": {
                     "weight": 10
                   },
@@ -407,8 +405,7 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
             {
               "upstreamName": "a new upstream",
               "strategy": "resty_chash",
-              "mapper": "mapper",
-              "tag": "tag",
+              "mapper": "ip",
               "servers": [
                 {
                   "name": "127.0.0.1:8989",
@@ -605,7 +602,6 @@ curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:80
 - [lua-resty-worker-events] worker间异步通信
 - [EmmyLua] IntelliJ idea的lua插件
 - [ZeroBrane Studio] 轻量级的lua ide
-
 
 [ZeroBrane Studio]:https://studio.zerobrane.com/support
 [EmmyLua]:https://github.com/EmmyLua/IntelliJ-EmmyLua
