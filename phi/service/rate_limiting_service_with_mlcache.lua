@@ -60,7 +60,9 @@ local REBUILD = EVENTS.REBUILD
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local ERR = ngx.ERR
@@ -107,9 +109,9 @@ function _M:init_worker(observer)
                 self:getLimiter(data.hostkey):update(data.policy)
             end
             LOGGER(DEBUG, "received event; source=", source,
-                ", event=", event,
-                ", data=", pretty_write(data),
-                ", from process ", pid)
+                    ", event=", event,
+                    ", data=", pretty_write(data),
+                    ", from process ", pid)
         end
     end, EVENTS.SOURCE)
 end
@@ -148,9 +150,8 @@ function _M:setLimitPolicy(hostkey, policy)
     if not err then
         -- 判断是否是更新操作，对于组合规则，更新LImiter的操作很复杂，直接重建更方便 :-) 但是重建会带来新的问题 TODO
         local inCache = self.cache:peek(hostkey) ~= nil
-        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and getn(policy.policies) < 1
+        local updated = inCache and oldVal and oldVal.type == policy.type and oldVal.mapper == policy.mapper and oldVal.tag == policy.tag and policy.policies and getn(policy.policies) < 1
         local opts
-    print("---------",updated)
         if updated then
             policy.wrapper = self:getLimiter(hostkey)
             opts = { l1_serializer = updateLimiterWrapper }
@@ -199,7 +200,7 @@ function class:new(dao, config)
         ttl = 0, -- 缓存失效时间
         neg_ttl = 0, -- 未命中缓存失效时间
         resty_lock_opts = {
-            -- 回源DB的锁配置
+        -- 回源DB的锁配置
             exptime = 10, -- 锁失效时间
             timeout = 5 -- 获取锁超时时间
         },

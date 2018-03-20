@@ -9,7 +9,7 @@ local req_get_headers = ngx.req.get_headers
 local _M = {}
 
 function _M.map(_, header)
-    return req_get_headers[header]
+    return req_get_headers()[header]
 end
 
 return _M

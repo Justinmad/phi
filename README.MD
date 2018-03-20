@@ -109,16 +109,98 @@ server {
         - -c: nginx启动配置文件名称，同nginx -c参数
 - 你也可以使用nginx启动命令来启动项目
 ## 快速开始
-- 添加一个api-server
-```text
-curl -H 'content-type:application/json' -X POST --data \
-    '{"hostkey": "sample.com","data": {"default": "127.0.0.1:8081"}}' \
-    http://localhost:12345/router/add
-```
-- 访问刚才添加的api server
-```text
-curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
-```
+- 参考默认配置，使用8080端口作为api网关入口，使用12345端口作为管理控制台api入口，并将conf/vhost.con通过inculde到nginx配置中，模拟后端服务器，分别占用5555、6666、7777、8888端口
+- 添加一个api-server，使用域名sample.com
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"hostkey": "sample.com","data": {"default": "127.0.0.1:5555"}}' \
+        http://localhost:12345/router/add
+    ```
+    - 访问刚才添加的api server
+    ```text
+    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
+    ```
+    返回内容
+    ```text
+        this is the fake backend peer... listen port 5555
+    ```
+- 添加一组api server
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"upstreamName":"dynamic_ups","strategy":"roundrobin","mapper":"ip","servers":[{"name":"127.0.0.1:5555","info":{"weight":10}},{"name":"127.0.0.1:6666","info":{"weight":10}}]}' \
+        http://localhost:12345/upstream/addOrUpdateUps
+    ```
+- 将域名sample.com指向的api server修改为dynamic_ups
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"hostkey": "sample.com","data": {"default": "dynamic_ups"}}' \
+        http://localhost:12345/router/add
+    ```
+    - 访问刚才添加的api server
+    ```text
+    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
+    ```
+    - 请求返回内容
+    ```text
+        this is the fake backend peer... listen port 5555
+    ```
+    - 再次请求返回内容
+    ```text
+        this is the fake backend peer... listen port 6666
+    ```
+- 对域名sample.com添加一条路由规则，取请求头中X-UID的值，值尾数为8的请求转发到8888端口，值尾数为7的请求转发到7777端口，其它请求转发到default中的dynamic_ups中进行负载均衡
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"hostkey":"sample.com","data":{"default":"dynamic_ups","policies":[{"order":2,"policy":"modulo","mapper":{"type":"header","tag":"X-UID"},"routerTable":[{"result":"127.0.0.1:8888","expression":8},{"result":"127.0.0.1:7777","expression":7}]}]}}' \
+        http://localhost:12345/router/add
+    ```
+    - 访问刚才添加的api server
+    ```text
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080
+    ```
+    - 返回内容，取不到X-UID时，请求将会在5555/6666的server之间进行轮询
+    ```text
+        this is the fake backend peer... listen port 8888
+    ```
+- 对域名sample.com添加一条限流规则，取用户IP值，限制每10秒钟内只能成功访问1次
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"hostkey":"sample.com","data":{"time_window":10,"rate":1,"type":"count","mapper":"ip"}}' \
+        http://localhost:12345/rate/add
+    ```
+    - 访问刚才添加的api server
+    ```text
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080
+    ```
+    - 返回内容
+    ```text
+        this is the fake backend peer... listen port 8888
+    ```
+    - 被限流后返回
+    ```json
+    {
+      "status": {
+        "message": "Limited access,Service Temporarily Unavailable,please try again later :-)",
+        "success": false
+      },
+      "code": 503
+    }
+    ```
+- 对域名sample.com添加一条降级规则，并启动降级，所有的降级规则都是基于host+uri来进行的，当访问/test时返回执行降级策略，限流规则是优先于降级执行的
+    ```text
+    curl -H 'content-type:application/json' -X POST --data \
+        '{"hostkey":"sample.com","infos":[{"uri":"/test","info":{"type":"fake","enabled":true,"target":"This is a degraded fake data"}}]}' \
+        http://localhost:12345/degrade/add
+    ```
+    - 访问刚才添加的api server
+    ```text
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080/test
+    ```
+    - 返回内容
+    ```text
+        {"message":"This is a degraded fake data"}
+    ```
+    - 再次访问将会进入上面添加的限流规则中
 ## 管理控制台API
 - ### 枚举值
     - #### mapper 
