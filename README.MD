@@ -109,8 +109,11 @@ server {
         - -c: nginx启动配置文件名称，同nginx -c参数
 - 你也可以使用nginx启动命令来启动项目
 ## 快速开始
-- 参考默认配置，使用8080端口作为api网关入口，使用12345端口作为管理控制台api入口，并将conf/vhost.con通过inculde到nginx配置中，模拟后端服务器，分别占用5555、6666、7777、8888端口
-- 添加一个api-server，使用域名sample.com
+- 参考默认配置
+    - 使用8080端口作为api网关入口
+    - 使用12345端口作为管理控制台api入口
+    - 将conf/vhost.conf引入nginx配置中，用来模拟后端服务器，分别占用5555、6666、7777、8888端口
+- 添加一个api-server，使用主机名sample.com
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"hostkey": "sample.com","data": {"default": "127.0.0.1:5555"}}' \
@@ -124,13 +127,13 @@ server {
     ```text
         this is the fake backend peer... listen port 5555
     ```
-- 添加一组api server
+- 添加一组命名为dynamic_ups的api server
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"upstreamName":"dynamic_ups","strategy":"roundrobin","mapper":"ip","servers":[{"name":"127.0.0.1:5555","info":{"weight":10}},{"name":"127.0.0.1:6666","info":{"weight":10}}]}' \
         http://localhost:12345/upstream/addOrUpdateUps
     ```
-- 将域名sample.com指向的api server修改为dynamic_ups
+- 将主机名sample.com指向的api server修改为dynamic_ups，其它api参考[[Dynamic Upstream]](#dynamicupstream)
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"hostkey": "sample.com","data": {"default": "dynamic_ups"}}' \
@@ -148,7 +151,7 @@ server {
     ```text
         this is the fake backend peer... listen port 6666
     ```
-- 对域名sample.com添加一条路由规则，取请求头中X-UID的值，值尾数为8的请求转发到8888端口，值尾数为7的请求转发到7777端口，其它请求转发到default中的dynamic_ups中进行负载均衡
+- 对主机名sample.com添加一条路由规则，取请求头中X-UID的值，值尾数为8的请求转发到8888端口，值尾数为7的请求转发到7777端口，其它请求转发到default中的dynamic_ups中进行负载均衡，其它路由规则参考[[Router]](#router)
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"hostkey":"sample.com","data":{"default":"dynamic_ups","policies":[{"order":2,"policy":"modulo","mapper":{"type":"header","tag":"X-UID"},"routerTable":[{"result":"127.0.0.1:8888","expression":8},{"result":"127.0.0.1:7777","expression":7}]}]}}' \
@@ -162,7 +165,7 @@ server {
     ```text
         this is the fake backend peer... listen port 8888
     ```
-- 对域名sample.com添加一条限流规则，取用户IP值，限制每10秒钟内只能成功访问1次
+- 对主机名sample.com添加一条限流规则，取用户IP值作为限流key，限制每10秒钟内只能成功访问1次，其它限流规则参考[[Rate Limiting]](#ratelimiting)
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"hostkey":"sample.com","data":{"time_window":10,"rate":1,"type":"count","mapper":"ip"}}' \
@@ -186,7 +189,7 @@ server {
       "code": 503
     }
     ```
-- 对域名sample.com添加一条降级规则，并启动降级，所有的降级规则都是基于host+uri来进行的，当访问/test时返回执行降级策略，限流规则是优先于降级执行的
+- 对域名sample.com添加一条降级规则，并启动降级，所有的降级规则都是基于host+uri来进行的，当访问/test时返回执行降级策略，限流规则是优先于降级执行的，其它降级规则参考[[Service Degradation]](#servicedegradation)
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"hostkey":"sample.com","infos":[{"uri":"/test","info":{"type":"fake","enabled":true,"target":"This is a degraded fake data"}}]}' \
@@ -678,7 +681,7 @@ server {
    - TODO
 ## 使用的第三方lua库或工具
 - [mobdebug] lua的远程调试工具
-- [classic] 使用lua的模拟面向对象编程
+- [classic] 使用lua模拟面向对象编程
 - [kong] kong的一些lua库
 - [lua-resty-mlcache] lua的多级缓存工具，封装了lrucache和shared_dict的操作
 - [lua-resty-worker-events] worker间异步通信
