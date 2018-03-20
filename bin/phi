@@ -34,7 +34,7 @@ while getopts ":DP:H:p:c:" opt; do
         ;;
     esac
 done
-startup_command="nginx -c main.conf -p ${preffix}"
+startup_command="nginx -c ${conf} -p ${preffix}"
 
 function stop(){
     ngx_master_pid=`ps -ef|grep "${startup_command}"|grep -v grep|awk '{print $2}'`
@@ -52,15 +52,15 @@ function stop(){
 function start(){
     mkdir -p ${preffix}/logs
     echo "start nginx with ${preffix}/main.conf"
-    nginx -c main.conf -p ${preffix}
+    `${startup_command}`
 }
 
 function _test(){
-    nginx -c main.conf -p ${preffix} -t
+    `${startup_command}`
 }
 
 function reload(){
-    nginx -c main.conf -p ${preffix} -s reload
+    `${startup_command}`
 }
 
 case ${command} in

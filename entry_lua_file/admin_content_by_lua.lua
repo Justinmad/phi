@@ -3,5 +3,6 @@
 --- Created by Administrator.
 --- DateTime: 2018/3/16 11:30
 ---
+require("phi_debug")
 local admin = require('Phi').admin
 admin:content_by_lua()
