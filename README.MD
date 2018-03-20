@@ -102,7 +102,7 @@ server {
 - bin目录下的phi：
     - 用法: phi start|stop|restart|reload|test
     - 可选参数 :
-        - -D: 启动远程debug模式，默认占用端口8172,感谢[[ZeroBrane Studio]]，[[EmmyLua]]
+        - -D: 启动远程debug模式，默认占用端口8172,使用参考：[[ZeroBrane Studio]]，[[EmmyLua]]
         - -H: 远程debug 主机名，默认localhost
         - -P: 远程debug 端口,默认8172
         - -p: nginx启动目录，同nginx -p参数
