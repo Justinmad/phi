@@ -127,7 +127,7 @@ server {
     ```text
         this is the fake backend peer... listen port 5555
     ```
-- 添加一组命名为dynamic_ups的api server
+- 添加一组命名为dynamic_ups的api server，负载均衡策略使用轮询，其它参考[strategy](#loadbalance)
     ```text
     curl -H 'content-type:application/json' -X POST --data \
         '{"upstreamName":"dynamic_ups","strategy":"roundrobin","mapper":"ip","servers":[{"name":"127.0.0.1:5555","info":{"weight":10}},{"name":"127.0.0.1:6666","info":{"weight":10}}]}' \
@@ -474,7 +474,9 @@ server {
         - 字段说明：
             - mapper：请求映射函数，对应枚举[mapper](#mapper)
             - tag：参考[mapper](#mapper)中对tag的说明
-            - strategy：枚举值，根据权重值分配负载均衡调用比例
+            - strategy
+                ###### LoadBalance
+                枚举值，根据权重值分配负载均衡调用比例
             
                 |value         |Description
                 |-------------:|--------------------------:
