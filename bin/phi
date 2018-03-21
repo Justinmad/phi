@@ -2,7 +2,7 @@
 shift $[$OPTIND-1]
 command -v nginx >/dev/null 2>&1 || { echo >&2 "I require nginx but it's not installed.  Aborting."; exit 1; }
 current_path=$(dirname $(readlink -f $0))
-preffix=${current_path}/../conf
+prefix=${current_path}/../conf
 conf=main.conf
 command=$1
 shift
@@ -21,8 +21,8 @@ while getopts ":DP:H:p:c:" opt; do
         export PHI_DEBUG_HOST=$OPTARG
         ;;
     p)
-        preffix=$OPTARG
-        echo "use prefix ${preffix}"
+        prefix=$OPTARG
+        echo "use prefix ${prefix}"
         ;;
     c)
         conf=$OPTARG
@@ -34,7 +34,7 @@ while getopts ":DP:H:p:c:" opt; do
         ;;
     esac
 done
-startup_command="nginx -c ${conf} -p ${preffix}"
+startup_command="nginx -c ${conf} -p ${prefix}"
 
 function stop(){
     ngx_master_pid=`ps -ef|grep "${startup_command}"|grep -v grep|awk '{print $2}'`
@@ -50,19 +50,22 @@ function stop(){
 }
 
 function start(){
-    mkdir -p ${preffix}/logs
-    echo "start nginx with ${preffix}/main.conf"
+    mkdir -p ${prefix}/logs
+    echo "start nginx with ${prefix}/main.conf"
     `${startup_command}`
 }
 
 function _test(){
-    `${startup_command}`
+    echo "test nginx with ${prefix}/main.conf"
+    `${startup_command} -t`
 }
 
 function reload(){
-    `${startup_command}`
+    echo "reload nginx with ${prefix}/main.conf"
+    `${startup_command} -s reload`
 }
 
+cd ${prefix}
 case ${command} in
     start)
         start
