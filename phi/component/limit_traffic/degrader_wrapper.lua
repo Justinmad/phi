@@ -49,7 +49,11 @@ function class:new(info)
     instance.target = info.target
     instance.extend = info.extend
     instance.mapper = info.mapper
-    instance.enabled = info.enabled == "true" and true or false
+    if type(info.enabled) == "boolean" then
+        instance.enabled = info.enabled
+    else
+        instance.enabled = info.enabled == "true"
+    end
     return instance
 end
 

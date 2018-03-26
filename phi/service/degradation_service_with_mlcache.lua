@@ -111,7 +111,6 @@ function _M:enabled(hostkey, uri, enabled)
     local ok
     local data, err = self.dao:enabled(hostkey, uri, enabled)
     if data then
-        print(pretty_write(data))
         ok, err = self.cache:set(hostkey .. ":" .. uri, nil, data)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存降级规则到mlcache失败！err:", err)

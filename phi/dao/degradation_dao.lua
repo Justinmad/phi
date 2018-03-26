@@ -61,7 +61,7 @@ function _M:enabled(hostkey, uri, enabled)
         else
             local res = redis.call('hget',KEYS[1],KEYS[2])
             local data = cjson.decode(res)
-            data.enabled = ARGV[1]
+            data.enabled = ARGV[1] == "true"
             redis.call('hset',KEYS[1],KEYS[2],cjson.encode(data))
             return redis.call('hget',KEYS[1],KEYS[2])
         end
