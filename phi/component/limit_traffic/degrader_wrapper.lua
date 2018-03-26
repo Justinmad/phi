@@ -10,7 +10,9 @@ local ngx_redirect = ngx.redirect
 local HTTP_MOVED_TEMPORARILY = ngx.HTTP_MOVED_TEMPORARILY
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local ERR = ngx.ERR
@@ -47,7 +49,7 @@ function class:new(info)
     instance.target = info.target
     instance.extend = info.extend
     instance.mapper = info.mapper
-    instance.enabled = info.enabled
+    instance.enabled = info.enabled == "true" and true or false
     return instance
 end
 
