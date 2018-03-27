@@ -21,13 +21,14 @@ uint32_t htonl(uint32_t hostlong);
 
 local C = ffi.C
 
-
 local _M = {}
 
 -- windows下未找到inet_aton函数类似功能，暂时使用这个函数替代
 local function ip2long(ip)
     local num = 0
-    ip:gsub("%d+", function(s) num = num * 256 + tonumber(s) end)
+    ip:gsub("%d+", function(s)
+        num = num * 256 + tonumber(s)
+    end)
     return num
 end
 
@@ -57,6 +58,7 @@ end
 --end
 local tonumber = tonumber
 local ngx = ngx
+local ngx_req_get_headers = ngx.req.get_headers
 local find = string.find
 local sub = string.sub
 local pcall = pcall
@@ -70,7 +72,7 @@ local ip2long_c = function(ip)
 end
 
 function _M.map(ctx, tag)
-    local headers = ngx.req.get_headers()
+    local headers = ngx_req_get_headers()
     local ClientIP = headers["X-Real-IP"]
     if ClientIP == nil then
         ClientIP = headers["X-Forwarded-For"]
@@ -85,7 +87,6 @@ function _M.map(ctx, tag)
     if ClientIP == nil then
         ClientIP = ngx.var.remote_addr
     end
-    --    local ClientIP = ngx.var.remote_addr
     if ClientIP then
         local status, res = pcall(ip2long_c, ClientIP)
         if status then
