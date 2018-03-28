@@ -6,11 +6,7 @@ local router = require("api.router")
 app:conf("view enable", true)
 app:conf("view engine", "tmpl")
 app:conf("view ext", "html")
-app:conf("views", "E:/work/phi/static")
-router:get("/", function(req, res, next)
-    res:render("index")
-end)
-
+app:conf("views", "../static")
 app:use(router())
 
 -- error handle middleware

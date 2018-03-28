@@ -5,127 +5,323 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Vuetify</title>
-    <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet" type="text/css">
-    <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet" type="text/css"></link>
-    <link href="styles.css" rel="stylesheet" type="text/css">
-    <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet"
+          type="text/css">
+    <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="app">
     <v-app>
-        <v-navigation-drawer
-                fixed
-                :mini-variant="miniVariant"
-                :clipped="clipped"
-                v-model="drawer"
-                app
-        >
-            <v-list>
-                <v-list-tile :value="true" v-for="(item, i) in items" :key="item.title">
-                    <v-list-tile-action>
-                        <v-icon light v-html="item.icon"></v-icon>
-                    </v-list-tile-action>
-                    <v-list-tile-content>
-                        <v-list-tile-title v-text="item.title"></v-list-tile-title>
-                    </v-list-tile-content>
-                </v-list-tile>
-            </v-list>
-        </v-navigation-drawer>
-        <v-toolbar fixed app :clipped-left="clipped">
-            <v-toolbar-side-icon @click.native.stop="drawer = !drawer"></v-toolbar-side-icon>
-            <v-btn
-                    icon
-                    @click.stop="miniVariant = !miniVariant"
-            >
-                <v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
-            </v-btn>
-            <v-btn
-                    icon
-                    @click.stop="clipped = !clipped"
-            >
-                <v-icon>web</v-icon>
-            </v-btn>
-            <v-btn
-                    icon
-                    @click.native.stop="fixed = !fixed"
-            >
-                <v-icon>remove</v-icon>
-            </v-btn>
-            <v-toolbar-title v-text="title"></v-toolbar-title>
-            <v-spacer></v-spacer>
-            <v-btn
-                    icon
-                    @click.native.stop="rightDrawer = !rightDrawer"
-            >
-                <v-icon>menu</v-icon>
-            </v-btn>
-        </v-toolbar>
-        <main>
-            <v-content>
-                <v-container fluid>
-                    <page></page>
-                </v-container>
-            </v-content>
-        </main>
-        <v-navigation-drawer
-                fixed
-                temporary
-                :right="right"
-                v-model="rightDrawer"
-                app
-        >
-            <v-list>
-                <v-list-tile @click.native="right = !right">
-                    <v-list-tile-action>
-                        <v-icon light>compare_arrows</v-icon>
-                    </v-list-tile-action>
-                    <v-list-tile-title>Switch drawer (click me)</v-list-tile-title>
-                </v-list-tile>
-            </v-list>
-        </v-navigation-drawer>
-        <v-footer :fixed="fixed" app>
-            <span>&copy; 2017</span>
-        </v-footer>
+        <v-toolbar dense></v-toolbar>
+        <v-container
+                fluid
+                grid-list-lg>
+            <v-layout row wrap>
+                <v-flex offset-xs1 xs2>
+                    <v-card height="350">
+                        <v-card-title primary-title>
+                            <div class="headline">Infos:</div>
+                        </v-card-title>
+                        <v-list dense>
+                            <v-list-tile>
+                                <v-list-tile-content>Version:</v-list-tile-content>
+                                <v-list-tile-content class="align-end">{{status.nginx_version}}</v-list-tile-content>
+                            </v-list-tile>
+                            <v-list-tile>
+                                <v-list-tile-content>Address:</v-list-tile-content>
+                                <v-list-tile-content class="align-end">{{status.address}}</v-list-tile-content>
+                            </v-list-tile>
+                            <v-list-tile>
+                                <v-list-tile-content>PID:</v-list-tile-content>
+                                <v-list-tile-content class="align-end">{{status.pid}}</v-list-tile-content>
+                            </v-list-tile>
+                            <v-list-tile>
+                                <v-list-tile-content>Uptime:</v-list-tile-content>
+                                <v-list-tile-content class="align-end">{{new Date(status.load_timestamp *
+                                    1000).toLocaleString()}}
+                                </v-list-tile-content>
+                            </v-list-tile>
+                        </v-list>
+                    </v-card>
+                </v-flex>
+                <v-flex xs6>
+                    <v-card height="350">
+                        <v-card-title primary-title>
+                            <v-layout row wrap>
+                                <v-flex>
+                                    <div class="headline">Connections:</div>
+                                </v-flex>
+                                <v-flex>
+                                    <v-list-tile-content class="align-end">Accepted : --</v-list-tile-content>
+                                </v-flex>
+                            </v-layout>
+                        </v-card-title>
+                        <br>
+                        <br>
+                        <br>
+                        <br>
+                        <v-card-actions>
+                            <v-layout row wrap>
+                                <v-flex>
+                                    <div class="title text-xs-center">Current</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">Accepted</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">Active</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">Idle</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">Dropped</div>
+                                </v-flex>
+                            </v-layout>
+                        </v-card-actions>
+                        <v-card-actions>
+                            <v-flex>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">{{status.connections.current}}</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">{{status.connections.active}}</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">{{status.connections.idle}}</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                </v-layout>
+                            </v-flex>
+                        </v-card-actions>
+                    </v-card>
+                </v-flex>
+                <v-flex xs2>
+                    <v-card height="350">
+                        <v-card-title primary-title>
+                            <v-layout row wrap>
+                                <v-flex>
+                                    <div class="headline">Requests:</div>
+                                </v-flex>
+                                <v-flex>
+                                    <v-list-tile-content class="align-end">Total : {{status.requests.total}}
+                                    </v-list-tile-content>
+                                </v-flex>
+                            </v-layout>
+                        </v-card-title>
+                        <br>
+                        <br>
+                        <br>
+                        <br>
+                        <v-card-actions>
+                            <v-layout row wrap>
+                                <v-flex>
+                                    <div class="title text-xs-center">Current</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">Req/s</div>
+                                </v-flex>
+                            </v-layout>
+                        </v-card-actions>
+                        <v-card-actions>
+                            <v-layout row wrap>
+                                <v-flex>
+                                    <div class="title text-xs-center">{{status.requests.current}}</div>
+                                </v-flex>
+                                <v-flex>
+                                    <div class="title text-xs-center">--</div>
+                                </v-flex>
+                            </v-layout>
+                        </v-card-actions>
+                    </v-card>
+                </v-flex>
+            </v-layout>
+            <v-layout row wrap>
+                <v-flex xs10 offset-xs1>
+                    <v-layout row wrap>
+                        <v-flex xs4>
+                            <v-card height="350">
+                                <v-toolbar dense class="elevation-0">
+                                    <v-toolbar-title>Server zones</v-toolbar-title>
+                                </v-toolbar>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Total</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Problems</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+
+                                <div class="title ml-4">Traffic</div>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content>In :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">-- KiB/s</v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content>Out :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">-- KiB/s</v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                            </v-card>
+                        </v-flex>
+                        <v-flex xs4>
+                            <v-card height="350">
+                                <v-toolbar dense class="elevation-0">
+                                    <v-toolbar-title>Upstreams</v-toolbar-title>
+                                </v-toolbar>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Total</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Alerts</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">{{Object.keys(status.upstreams).length}}</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+                                <div class="title ml-4">Servers</div>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content>All :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">{{servers.all}}</v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content class="green--text">Up :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end"> --
+                                        </v-list-tile-content>
+                                    </v-list-tile>
+                                    <v-list-tile>
+                                        <v-list-tile-content class="red--text">Down :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">--
+                                        </v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                            </v-card>
+                        </v-flex>
+                        <v-flex xs4>
+                            <v-card height="350">
+                                <v-toolbar dense class="elevation-0">
+                                    <v-toolbar-title>Caches</v-toolbar-title>
+                                </v-toolbar>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Total</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">Warnings</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+                                <v-layout row wrap>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                    <v-flex>
+                                        <div class="title text-xs-center">--</div>
+                                    </v-flex>
+                                </v-layout>
+                                <br>
+                                <div class="title ml-4">Cache States</div>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content class="red--text">Warm :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">--</v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                                <v-layout row wrap class="ml-2">
+                                    <v-list-tile>
+                                        <v-list-tile-content class="blue--text">Cold :</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">--</v-list-tile-content>
+                                    </v-list-tile>
+                                </v-layout>
+                            </v-card>
+                        </v-flex>
+                    </v-layout>
+                </v-flex>
+            </v-layout>
+        </v-container>
     </v-app>
 </div>
 
-<script type="text/x-template" id="page">
-    <v-layout column align-center>
-        <div>
-            <img src="./v.png" alt="Vuetify.js" class="mb-5" height="100px" />
-        </div>
-        <blockquote>
-            &#8220;First, solve the problem. Then, write the code.&#8221;
-            <footer>
-                <small>
-                    <em>&mdash;John Johnson</em>
-                </small>
-            </footer>
-        </blockquote>
-    </v-layout>
-</script>
-
 <script src="https://unpkg.com/vue/dist/vue.js"></script>
 <script src="https://unpkg.com/vuetify/dist/vuetify.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.0"></script>
 <script>
-    Vue.component('page', {
-        template: '#page'
-    })
-    new Vue({
-        el: '#app',
-        data: {
-            clipped: true,
-            drawer: true,
-            fixed: false,
-            items: [
-                { icon: 'bubble_chart', title: 'Inspire' }
-            ],
-            miniVariant: false,
-            right: true,
-            rightDrawer: false,
-            title: 'Vuetify.js'
+    function countServers(upstreams) {
+        let all = 0;
+        let up = [];
+        let down = [];
+        let keys = Object.keys(upstreams);
+        for (let i = 0; i < keys.length; i++) {
+            let peers = upstreams[keys[i]].peers;
+            all += peers.length;
+            for (let j = 0; j < peers.length; j++) {
+                let peer = peers[j];
+                if (peer.active === 0) {
+                    up.push(peer)
+                } else {
+                    console.log(peer.server, "---", peer.active);
+                    down.push(peer)
+                }
+            }
         }
-    })
+        return {
+            all: all,
+            up: up,
+            down: down
+        }
+    }
+
+    Vue.http.get('status').then(function (resp) {
+        let app = new Vue({
+            el: '#app',
+            data: {
+                status: resp.body,
+                servers: countServers(resp.body.upstreams)
+            }
+        });
+        setInterval(function () {
+            Vue.http.get('/status').then(function (resp) {
+                app.status = resp.body;
+                app.servers = countServers(resp.body.upstreams);
+            })
+        }, 5000);
+    }, function (reason) {
+        alert("获取status失败！");
+    });
 </script>
 </body>
 </html>
