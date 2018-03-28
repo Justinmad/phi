@@ -38,6 +38,7 @@ do
         error("不能加载配置！err：" .. err)
     end
     phi.configuration = config
+    -- 开启debug
     if config.debug then
         debug("add mobdebug to package path")
         package.path = "../lib/debug/mobdebug/?.lua;../lib/debug/socket/?.lua;../lib/debug/?.lua;" .. package.path
@@ -50,6 +51,12 @@ do
         end
     end
 
+    -- 开启mio统计
+    if config.enabled_mio then
+        debug("add mio to package path")
+        package.path = "../lib/mio/?.lua;" .. package.path
+        require("gateway.on_init")
+    end
     -- 加载计算规则
     phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
 

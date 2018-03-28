@@ -1,3 +1,5 @@
+-- https://github.com/cloudflare/lua-resty-cookie/blob/master/lib/resty/cookie.lua
+
 -- Copyright (C) 2013 Jiale Zhi (calio), Cloudflare Inc.
 -- See RFC6265 http://tools.ietf.org/search/rfc6265
 -- require "luacov"
@@ -15,10 +17,10 @@ local SEMICOLON     = byte(";")
 local SPACE         = byte(" ")
 local HTAB          = byte("\t")
 
-
+-- table.new(narr, nrec)
 local ok, new_tab = pcall(require, "table.new")
 if not ok then
-    new_tab = function (narr, nrec) return {} end
+    new_tab = function () return {} end
 end
 
 local ok, clear_tab = pcall(require, "table.clear")
@@ -31,13 +33,10 @@ local _M = new_tab(0, 2)
 _M._VERSION = '0.01'
 
 
-local mt = { __index = _M }
-
-
 local function get_cookie_table(text_cookie)
     if type(text_cookie) ~= "string" then
         log(ERR, format("expect text_cookie to be \"string\" but found %s",
-                type(text_cookie)))
+            type(text_cookie)))
         return {}
     end
 
@@ -82,7 +81,7 @@ local function get_cookie_table(text_cookie)
             end
         elseif state == EXPECT_SP then
             if byte(text_cookie, j) ~= SPACE
-                and byte(text_cookie, j) ~= HTAB
+                    and byte(text_cookie, j) ~= HTAB
             then
                 state = EXPECT_KEY
                 i = j
@@ -102,10 +101,10 @@ end
 function _M.new(self)
     local _cookie = ngx.var.http_cookie
     --if not _cookie then
-        --return nil, "no cookie found in current request"
+    --return nil, "no cookie found in current request"
     --end
     return setmetatable({ _cookie = _cookie, set_cookie_table = new_tab(4, 0) },
-        mt)
+        { __index = self })
 end
 
 function _M.get(self, key)
@@ -120,8 +119,6 @@ function _M.get(self, key)
 end
 
 function _M.get_all(self)
-    local err
-
     if not self._cookie then
         return nil, "no cookie found in the current request"
     end
@@ -142,13 +139,13 @@ local function bake(cookie)
         cookie.max_age = cookie["max-age"]
     end
     local str = cookie.key .. "=" .. cookie.value
-        .. (cookie.expires and "; Expires=" .. cookie.expires or "")
-        .. (cookie.max_age and "; Max-Age=" .. cookie.max_age or "")
-        .. (cookie.domain and "; Domain=" .. cookie.domain or "")
-        .. (cookie.path and "; Path=" .. cookie.path or "")
-        .. (cookie.secure and "; Secure" or "")
-        .. (cookie.httponly and "; HttpOnly" or "")
-        .. (cookie.extension and "; " .. cookie.extension or "")
+            .. (cookie.expires and "; Expires=" .. cookie.expires or "")
+            .. (cookie.max_age and "; Max-Age=" .. cookie.max_age or "")
+            .. (cookie.domain and "; Domain=" .. cookie.domain or "")
+            .. (cookie.path and "; Path=" .. cookie.path or "")
+            .. (cookie.secure and "; Secure" or "")
+            .. (cookie.httponly and "; HttpOnly" or "")
+            .. (cookie.extension and "; " .. cookie.extension or "")
     return str
 end
 

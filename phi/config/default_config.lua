@@ -23,6 +23,7 @@ return {
     debug_host = "127.0.0.1",
     debug_port = 8172,
     enabled_admin = true,
+    enabled_mio = true,
     enabled_policies = { "UNIQUE", "RANGE", "PREFIX", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
     enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },
     default_paths = {
