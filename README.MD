@@ -94,31 +94,31 @@ server {
 ```
 ## 启动统计面板
 - phi配置中enabled_mio=true,并在nginx配置中添加如下server
-```nginx
-server {
-        listen       9090;
-        access_log logs/api_access.log main;
-        error_log logs/api_error.log info;
-        set  $template_root "";
-        location = /favicon.ico {
-            log_not_found off;
-            access_log off;
+    ```nginx
+    server {
+            listen       9090;
+            access_log logs/api_access.log main;
+            error_log logs/api_error.log info;
+            set  $template_root "";
+            location = /favicon.ico {
+                log_not_found off;
+                access_log off;
+            }
+            # 静态文件
+            location ~* /static/(.*) {
+                alias ../static/$1;
+            }
+            location /robots.txt {
+                return 200 'User-agent: *\nDisallow: /';
+            }
+            location = / {
+                try_files '' ../static/index.html;
+            }
+            location / {
+                content_by_lua_file ../lib/mio/api/main.lua;
+            }
         }
-        # 静态文件
-        location ~* /static/(.*) {
-            alias ../static/$1;
-        }
-        location /robots.txt {
-            return 200 'User-agent: *\nDisallow: /';
-        }
-        location = / {
-            try_files '' ../static/index.html;
-        }
-        location / {
-            content_by_lua_file ../lib/mio/api/main.lua;
-        }
-    }
-```
+    ```
 - 统计面板截图
 ![dashborad](/static/image/dashboard.png)
 - 更多可参看[[MIO]]，对源代码做了一些修改
