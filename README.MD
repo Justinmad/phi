@@ -23,9 +23,8 @@
         # 如果使用了openresty，那么只需引入下面的包
         #lua_package_path '../phi/?.lua;../lib/?.lua;;';
         #lua_package_cpath '../lib/?.so;;';
-        
+        #生产环境务必开启
         lua_code_cache on;
-    
         # 共享内存的大小按需调整
         lua_shared_dict phi                     5m;
         lua_shared_dict phi_events              5m;
@@ -36,32 +35,26 @@
         lua_shared_dict phi_limit_req           128m;
         lua_shared_dict phi_limit_conn          128m;
         lua_shared_dict phi_limit_count         128m;
-        
+        #lua入口文件
         init_by_lua_file ../entry_lua_file/init_by_lua.lua;
         init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
-        
+        log_by_lua_file ../entry_lua_file/log_by_lua.lua;
         server {
             listen 8080;
-    
             location / {
                 set $backend '';
-                
                 rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
-    
                 access_by_lua_file ../entry_lua_file/access_by_lua.lua;
-    
                 proxy_http_version 1.1;
                 proxy_set_header Connection "";
                 proxy_pass http://$backend;
-    
-                log_by_lua_file ../entry_lua_file/log_by_lua.lua;
             }
         }
         upstream phi_upstream {
             server 0.0.0.1;
             balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
             # 请按需调整
-            keepalive 200;
+            keepalive 2000;
         }
     ```
 - phi的配置
@@ -72,6 +65,7 @@
             debug_host = "127.0.0.1",     -- debug的host
             debug_port = 8172,            -- 远程debug占用端口
             enabled_admin = true,         -- 是否启动管理控制台
+            enabled_mio = true,           -- 是否启动统计面板
             enabled_policies = { "UNIQUE", "RANGE", "PREFIX", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" }, -- 启用的policy规则
             enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" }, -- 启用的mapper类型
             default_paths = {             -- 默认的配置文件加载路径 conf/phi.ini 或者./phi.ini
@@ -87,7 +81,7 @@
         - default_paths中指定的ini文件中配置的值
         - default_config.lua中指定的默认值
 ## 启动管理控制台
-在nginx配置中添加如下server
+phi配置中enabled_admin=true,在nginx配置中添加如下server
 ```nginx
 server {
     listen 12345;
@@ -98,6 +92,36 @@ server {
     }
 }
 ```
+## 启动统计面板
+- phi配置中enabled_mio=true,并在nginx配置中添加如下server
+```nginx
+server {
+        listen       9090;
+        access_log logs/api_access.log main;
+        error_log logs/api_error.log info;
+        set  $template_root "";
+        location = /favicon.ico {
+            log_not_found off;
+            access_log off;
+        }
+        # 静态文件
+        location ~* /static/(.*) {
+            alias ../static/$1;
+        }
+        location /robots.txt {
+            return 200 'User-agent: *\nDisallow: /';
+        }
+        location = / {
+            try_files '' ../static/index.html;
+        }
+        location / {
+            content_by_lua_file ../lib/mio/api/main.lua;
+        }
+    }
+```
+- 统计面板截图
+![dashborad](/static/image/dashboard.png)
+- 更多可参看[[MIO]]，对源代码做了一些修改
 ## 启动脚本
 - bin目录下的phi：
     - 用法: phi start|stop|restart|reload|test
@@ -689,6 +713,7 @@ server {
 - [lua-resty-worker-events] worker间异步通信
 - [EmmyLua] IntelliJ idea的lua插件
 - [ZeroBrane Studio] 轻量级的lua ide
+- [MIO] resty的统计系统
 
 [ZeroBrane Studio]:https://studio.zerobrane.com/support
 [EmmyLua]:https://github.com/EmmyLua/IntelliJ-EmmyLua
@@ -698,3 +723,4 @@ server {
 [lua-resty-mlcache]:https://github.com/thibaultcha/lua-resty-mlcache
 [lua-resty-worker-events]:https://github.com/Kong/lua-resty-worker-events
 [penlight]:https://github.com/stevedonovan/Penlight
+[MIO]:https://github.com/iresty/Mio
