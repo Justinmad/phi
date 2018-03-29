@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" style="overflow-y:auto">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Phi Admin</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet"
+          type="text/css">
+    <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div id="app">
+    <v-app>
+        <v-toolbar dense>
+            <v-toolbar-side-icon>
+                <v-icon large class="mb-4 grey--text">φ</v-icon>
+            </v-toolbar-side-icon>
+            <v-toolbar-title>Phi Admin</v-toolbar-title>
+        </v-toolbar>
+        <v-container fluid class="ma-0 pa-0">
+            <div id="main" style="width: auto;"></div>
+        </v-container>
+        <v-footer class="pa-3">
+            <v-spacer></v-spacer>
+            <div>&copy; {{ new Date().getFullYear() }}</div>
+        </v-footer>
+    </v-app>
+</div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vuetify/1.0.11/vuetify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.0/vue-resource.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.0.4/echarts.min.js"></script>
+<script>
+    let app = new Vue({
+        el: '#app',
+        data: {}
+    });
+    let elementById = document.getElementById('main');
+    elementById.style.height = window.innerHeight - 36 - 48 + "px";
+    let myChart = echarts.init(elementById);
+    myChart.showLoading();
+    Vue.http.get('/static/flare.json').then(function (resp) {
+        myChart.hideLoading();
+        myChart.setOption(option = {
+            tooltip: {
+                trigger: 'item',
+                triggerOn: 'mousemove'
+            },
+            series: [
+                {
+                    type: 'tree',
+                    data: [resp.body],
+                    layout: 'orthogonal',
+                    symbol: 'emptyCircle',
+                    symbolSize: 20,
+                    initialTreeDepth: 1,
+                    animationDurationUpdate: 750
+                }
+            ]
+        });
+    }, function (reason) {
+        console.log(reason);
+        alert("获取数据失败！");
+    });
+</script>
+</html>

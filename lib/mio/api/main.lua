@@ -1,3 +1,8 @@
+local enabled_mio = require "Phi".configuration.enabled_mio
+local Response = require "core.response"
+if not enabled_mio then
+    return Response.fake({ mio_disabled = true })
+end
 local lor = require("lor.index")
 local app = lor()
 local router = require("api.router")

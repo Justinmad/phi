@@ -52,7 +52,7 @@ function _M:load(ctx)
         end
     else
         LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
-        return response.failure("failed to load upstream balancer ,upstream is nil :-(", 500)
+        return response.failure("Sorry,The domain you requested was denied access! :-(", 410)
     end
     ngx.var.backend = upstream
 end
