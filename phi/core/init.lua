@@ -51,12 +51,6 @@ do
         end
     end
 
-    -- 开启mio统计
-    if config.enabled_mio then
-        debug("add mio to package path")
-        package.path = "../lib/mio/?.lua;" .. package.path
-        require("gateway.on_init")
-    end
     -- 加载计算规则
     phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
 
@@ -67,6 +61,21 @@ do
     local context = require "core.application_context":init(config.application_context_conf)
     phi.context = context
 
+    -- 开启mio统计
+    if config.enabled_mio then
+        debug("add mio to package path")
+        package.path = "../lib/mio/?.lua;" .. package.path
+        local mio = require("component.statistics.mio_handler"):new()
+        context.mio = mio
+    end
+
+    -- bean init
+    for _, bean in pairs(context) do
+        if type(bean.init) == "function" then
+            bean:init()
+        end
+    end
+
     -- 初始化components
     local components = {}
     for _, bean in pairs(context) do
@@ -74,6 +83,7 @@ do
             table.insert(components, bean)
         end
     end
+
     -- 组件排序，所有的组件中order越大就有越高的优先级
     table.sort(components, function(c1, c2)
         local o1 = c1.order or 0

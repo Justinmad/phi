@@ -17,14 +17,15 @@ local LOGGER = ngx.log
 local degradation_handler = base_component:extend()
 
 function degradation_handler:new(ref, config)
-    degradation_handler.super.new(self, "service-degradation")
-    degradation_handler.order = config.order
-    degradation_handler.service = ref
-    return degradation_handler
+    self.super.new(self, "service-degradation")
+    self.order = config.order
+    self.service = ref
+    return self
 end
 
 -- 服务降级
 function degradation_handler:rewrite(ctx)
+    self.super.rewrite(self)
     local hostkey = get_host(ctx)
     local uri = get_uri(ctx)
     local isDegraded, degrader, err = ctx.degrade, self.service:getDegrader(hostkey, uri)

@@ -19,6 +19,7 @@ local NGX_LOAD_TIMESTAMP = 'ngx_load_time'
 local NGX_RELOAD_GENERATION = 'ngx_reload_generation'
 
 local TIME_TOTAL = "time_total"
+local MASTER_PID = "master_pid"
 
 local SERVER_ZONES = "server_zones"
 local PROCESSING = 'processing'
@@ -57,6 +58,7 @@ function _M.init()
         shared_status:set( TRAFFIC_WRITE, 0 )
 
         shared_status:set( TIME_TOTAL, 0 )
+        shared_status:set( MASTER_PID, ngx.worker.pid() )
     end
 
 end
@@ -70,7 +72,7 @@ local function hook_for_upstream()
 
         if ngx.var.upstream_status then
             -- upstreams 可能挂了，返回的 code 是 nil
-            local status = math.floor(tonumber(ngx.var.upstream_status) / 100) .. 'xx'
+            local status = math.floor((tonumber(ngx.var.upstream_status) or 500) / 100) .. 'xx'
             local newval, err = shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1)
             if not newval and err == "not found" then
                 shared_status:set(upstream_key .. RESPONSE_CODE .. status, 1)
@@ -78,27 +80,27 @@ local function hook_for_upstream()
         end
 
         --UPSTREAM_REQUEST_LEN
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(ngx.var.request_length))
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(ngx.var.request_length) or 0)
         if not newval and err == "not found" then
             shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(ngx.var.request_length))
         end
 
         -- send_per_second
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(ngx.var.request_length))
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(ngx.var.request_length) or 0)
         if not newval and err == "not found" then
             shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(ngx.var.request_length), TIMEOUT_QPS)
         end
 
         -- UPSTREAM_REP_LEN
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN, tonumber(ngx.var.upstream_response_length))
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN, tonumber(ngx.var.upstream_response_length) or 0)
         if not newval and err == "not found" then
             shared_status:set(upstream_key .. UPSTREAM_REP_LEN, tonumber(ngx.var.upstream_response_length))
         end
 
         -- receive_per_second
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length))
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length) or 0)
         if not newval and err == "not found" then
-            shared_status:set(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length), TIMEOUT_QPS)
+            shared_status:set(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length) or 0, TIMEOUT_QPS)
         end
 
         -- qps
@@ -108,7 +110,7 @@ local function hook_for_upstream()
         end
 
         -- UPSTREAM_TIME_SUM
-        local upstream_time = tonumber(ngx.var.upstream_response_time)
+        local upstream_time = tonumber(ngx.var.upstream_response_time) or 0
         local sum = shared_status:get(upstream_key .. UPSTREAM_TIME_SUM) or 0
         shared_status:set(upstream_key .. UPSTREAM_TIME_SUM, sum + upstream_time)
 
@@ -243,7 +245,7 @@ local function get_nginx_info()
     report.load_timestamp = dict_status:get(NGX_LOAD_TIMESTAMP)
     report.timestamp = ngx.time()
     report.generation = dict_status:get(NGX_RELOAD_GENERATION)
-
+    report.pid = dict_status:get( MASTER_PID )
     return report
 end
 
@@ -259,7 +261,7 @@ local function get_connections_info()
 end
 
 local function get_requests_info()
-    local cur_seconds = "_" .. (ngx.time() - 1)
+    local cur_seconds = ngx.time() - 1
 
     local report = {}
     report.total = ngx.shared.status:get(TOTAL_COUNT)
@@ -276,6 +278,7 @@ function get_upstream_peers_info(upstream_name, peers_info)
     local upstream_stat = {}
     upstream_stat.id = peers_info.id
     upstream_stat.server = peers_info.name
+    upstream_stat.down = peers_info.down
     upstream_stat.backup = peers_info.backup
     upstream_stat.weight = peers_info.weight
     upstream_stat.fails = peers_info.fails

@@ -9,7 +9,14 @@ local ngx = ngx
 local _M = {}
 
 function _M.map(ctx, arg_name)
-    return ngx.req.get_uri_args()[arg_name]
+    if ctx.__args then
+        return ctx.__args[arg_name]
+    else
+        local args = ngx.req.get_uri_args()
+        print(type(args))
+        ctx.__args = args
+        return args[arg_name]
+    end
 end
 
 return _M

@@ -16,13 +16,14 @@ local LOGGER = ngx.log
 local rate_limiting_handler = base_component:extend()
 
 function rate_limiting_handler:new(ref, config)
-    rate_limiting_handler.super.new(self, "rate-limiting")
-    rate_limiting_handler.order = config.order
-    rate_limiting_handler.service = ref
-    return rate_limiting_handler
+    self.super.new(self, "rate-limiting")
+    self.order = config.order
+    self.service = ref
+    return self
 end
 
 function rate_limiting_handler:rewrite(ctx)
+    self.super.rewrite(self)
     local hostkey = get_host(ctx)
     local limiter, err = self.service:getLimiter(hostkey)
     if err or (not limiter) then
@@ -38,7 +39,7 @@ function rate_limiting_handler:rewrite(ctx)
 end
 
 function rate_limiting_handler:log(ctx)
-    LOGGER(DEBUG, "executing component \"", self._name, "\": log")
+    self.super.log(self)
     local leaving_func = ctx.leaving
     if type(leaving_func) == "function" then
         LOGGER(DEBUG, "record the connection leaving")

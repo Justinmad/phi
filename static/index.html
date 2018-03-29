@@ -135,7 +135,7 @@
                                     <div class="title text-xs-center">{{status.requests.current}}</div>
                                 </v-flex>
                                 <v-flex>
-                                    <div class="title text-xs-center">--</div>
+                                    <div class="title text-xs-center">{{status.requests.current}}</div>
                                 </v-flex>
                             </v-layout>
                         </v-card-actions>
@@ -156,16 +156,16 @@
                                         <div class="title text-xs-center">Total</div>
                                     </v-flex>
                                     <v-flex>
-                                        <div class="title text-xs-center">Problems</div>
+                                        <div class="title text-xs-center red--text">Problems</div>
                                     </v-flex>
                                 </v-layout>
                                 <br>
                                 <v-layout row wrap>
                                     <v-flex>
-                                        <div class="title text-xs-center">--</div>
+                                        <div class="title text-xs-center">{{serverZone.total}}</div>
                                     </v-flex>
                                     <v-flex>
-                                        <div class="title text-xs-center">--</div>
+                                        <div class="title text-xs-center red--text">{{serverZone.problems.length}}</div>
                                     </v-flex>
                                 </v-layout>
                                 <br>
@@ -174,13 +174,15 @@
                                 <v-layout row wrap class="ml-2">
                                     <v-list-tile>
                                         <v-list-tile-content>In :</v-list-tile-content>
-                                        <v-list-tile-content class="align-end">-- KiB/s</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">{{serverZone.trafficIn}} KiB/s
+                                        </v-list-tile-content>
                                     </v-list-tile>
                                 </v-layout>
                                 <v-layout row wrap class="ml-2">
                                     <v-list-tile>
                                         <v-list-tile-content>Out :</v-list-tile-content>
-                                        <v-list-tile-content class="align-end">-- KiB/s</v-list-tile-content>
+                                        <v-list-tile-content class="align-end">{{serverZone.trafficOut}} KiB/s
+                                        </v-list-tile-content>
                                     </v-list-tile>
                                 </v-layout>
                             </v-card>
@@ -196,7 +198,7 @@
                                         <div class="title text-xs-center">Total</div>
                                     </v-flex>
                                     <v-flex>
-                                        <div class="title text-xs-center">Alerts</div>
+                                        <div class="title text-xs-center yellow--text">Alerts</div>
                                     </v-flex>
                                 </v-layout>
                                 <br>
@@ -205,7 +207,7 @@
                                         <div class="title text-xs-center">{{Object.keys(status.upstreams).length}}</div>
                                     </v-flex>
                                     <v-flex>
-                                        <div class="title text-xs-center">--</div>
+                                        <div class="title text-xs-center yellow--text">{{servers.alerts.length}}</div>
                                     </v-flex>
                                 </v-layout>
                                 <br>
@@ -219,12 +221,12 @@
                                 <v-layout row wrap class="ml-2">
                                     <v-list-tile>
                                         <v-list-tile-content class="green--text">Up :</v-list-tile-content>
-                                        <v-list-tile-content class="align-end"> --
+                                        <v-list-tile-content class="align-end"> {{servers.up.length}}
                                         </v-list-tile-content>
                                     </v-list-tile>
                                     <v-list-tile>
                                         <v-list-tile-content class="red--text">Down :</v-list-tile-content>
-                                        <v-list-tile-content class="align-end">--
+                                        <v-list-tile-content class="align-end">{{servers.down.length}}
                                         </v-list-tile-content>
                                     </v-list-tile>
                                 </v-layout>
@@ -280,28 +282,54 @@
 <script src="https://unpkg.com/vuetify/dist/vuetify.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.0"></script>
 <script>
-    function countServers(upstreams) {
+    function countUpstream(upstreams) {
         let all = 0;
         let up = [];
         let down = [];
+        let alerts = [];
         let keys = Object.keys(upstreams);
         for (let i = 0; i < keys.length; i++) {
             let peers = upstreams[keys[i]].peers;
             all += peers.length;
             for (let j = 0; j < peers.length; j++) {
                 let peer = peers[j];
-                if (peer.active === 0) {
-                    up.push(peer)
-                } else {
-                    console.log(peer.server, "---", peer.active);
+                if (peer.down) {
                     down.push(peer)
+                } else {
+                    up.push(peer)
+                }
+                if (peer.fails > peer.requests || (peer.requests > 0 && peer.fails / peer.requests > 0.05)) {
+                    alerts.push(peer)
                 }
             }
         }
         return {
             all: all,
             up: up,
-            down: down
+            down: down,
+            alerts: alerts
+        }
+    }
+
+    function countServerZone(server_zones) {
+        let problems = [];
+        let trafficIn = 0;
+        let trafficOut = 0;
+        let keys = Object.keys(server_zones);
+        let total = keys.length;
+        for (let i in keys) {
+            let zone = server_zones[keys[i]];
+            trafficIn += zone.receive_per_second;
+            trafficOut += zone.send_per_second;
+            if (zone.responses.total > 1000 && (zone.responses["5xx"] / zone.responses.total > 0.05)) {
+                problems.push(zone)
+            }
+        }
+        return {
+            total: total,
+            problems: problems,
+            trafficIn: (trafficIn / 8192).toFixed(2),
+            trafficOut: (trafficOut / 8192).toFixed(2)
         }
     }
 
@@ -310,17 +338,19 @@
             el: '#app',
             data: {
                 status: resp.body,
-                servers: countServers(resp.body.upstreams)
+                servers: countUpstream(resp.body.upstreams),
+                serverZone: countServerZone(resp.body.server_zones)
             }
         });
         setInterval(function () {
             Vue.http.get('/status').then(function (resp) {
                 app.status = resp.body;
-                app.servers = countServers(resp.body.upstreams);
+                app.servers = countUpstream(resp.body.upstreams);
+                app.serverZone = countServerZone(resp.body.server_zones);
             })
-        }, 5000);
+        }, 1000);
     }, function (reason) {
-        alert("获取status失败！");
+        alert("获取status失败！" + reason);
     });
 </script>
 </body>

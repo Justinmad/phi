@@ -143,12 +143,6 @@ function _M:init(configLocations)
         end
     end
 
-    -- init
-    for _, bean in pairs(context) do
-        if type(bean.init) == "function" then
-            bean:init()
-        end
-    end
     return context
 end
 

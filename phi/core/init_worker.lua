@@ -29,8 +29,4 @@ do
             bean:init_worker(ev)
         end
     end
-
-    if phi.configuration.enabled_mio then
-        require("gateway.on_worker_init")
-    end
 end
