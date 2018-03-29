@@ -27,14 +27,14 @@ function mio_handler.init_worker()
     xpcall(summary.sync_data_to_shared_dict, common.err_handle)
 end
 
-local function start()
-    summary.log()
-    status.log()
+local function start(var, ctx)
+    summary.log(var, ctx)
+    status.log(var, ctx)
 end
 
-function mio_handler:log()
+function mio_handler:log(var, ctx)
     mio_handler.super:log()
-    xpcall(start, common.err_handle)
+    xpcall(start, common.err_handle, var, ctx)
 end
 
 return mio_handler

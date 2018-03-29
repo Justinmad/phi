@@ -2,13 +2,21 @@ local type = type
 local pairs = pairs
 local common = require "gateway.module.common"
 local uri_lrucache = require "gateway.module.summary_lru" -- 用作持久的统计使用
-
+local ngx = ngx
+local ngx_time = ngx_time
+local ngx_time_at = ngx.timer.at
+local math_floor = math.floor
+local ipairs = ipairs
 local function table_is_array(t)
-    if type(t) ~= "table" then return false end
+    if type(t) ~= "table" then
+        return false
+    end
     local i = 0
     for _ in pairs(t) do
         i = i + 1
-        if t[i] == nil then return false end
+        if t[i] == nil then
+            return false
+        end
     end
     return true
 end
@@ -36,8 +44,8 @@ local history_summary = lrucache.new(1)  -- 存放历史 summary，json 格式�
 
 function _M.sync_data_to_shared_dict()
     local function _sync_data()
-        local seconds = ngx.time()
-        local today = math.floor(seconds / 86400) -- 3600 * 24 = 86400
+        local seconds = ngx_time()
+        local today = math_floor(seconds / 86400) -- 3600 * 24 = 86400
         local report = common.json_decode(shared_summary:get(today)) or {}
         local report_per_second = common.json_decode(shared_recording_summary:get(seconds)) or {}
 
@@ -62,23 +70,23 @@ function _M.sync_data_to_shared_dict()
 
     xpcall(_sync_data, common.err_handle)
 
-    ngx.timer.at(0.5, _M.sync_data_to_shared_dict)
+    ngx_time_at(0.5, _M.sync_data_to_shared_dict)
 end
 
-function _M.log()
-    local uri = ngx.var.uri
-    local status = math.floor(tonumber(ngx.var.status) / 100) .. 'xx'
-    local sent_length = tonumber(ngx.var.bytes_sent)
-    local request_time = tonumber(ngx.var.request_time)
+function _M.log(var, ctx)
+    local uri = var.uri
+    local status = math_floor(tonumber(var.status) / 100) .. 'xx'
+    local sent_length = tonumber(var.bytes_sent)
+    local request_time = tonumber(var.request_time)
     uri_lrucache.hmincr(uri, "total", 1, status, 1, "sent", sent_length, "request_time", request_time)
 end
 
 function _M.last_one_minute_report()
-    local seconds = ngx.time()
+    local seconds = ngx_time()
     local report = {}
     for i = 1, 60 do
         report = common.merge_table(report,
-                        common.json_decode(shared_recording_summary:get(seconds - i)) or {})
+                common.json_decode(shared_recording_summary:get(seconds - i)) or {})
     end
 
     if not report or table_is_array(report) then
@@ -90,14 +98,14 @@ end
 
 function _M.history_report()
     local days = 2 -- 默认返回前两天的历史数据
-    local today = math.floor(ngx.time() / 86400) -- 3600 * 24 = 86400
+    local today = math_floor(ngx_time() / 86400) -- 3600 * 24 = 86400
 
     local report = history_summary:get('history')
     if nil == report then
         report = {}
         for i = 1, days do
             report = common.merge_table(report,
-                            common.json_decode(shared_summary:get(today - i)) or {})
+                    common.json_decode(shared_summary:get(today - i)) or {})
         end
         history_summary:set('history', common.json_encode(report), 3600)
     end
@@ -113,11 +121,10 @@ end
 -- 只返回当天的 summary
 function _M.report()
     -- today 的含义是第几天
-    local today = math.floor(ngx.time() / 86400) -- 3600 * 24 = 86400
+    local today = math_floor(ngx_time() / 86400) -- 3600 * 24 = 86400
     local report = shared_summary:get(today)
 
     return common.json_decode(report)
 end
-
 
 return _M

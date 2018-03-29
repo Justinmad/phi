@@ -14,19 +14,19 @@ local require = require
 --v.on("/home/phi/logs/jit.log")
 
 local instance = {
-    -- 属性
+-- 属性
     meta = meta,
-    -- 配置
+-- 配置
     configuration = nil,
-    -- 扩展组件
+-- 扩展组件
     components = nil,
-    -- 规则计算
+-- 规则计算
     policy_holder = nil,
-    -- 请求映射
+-- 请求映射
     mapper_holder = nil,
-    -- 事件总线
+-- 事件总线
     observer = nil,
-    -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
+-- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
     context = {}
 }
 
@@ -77,8 +77,9 @@ end
 -- TODO 需要在这里做一些统计的功能
 function instance:log()
     local ctx = ngx.ctx
+    local var = ngx.var
     for _, c in ipairs(components) do
-        c:log(ctx)
+        c:log(var, ctx)
     end
 end
 

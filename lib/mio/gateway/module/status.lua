@@ -2,6 +2,9 @@
 
 local common = require "gateway.module.common"
 local upstream = require "ngx.upstream"
+local ngx_get_upstreams = upstream.get_upstreams;
+local ngx_get_primary_peers = upstream.get_primary_peers;
+local ngx_get_backup_peers = upstream.get_backup_peers;
 
 local _M = {}
 
@@ -37,8 +40,17 @@ local UPSTREAM_REQUEST_LEN = "upstream_request_len"
 local UPSTREAM_REP_LEN = "upstream_rep_len"
 local UPSTREAM_REP_TIME = "upstream_rep_time"
 
-local shared_status = ngx.shared.status
+local table_insert = table.insert
+local ipairs = ipairs
+local math_floor = math.floor
 
+local ngx = ngx
+local shared_status = ngx.shared.status
+local ngx_worker_count = ngx.worker.count
+local ngx_time = ngx.time
+local ngx_worker_pid = ngx.worker.pid
+local log = ngx.log
+local DEBUG = ngx.DEBUG
 -- maybe optimized, read from redis
 function _M.init()
     local newval, err = shared_status:incr(NGX_RELOAD_GENERATION, 1)
@@ -46,7 +58,7 @@ function _M.init()
         shared_status:add(NGX_RELOAD_GENERATION, 0)
     end
 
-    shared_status:set( NGX_LOAD_TIMESTAMP, ngx.time()) -- set nginx reload/restart begin uptime
+    shared_status:set( NGX_LOAD_TIMESTAMP, ngx_time()) -- set nginx reload/restart begin uptime
 
     local ok, err = shared_status:add( STATUS_INIT, true )
     if ok then
@@ -58,21 +70,21 @@ function _M.init()
         shared_status:set( TRAFFIC_WRITE, 0 )
 
         shared_status:set( TIME_TOTAL, 0 )
-        shared_status:set( MASTER_PID, ngx.worker.pid() )
+        shared_status:set( MASTER_PID, ngx_worker_pid() )
     end
 
 end
 
-local function hook_for_upstream()
-    local cur_seconds = ngx.time()
-    local upstream_name = ngx.var.proxy_host
-    local addr = ngx.var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
+local function hook_for_upstream(var)
+    local cur_seconds = ngx_time()
+    local upstream_name = var.proxy_host
+    local addr = var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
     if upstream_name and addr then
         local upstream_key = upstream_name .. '_' .. addr
 
-        if ngx.var.upstream_status then
+        if var.upstream_status then
             -- upstreams 可能挂了，返回的 code 是 nil
-            local status = math.floor((tonumber(ngx.var.upstream_status) or 500) / 100) .. 'xx'
+            local status = math_floor((tonumber(var.upstream_status) or 500) / 100) .. 'xx'
             local newval, err = shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1)
             if not newval and err == "not found" then
                 shared_status:set(upstream_key .. RESPONSE_CODE .. status, 1)
@@ -80,27 +92,27 @@ local function hook_for_upstream()
         end
 
         --UPSTREAM_REQUEST_LEN
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(ngx.var.request_length) or 0)
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(var.request_length) or 0)
         if not newval and err == "not found" then
-            shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(ngx.var.request_length))
+            shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(var.request_length))
         end
 
         -- send_per_second
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(ngx.var.request_length) or 0)
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(var.request_length) or 0)
         if not newval and err == "not found" then
-            shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(ngx.var.request_length), TIMEOUT_QPS)
+            shared_status:set(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(var.request_length), TIMEOUT_QPS)
         end
 
         -- UPSTREAM_REP_LEN
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN, tonumber(ngx.var.upstream_response_length) or 0)
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN, tonumber(var.upstream_response_length) or 0)
         if not newval and err == "not found" then
-            shared_status:set(upstream_key .. UPSTREAM_REP_LEN, tonumber(ngx.var.upstream_response_length))
+            shared_status:set(upstream_key .. UPSTREAM_REP_LEN, tonumber(var.upstream_response_length))
         end
 
         -- receive_per_second
-        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length) or 0)
+        local newval, err = shared_status:incr(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(var.upstream_response_length) or 0)
         if not newval and err == "not found" then
-            shared_status:set(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(ngx.var.upstream_response_length) or 0, TIMEOUT_QPS)
+            shared_status:set(upstream_key .. UPSTREAM_REP_LEN .. cur_seconds, tonumber(var.upstream_response_length) or 0, TIMEOUT_QPS)
         end
 
         -- qps
@@ -110,7 +122,7 @@ local function hook_for_upstream()
         end
 
         -- UPSTREAM_TIME_SUM
-        local upstream_time = tonumber(ngx.var.upstream_response_time) or 0
+        local upstream_time = tonumber(var.upstream_response_time) or 0
         local sum = shared_status:get(upstream_key .. UPSTREAM_TIME_SUM) or 0
         shared_status:set(upstream_key .. UPSTREAM_TIME_SUM, sum + upstream_time)
 
@@ -122,14 +134,14 @@ local function hook_for_upstream()
     end
 end
 
-local function hook_for_server()
-    local server_zone = ngx.var.server_name
+local function hook_for_server(var)
+    local server_zone = var.server_name
     if not server_zone or server_zone == '' then
         return
     end
 
     local server_key = SERVER_ZONES .. '_' .. server_zone
-    local cur_seconds = ngx.time()
+    local cur_seconds = ngx_time()
 
     -- request qps
     local newval, err = shared_status:incr(server_key .. CURRENT_QPS .. cur_seconds, 1)
@@ -145,7 +157,7 @@ local function hook_for_server()
         local server_zones = shared_status:get(SERVER_ZONES)
         if server_zones then
             server_zones = common.json_decode(server_zones)
-            table.insert(server_zones, server_zone)
+            table_insert(server_zones, server_zone)
         else
             server_zones = { server_zone }
         end
@@ -153,7 +165,7 @@ local function hook_for_server()
     end
 
     -- response code stat
-    if ngx.var.status then
+    if var.status then
         -- 请求可能被丢弃，返回的 code 是 nil
         -- stat all response
         local newval, err = shared_status:incr(server_key .. RESPONSE, 1)
@@ -161,7 +173,7 @@ local function hook_for_server()
             shared_status:set(server_key .. RESPONSE, 1)
         end
         -- stat response code
-        local status = math.floor(tonumber(ngx.var.status) / 100) .. 'xx'
+        local status = math_floor(tonumber(var.status) / 100) .. 'xx'
         local newval, err = shared_status:incr(server_key .. RESPONSE_CODE .. status, 1)
         if not newval and err == "not found" then
             shared_status:set(server_key .. RESPONSE_CODE .. status, 1)
@@ -175,7 +187,7 @@ local function hook_for_server()
     end
 
     -- received_length sum
-    local received_length = tonumber(ngx.var.request_length)
+    local received_length = tonumber(var.request_length)
     local sum = shared_status:get(server_key .. RECEIVED) or 0
     shared_status:set(server_key .. RECEIVED, sum + received_length)
 
@@ -186,7 +198,7 @@ local function hook_for_server()
     end
 
     -- sent_length sum
-    local sent_length = tonumber(ngx.var.bytes_sent)
+    local sent_length = tonumber(var.bytes_sent)
     local sum = shared_status:get(server_key .. SENT) or 0
     shared_status:set(server_key .. SENT, sum + sent_length)
 
@@ -198,14 +210,14 @@ local function hook_for_server()
 end
 
 --add global count info
-function _M.log()
-    local host = ngx.var.host
-    local up_addr = ngx.var.upstream_addr
-    local seconds = ngx.time()
+function _M.log(var, ctx)
+    --local host = var.host
+    --local up_addr = var.upstream_addr
+    local seconds = ngx_time()
     -- requests
     shared_status:incr( TOTAL_COUNT, 1 )
 
-    if tonumber(ngx.var.status) < 400 then
+    if tonumber(var.status) < 400 then
         shared_status:incr( TOTAL_COUNT_SUCCESS, 1 )
     end
 
@@ -214,66 +226,65 @@ function _M.log()
         shared_status:set(CURRENT_QPS .. seconds, 1)
     end
 
-    local newval, err = shared_status:incr(TRAFFIC_READ, tonumber(ngx.var.request_length))
+    local newval, err = shared_status:incr(TRAFFIC_READ, tonumber(var.request_length))
     if not newval and err == "not found" then
-        shared_status:set(TRAFFIC_READ, tonumber(ngx.var.request_length))
+        shared_status:set(TRAFFIC_READ, tonumber(var.request_length))
     end
 
-    local newval, err = shared_status:incr(TRAFFIC_WRITE, tonumber(ngx.var.bytes_sent))
+    local newval, err = shared_status:incr(TRAFFIC_WRITE, tonumber(var.bytes_sent))
     if not newval and err == "not found" then
-        shared_status:set(TRAFFIC_WRITE, tonumber(ngx.var.bytes_sent))
+        shared_status:set(TRAFFIC_WRITE, tonumber(var.bytes_sent))
     end
 
-    shared_status:incr(TIME_TOTAL, ngx.var.request_time)
+    shared_status:incr(TIME_TOTAL, var.request_time)
 
     -- upstream
-    hook_for_upstream()
+    hook_for_upstream(var)
 
     -- server zone
-    hook_for_server()
+    hook_for_server(var)
 end
 
-local function get_nginx_info()
-    local dict_status = ngx.shared.status
+local function get_nginx_info(var)
     local ngx_lua_version = ngx.config.ngx_lua_version --例如 0.9.2 就对应返回值 9002; 1.4.3 就对应返回值 1004003
 
     local report = {}
-    report.nginx_version = ngx.var.nginx_version
-    report.ngx_lua_version = math.floor(ngx_lua_version / 1000000) .. '.' .. math.floor(ngx_lua_version / 1000) .. '.' .. math.floor(ngx_lua_version % 1000)
-    report.address = ngx.var.server_addr .. ":" .. ngx.var.server_port
-    report.worker_count = ngx.worker.count()
-    report.load_timestamp = dict_status:get(NGX_LOAD_TIMESTAMP)
-    report.timestamp = ngx.time()
-    report.generation = dict_status:get(NGX_RELOAD_GENERATION)
-    report.pid = dict_status:get( MASTER_PID )
+    report.nginx_version = var.nginx_version
+    report.ngx_lua_version = math_floor(ngx_lua_version / 1000000) .. '.' .. math_floor(ngx_lua_version / 1000) .. '.' .. math_floor(ngx_lua_version % 1000)
+    report.address = var.server_addr .. ":" .. var.server_port
+    report.worker_count = ngx_worker_count()
+    report.load_timestamp = shared_status:get(NGX_LOAD_TIMESTAMP)
+    report.timestamp = ngx_time()
+    report.generation = shared_status:get(NGX_RELOAD_GENERATION)
+    report.pid = shared_status:get( MASTER_PID )
     return report
 end
 
-local function get_connections_info()
+local function get_connections_info(var)
     local report = {}
-    report.current = tonumber(ngx.var.connections_active) --包括读、写和空闲连接数
-    report.active = ngx.var.connections_reading + ngx.var.connections_writing
-    report.idle = tonumber(ngx.var.connections_waiting)
-    report.writing = tonumber(ngx.var.connections_writing)
-    report.reading = tonumber(ngx.var.connections_reading)
+    report.current = tonumber(var.connections_active) --包括读、写和空闲连接数
+    report.active = var.connections_reading + var.connections_writing
+    report.idle = tonumber(var.connections_waiting)
+    report.writing = tonumber(var.connections_writing)
+    report.reading = tonumber(var.connections_reading)
 
     return report
 end
 
 local function get_requests_info()
-    local cur_seconds = ngx.time() - 1
+    local cur_seconds = ngx_time() - 1
 
     local report = {}
-    report.total = ngx.shared.status:get(TOTAL_COUNT)
-    report.success = ngx.shared.status:get(TOTAL_COUNT_SUCCESS)
-    report.current = ngx.shared.status:get(CURRENT_QPS .. cur_seconds) or 0
+    report.total = shared_status:get(TOTAL_COUNT)
+    report.success = shared_status:get(TOTAL_COUNT_SUCCESS)
+    report.current = shared_status:get(CURRENT_QPS .. cur_seconds) or 0
 
     return report
 end
 
-function get_upstream_peers_info(upstream_name, peers_info)
+local function get_upstream_peers_info(upstream_name, peers_info)
     local upstream_key = upstream_name .. '_' .. peers_info.name
-    local last_seconds = ngx.time() - 1
+    local last_seconds = ngx_time() - 1
 
     local upstream_stat = {}
     upstream_stat.id = peers_info.id
@@ -311,17 +322,17 @@ end
 local function get_upstreams_info()
     local report = {}
 
-    for _, upstream_name in ipairs(upstream.get_upstreams()) do
+    for _, upstream_name in ipairs(ngx_get_upstreams()) do
         report[upstream_name] = {}
         report[upstream_name].peers = {}
-        for _, peers_info in ipairs(upstream.get_primary_peers(upstream_name)) do
+        for _, peers_info in ipairs(ngx_get_primary_peers(upstream_name)) do
             peers_info.backup = false
-            table.insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, peers_info))
+            table_insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, peers_info))
         end
 
-        for _, peers_info in ipairs(upstream.get_backup_peers(upstream_name)) do
+        for _, peers_info in ipairs(ngx_get_backup_peers(upstream_name)) do
             peers_info.backup = true
-            table.insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, peers_info))
+            table_insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, peers_info))
         end
     end
 
@@ -330,7 +341,7 @@ end
 
 local function get_server_zones()
     local report = {}
-    local last_seconds = ngx.time() - 1
+    local last_seconds = ngx_time() - 1
 
     local server_zones = shared_status:get(SERVER_ZONES)
     if server_zones then
@@ -360,13 +371,13 @@ end
 function _M.report()
     local report = {}
     report.version = 1 -- Version of the provided data set. The current version is 1
-
-    report = get_nginx_info()
-    report.connections = get_connections_info()
+    local var = ngx.var
+    report = get_nginx_info(var)
+    report.connections = get_connections_info(var)
     report.requests = get_requests_info()
     report.upstreams = get_upstreams_info()
     report.server_zones = get_server_zones()
-    ngx.log(ngx.DEBUG, common.json_encode(report))
+    log(DEBUG, common.json_encode(report))
     return report
 end
 
