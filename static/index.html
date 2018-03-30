@@ -366,7 +366,6 @@
             servers: countUpstream(resp.body.upstreams),
             serverZone: countServerZone(resp.body.server_zones)
         };
-        console.log(data)
         let app = new Vue({
             el: '#app',
             data: data

@@ -1,9 +1,10 @@
 ## 项目简介
-基于openresty+nginx开发的api网关，实现了基本的动态路由、动态upstream、负载均衡、限流、降级的功能，借鉴kong的插件扩展策略，提供了可供自由添加的插件机制
+基于openresty+nginx的api网关，实现了基本的动态路由、动态upstream、负载均衡、限流、降级的功能，借鉴kong的插件扩展策略，提供了可供自由添加的插件机制
 ## 目录
-- [**安装/启动PHI项目**](#安装/启动PHI项目)
+- [**安装**](#安装)
+- [**启动和配置**](#启动和配置)
 - [**启动管理控制台**](#启动管理控制台)
-- [**启动脚本**](#启动脚本)
+- [**启动统计面板**](#启动统计面板)
 - [**快速开始**](#快速开始)
 - [**管理控制台API**](#管理控制台api)
     - [**枚举值**](#枚举值)
@@ -13,51 +14,70 @@
     - [**Service Degradation**](#servicedegradation)
 - [**性能测试**](#性能测试)
 - [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
-## 安装/启动PHI项目
-- nginx 配置
-    - 在nginx配置中添加如下内容
-    ```nginx
-        # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
-        lua_package_path '../openresty/?.lua;../phi/?.lua;../lib/?.lua;;';
-        lua_package_cpath '../openresty/?.so;../lib/?.so;;';
-        # 如果使用了openresty，那么只需引入下面的包
-        #lua_package_path '../phi/?.lua;../lib/?.lua;;';
-        #lua_package_cpath '../lib/?.so;;';
-        #生产环境务必开启
-        lua_code_cache on;
-        # 共享内存的大小按需调整
-        lua_shared_dict phi                     5m;
-        lua_shared_dict phi_events              5m;
-        lua_shared_dict phi_lock                5m;
-        lua_shared_dict phi_router              10m;
-        lua_shared_dict phi_upstream            10m;
-        lua_shared_dict phi_limiter             10m;
-        lua_shared_dict phi_limit_req           128m;
-        lua_shared_dict phi_limit_conn          128m;
-        lua_shared_dict phi_limit_count         128m;
-        #lua入口文件
-        init_by_lua_file ../entry_lua_file/init_by_lua.lua;
-        init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
-        log_by_lua_file ../entry_lua_file/log_by_lua.lua;
-        server {
-            listen 8080;
-            location / {
-                set $backend '';
-                rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
-                access_by_lua_file ../entry_lua_file/access_by_lua.lua;
-                proxy_http_version 1.1;
-                proxy_set_header Connection "";
-                proxy_pass http://$backend;
-            }
-        }
-        upstream phi_upstream {
-            server 0.0.0.1;
-            balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
-            # 请按需调整
-            keepalive 2000;
-        }
+## 安装
+- 项目运行依赖[[OpenResty]]，安装了OpenResty的情况下可以跳过此安装步骤
+- 自行编译[[lua-nginx-module]]、[[lua-upstream-nginx-module]]的Nginx，以及lua或者luajit
+    ```bash
+      # 你可以执行install目录下的install.sh来完成一键安装。项目默认将被安装在/home/phi-0.0.1目录下
+      ./install.sh ${path_to_nginx_src}
     ```
-- phi的配置
+- 请将/home/phi-0.0.1/sbin加入环境变量
+## 启动和配置
+- bin目录下的phi：
+    - 用法: phi start|stop|restart|reload|test
+    - 可选参数 :
+        - -D: 启动远程debug模式，默认占用端口8172,使用参考：[[ZeroBrane Studio]]，[[EmmyLua]]
+        - -H: 远程debug 主机名，默认localhost
+        - -P: 远程debug 端口,默认8172
+        - -p: nginx启动目录，同nginx -p参数
+        - -c: nginx启动配置文件名称，同nginx -c参数
+- 你也可以使用nginx启动命令来启动项目
+- 你也可以自行指定nginx配置文件，但需要在你已存在的nginx配置中添加如下内容
+    - Nginx 配置
+        - 在nginx配置中添加如下内容
+        ```nginx
+            # 需要安装luajit/lua，xxx表示项目根路径，需要在nginx/tengine编译时添加如下模块lua_nginx_module(0.10.11)和lua_upstream_nginx_module(0.07)，安装方式参考install/install.sh
+            lua_package_path '../openresty/?.lua;../phi/?.lua;../lib/?.lua;;';
+            lua_package_cpath '../openresty/?.so;../lib/?.so;;';
+            # 如果使用了openresty，那么只需引入下面的包
+            #lua_package_path '../phi/?.lua;../lib/?.lua;;';
+            #lua_package_cpath '../lib/?.so;;';
+            #生产环境务必开启
+            lua_code_cache on;
+            # 共享内存的大小按需调整
+            lua_shared_dict phi                     5m;
+            lua_shared_dict phi_events              5m;
+            lua_shared_dict phi_lock                5m;
+            lua_shared_dict phi_router              10m;
+            lua_shared_dict phi_upstream            10m;
+            lua_shared_dict phi_limiter             10m;
+            lua_shared_dict phi_limit_req           128m;
+            lua_shared_dict phi_limit_conn          128m;
+            lua_shared_dict phi_limit_count         128m;
+            #lua入口文件
+            init_by_lua_file ../entry_lua_file/init_by_lua.lua;
+            init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
+            log_by_lua_file ../entry_lua_file/log_by_lua.lua;
+            server {
+                listen 8080;
+                location / {
+                    set $backend '';
+                    rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
+                    access_by_lua_file ../entry_lua_file/access_by_lua.lua;
+                    proxy_http_version 1.1;
+                    proxy_set_header Connection "";
+                    proxy_pass http://$backend;
+                }
+            }
+            upstream phi_upstream {
+                server 0.0.0.1;
+                balancer_by_lua_file ../entry_lua_file/balancer_by_lua.lua;
+                # 请按需调整
+                keepalive 2000;
+            }
+        ```
+- Phi 配置
+    - 项目启动默认会读取bin目录和conf目录下的phi.ini，你可以创建此文件用来覆盖项目的默认配置
     - phi/config/default_config.lua中定义了默认的配置项
     ```lua
         return {
@@ -93,6 +113,7 @@ server {
 }
 ```
 ## 启动统计面板
+- 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启
 - phi配置中enabled_mio=true,并在nginx配置中添加如下server
     ```nginx
     server {
@@ -121,17 +142,7 @@ server {
     ```
 - 统计面板截图
 ![dashborad](/static/image/dashboard.png)
-- 更多可参看[[MIO]]，对源代码做了一些修改
-## 启动脚本
-- bin目录下的phi：
-    - 用法: phi start|stop|restart|reload|test
-    - 可选参数 :
-        - -D: 启动远程debug模式，默认占用端口8172,使用参考：[[ZeroBrane Studio]]，[[EmmyLua]]
-        - -H: 远程debug 主机名，默认localhost
-        - -P: 远程debug 端口,默认8172
-        - -p: nginx启动目录，同nginx -p参数
-        - -c: nginx启动配置文件名称，同nginx -c参数
-- 你也可以使用nginx启动命令来启动项目
+- 更多可参考[[MIO]]，对源代码做了一些修改
 ## 快速开始
 - 参考默认配置
     - 使用8080端口作为api网关入口
@@ -702,7 +713,8 @@ server {
     - 我测试了原生的nginx反向代理进行对比：50K T/S
     - 开启router功能后测试结果：32K T/S
     - 开启dynamic ups和balancer之后： 25K T/S
-    - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值，在开启多核情况下性能会有更高的提升
+    - 此测试应该可以反映，服务器在满负荷下的吞吐量极限值
+    - 在开启多核情况下性能会有更高的提升，同时在多核心下以上三种场景的吞吐量差距会更小
 - 测试在2000并发连接数下的系统稳定性：
    - TODO
 ## 使用的第三方lua库或工具
@@ -724,3 +736,6 @@ server {
 [lua-resty-worker-events]:https://github.com/Kong/lua-resty-worker-events
 [penlight]:https://github.com/stevedonovan/Penlight
 [MIO]:https://github.com/iresty/Mio
+[OpenResty]:https://openresty.org
+[lua-nginx-module]:https://github.com/openresty/lua-nginx-module
+[lua-upstream-nginx-module]:https://github.com/openresty/lua-upstream-nginx-module
