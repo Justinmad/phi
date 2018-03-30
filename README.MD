@@ -14,6 +14,7 @@
     - [**Service Degradation**](#servicedegradation)
 - [**性能测试**](#性能测试)
 - [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
+
 ## 安装
 - 项目运行依赖[[OpenResty]]，安装了OpenResty的情况下可以跳过此安装步骤
 - 自行编译[[lua-nginx-module]]、[[lua-upstream-nginx-module]]的Nginx，以及lua或者luajit
@@ -22,6 +23,7 @@
       ./install.sh ${path_to_nginx_src}
     ```
 - 请将/home/phi-0.0.1/sbin加入环境变量
+
 ## 启动和配置
 - bin目录下的phi：
     - 用法: phi start|stop|restart|reload|test
@@ -100,6 +102,7 @@
         - 环境变量中对应的值,环境变量取值会在所有的key前面加PHI_,例如debug对应环境变量中的PHI_DEBUG的值
         - default_paths中指定的ini文件中配置的值
         - default_config.lua中指定的默认值
+        
 ## 启动管理控制台
 phi配置中enabled_admin=true,在nginx配置中添加如下server
 ```nginx
@@ -112,6 +115,7 @@ server {
     }
 }
 ```
+
 ## 启动统计面板
 - 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启
 - phi配置中enabled_mio=true,并在nginx配置中添加如下server
@@ -143,6 +147,7 @@ server {
 - 统计面板截图
 ![dashborad](/static/image/dashboard.png)
 - 更多可参考[[MIO]]，对源代码做了一些修改
+
 ## 快速开始
 - 参考默认配置
     - 使用8080端口作为api网关入口
@@ -239,6 +244,7 @@ server {
         {"message":"This is a degraded fake data"}
     ```
     - 再次访问将会进入上面添加的限流规则中
+
 ## 管理控制台API
 - ### 枚举值
     - #### mapper 
@@ -516,7 +522,7 @@ server {
                 |value         |Description
                 |-------------:|--------------------------:
                 |resty_chash   |简单hash算法
-                |roundrobin    |轮训算法
+                |roundrobin    |轮询算法
             - severs：数组，表示一组server，每一条记录有两个字段
                 - name：表示server地址，ip:port
                 - info：对象，目前支持2个字段
@@ -645,11 +651,11 @@ server {
       - 返回数据格式：JSON
       - 请求字段说明
           - type：枚举值
-          
-              |value       |Description       
-              |-----------:|:-----------------------------------------------
-              |`fake`      |返回target中指定的数据
-              |`redirect`  |重定向到target指定的路径
+
+            |value         |Description
+            |-------------:|--------------------------:
+            |`fake`   |返回target中指定的数据
+            |`redirect`    |重定向到target指定的路径
           - "enabled": true/false，针对此uri的降级开关
       - 请求数据示例：
           ```json
@@ -698,6 +704,7 @@ server {
             ```text
             hostkey=xxx&uri=/xxxx
             ```
+
 ## 性能测试
 我在自己的笔记本上使用ab进行了简单的负载测试：
 - 测试准备
@@ -717,6 +724,7 @@ server {
     - 在开启多核情况下性能会有更高的提升，同时在多核心下以上三种场景的吞吐量差距会更小
 - 测试在2000并发连接数下的系统稳定性：
    - TODO
+
 ## 使用的第三方lua库或工具
 - [mobdebug] lua的远程调试工具
 - [classic] 使用lua模拟面向对象编程
@@ -726,6 +734,7 @@ server {
 - [EmmyLua] IntelliJ idea的lua插件
 - [ZeroBrane Studio] 轻量级的lua ide
 - [MIO] resty的统计系统
+
 
 [ZeroBrane Studio]:https://studio.zerobrane.com/support
 [EmmyLua]:https://github.com/EmmyLua/IntelliJ-EmmyLua
