@@ -40,7 +40,7 @@ end
 
 local class = {}
 
-function class:new(strategy, server_list, mapper, tag)
+function class:new(strategy, server_list, mapper)
     local balancer
     if strategy == "resty_chash" then
         if not mapper_holder[mapper] then
@@ -53,14 +53,13 @@ function class:new(strategy, server_list, mapper, tag)
         return nil, "can't create balancer , bad strategy type :" .. strategy
     end
     if mapper == "" or mapper == nil then
-        mapper, tag = nil, nil
+        mapper = nil
     elseif not mapper_holder[mapper] then
         return nil, "can't create balancer , bad mapper name :" .. mapper
     end
     return setmetatable({
         balancer = balancer,
-        mapper = mapper,
-        tag = tag
+        mapper = mapper
     }, { __index = _M })
 end
 

@@ -23,10 +23,13 @@ local type = type
 local gsub = string.gsub
 local pairs = pairs
 local getn = table.getn
+local insert = table.insert
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local ERR = ngx.ERR
@@ -58,9 +61,9 @@ function _M:init_worker(observer)
             LOGGER(NOTICE, "do not process the event send from self")
         else
             LOGGER(DEBUG, "received event; source=", source,
-                ", event=", event,
-                ", data=", pretty_write(data),
-                ", from process ", pid)
+                    ", event=", event,
+                    ", data=", pretty_write(data),
+                    ", from process ", pid)
             -- server增删情况下，重建balancer
             self.cache:update()
             self:getUpstreamBalancer(data)
@@ -69,9 +72,9 @@ function _M:init_worker(observer)
     -- 关注配置中的peer的启停
     observer.register(function(data, event, source, pid)
         LOGGER(DEBUG, "received event; source=", source,
-            ", event=", event,
-            ", data=", pretty_write(data),
-            ", from process ", pid)
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
         if worker_pid() == pid and type(data[4]) ~= "boolean" then
             LOGGER(NOTICE, "do not process the event send from self")
         else
@@ -137,19 +140,11 @@ function _M:setPeerDown(upstreamName, peerId, down)
     local _, err, upstreamInfo = self.cache:peek(upstreamName)
     local ok
     if upstreamInfo == "stable" then
-        local serversInfo = self:getUpstreamServers(upstreamName)
-        for _, s in ipairs(serversInfo.primary) do
+        local serversInfos = self:getUpstreamServers(upstreamName)
+        for _, s in ipairs(serversInfos) do
             if s.name == peerId then
                 peerId = s.id
-                isBackup = false
-            end
-        end
-        if isBackup == nil then
-            for _, s in ipairs(serversInfo.backup) do
-                if s.name == peerId then
-                    peerId = s.id
-                    isBackup = false
-                end
+                isBackup = s.backup
             end
         end
         if isBackup == nil then
@@ -175,7 +170,9 @@ function _M:setPeerDown(upstreamName, peerId, down)
         local weight
         weight, err = self.dao:downUpstreamServer(upstreamName, peerId, down)
         if not err then
-            if down then weight = 0 end
+            if down then
+                weight = 0
+            end
             self:getUpstreamBalancer(upstreamName):set(peerId, weight)
             self:peerStateChangeEvent(upstreamName, peerId, weight)
             ok = true
@@ -299,9 +296,17 @@ function _M:getUpstreamServers(upstream)
     local _, err, upstreamInfo = self.cache:peek(upstream)
     local data
     if upstreamInfo == "stable" then
-        data = {}
-        data["primary"] = ngx_upstream.get_primary_peers(upstream)
-        data["backup"] = ngx_upstream.get_backup_peers(upstream)
+        local upsPrimaryServers = ngx_upstream.get_primary_peers(upstream)
+        local upsBackupServers = ngx_upstream.get_backup_peers(upstream)
+        data = new_tab(#upsPrimaryServers + #upsPrimaryServers, 0)
+        for _, s in ipairs(upsPrimaryServers) do
+            s.backup = false
+            insert(data, s)
+        end
+        for _, s in ipairs(upsBackupServers) do
+            s.backup = true
+            insert(data, s)
+        end
     else
         data, err = self.dao:getUpstreamServers(upstream)
     end
@@ -309,11 +314,6 @@ function _M:getUpstreamServers(upstream)
         err = "不存在的upstream！"
     end
     return data, err
-end
-
-local _ok, new_tab = pcall(require, "table.new")
-if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
 end
 
 local function newBalancer(res)
@@ -330,15 +330,13 @@ local function newBalancer(res)
                 strategy = v
             elseif k == "mapper" then
                 mapper = v
-            elseif k == "tag" then
-                tag = v
             else
                 if not v.down then
                     server_list[k] = v.weight or 1
                 end
             end
         end
-        return balancer_wrapper:new(strategy, server_list, mapper, tag)
+        return balancer_wrapper:new(strategy, server_list, mapper)
     else
         return res
     end
@@ -369,7 +367,7 @@ function class:new(ref, config)
         ttl = 0, -- 缓存失效时间
         neg_ttl = 0, -- 未命中缓存失效时间
         resty_lock_opts = {
-            -- 回源DB的锁配置
+        -- 回源DB的锁配置
             exptime = 10, -- 锁失效时间
             timeout = 5 -- 获取锁超时时间
         },

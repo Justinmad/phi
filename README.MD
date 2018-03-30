@@ -16,16 +16,20 @@
 - [**使用的第三方lua库或工具**](#使用的第三方lua库或工具)
 
 ## 安装
-- 项目运行依赖[[OpenResty]]，安装了OpenResty的情况下可以跳过此安装步骤
-- 自行编译[[lua-nginx-module]]、[[lua-upstream-nginx-module]]的Nginx，以及lua或者luajit
-    ```bash
-      # 你可以执行install目录下的install.sh来完成一键安装。项目默认将被安装在/home/phi-0.0.1目录下
-      ./install.sh ${path_to_nginx_src}
-    ```
-- 请将/home/phi-0.0.1/sbin加入环境变量
+- 方式一
+    - 项目运行依赖[[OpenResty]]，安装了OpenResty的情况下可以跳过此安装步骤
+- 方式二
+    - 自行编译[[lua-nginx-module]]、[[lua-upstream-nginx-module]]的Nginx，以及lua或者luajit
+- 方式三
+    - 执行install目录下的install.sh来完成一键安装。项目默认将被安装在/home/phi-0.0.1目录下
+        ```bash
+          ./install.sh ${path_to_nginx_src}
+        ```
+    - 请将/home/phi-0.0.1/sbin加入环境变量
 
 ## 启动和配置
-- bin目录下的phi：
+- 确保nginx命令可执行,可以使用command -v nginx查看
+- 使用bin目录下的phi：
     - 用法: phi start|stop|restart|reload|test
     - 可选参数 :
         - -D: 启动远程debug模式，默认占用端口8172,使用参考：[[ZeroBrane Studio]]，[[EmmyLua]]

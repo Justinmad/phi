@@ -66,12 +66,13 @@ function _M:getAllRouterPolicy(cursor, count)
     local res, err = self.db:scan(cursor, "MATCH", MATCH, "COUNT", count)
     local result
     if res then
-        result = {
-            cursor = res[1],
-            data = {}
-        }
         -- 增加pipeline支持
         local keys = res[2]
+        result = {
+            cursor = res[1],
+            count = #keys,
+            data = {}
+        }
         self.db:init_pipeline(#keys)
         for _, k in ipairs(keys) do
             self.db:get(k)

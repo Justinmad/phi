@@ -6,6 +6,7 @@
 -- 简单的mvc映射
 --
 
+local ngx = ngx
 local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
 local LOGGER = ngx.log
@@ -16,7 +17,6 @@ local setmetatable = setmetatable
 local getmetatable = getmetatable
 local tostring = tostring
 local pairs = pairs
-local ngx = ngx
 local type = type
 local class = {}
 local _M = {}
@@ -135,7 +135,7 @@ function _M:content_by_lua()
         end
         if handler then
             handler(request)
-            Response.ok("[" .. request.uri .. "] and method:[" .. request.method .. "] no content", 204)
+            Response.success("[" .. request.uri .. "] and method:[" .. request.method .. "] no content", 204)
         end
     end
     Response.failure("Did not find handler method for given uri:[" .. request.uri .. "] and method:[" .. request.method .. "]", 404)
