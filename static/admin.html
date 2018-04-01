@@ -7,7 +7,9 @@
     <title>Welcome to Phi Admin</title>
     <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet"
           type="text/css">
-    <link href="https://unpkg.com/vuetify/dist/vuetify.min.css" rel="stylesheet" type="text/css"/>
+    <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcss.com/vuetify/1.0.11/vuetify.min.css" rel="stylesheet">
+    <link href="/static/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css"/>
 </head>
 <body>
 <div id="app">
@@ -22,15 +24,233 @@
             <div id="main" style="width: auto;"></div>
         </v-container>
         <v-footer class="pa-3">
+            <v-btn class="mt-0 mb-0" small icon @click="chartLayout='orthogonal'">
+                <v-icon>mdi-file-tree</v-icon>
+            </v-btn>
+            <v-btn class="mt-0 mb-0" small icon @click="chartLayout='radial'">
+                <v-icon>mdi-radio-tower</v-icon>
+            </v-btn>
+            <v-btn class="mt-0 mb-0" small icon @click="updateChart">
+                <v-icon>refresh</v-icon>
+            </v-btn>
             <v-spacer></v-spacer>
             <div>&copy; {{ new Date().getFullYear() }}</div>
         </v-footer>
+        <v-dialog v-model="newApiServerDialog" persistent max-width="500px">
+            <v-card>
+                <v-card-title>
+                    <span class="headline">New Api Server</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-container grid-list-md>
+                        <v-form v-model="formValid" ref="routerForm">
+                            <v-layout wrap>
+                                <v-flex xs12 sm6 md6>
+                                    <v-text-field :rules="formRules.string" label="Host" v-model="newRouter.hostkey"
+                                                  hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
+                                </v-flex>
+                                <v-flex xs12 sm6 md6>
+                                    <v-text-field required :rules="formRules.string" label="Default Server"
+                                                  v-model="newRouter.data.default"
+                                                  hint="可以是[ip:port]也可以是具体upstream名称"></v-text-field>
+                                </v-flex>
+
+                            </v-layout>
+                        </v-form>
+                    </v-container>
+                    <small class="red--text">* 表示必填</small>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" flat @click.native="newApiServerDialog = false">Close</v-btn>
+                    <v-btn color="blue darken-1" flat :loading="formLoading" @click.native="newRouterApi">Save
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <v-dialog v-model="updatePolicyDialog" persistent max-width="500px">
+            <v-card>
+                <v-card-title>
+                    <span class="headline">Update Router Policy</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-container grid-list-md>
+                        <v-form v-model="formValid" ref="policyForm">
+                            <v-layout wrap>
+                                <v-flex xs12 sm6 md6>
+                                    <v-text-field disabled :rules="formRules.string" label="Host"
+                                                  v-model="newRouter.hostkey"
+                                                  hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
+                                </v-flex>
+                                <v-flex xs12 sm6 md6>
+                                    <v-text-field disabled required :rules="formRules.string" label="Default Server"
+                                                  v-model="newRouter.data.default"
+                                                  hint="可以是[ip:port]也可以是具体upstream名称"></v-text-field>
+                                </v-flex>
+                            </v-layout>
+                            <div v-for="p in newRouter.data.policies">
+                                <v-layout wrap>
+                                    <v-flex xs12 sm3 md3>
+                                        <v-text-field :rules="formRules.number" label="Order"
+                                                      v-model="p.order"
+                                                      hint="规则优先级，越大优先级越高" required></v-text-field>
+                                    </v-flex>
+                                    <v-flex xs12 sm3 md3>
+                                        <v-text-field :rules="formRules.string" label="Policy"
+                                                      v-model="p.policy"
+                                                      hint="规则的计算类型" required></v-text-field>
+                                    </v-flex>
+                                    <v-flex xs12 sm3 md3 v-if="typeof(p.mapper)==='string'">
+                                        <v-text-field :rules="formRules.string" label="Mapper"
+                                                      v-model="p.mapper"
+                                                      hint="提取请求特征的方式" required></v-text-field>
+                                    </v-flex>
+                                    <v-flex xs12 sm3 md3 v-if="p.mapper.type">
+                                        <v-text-field :rules="formRules.string" label="Mapper"
+                                                      v-model="p.mapper.type"
+                                                      hint="提取请求特征的方式" required></v-text-field>
+                                    </v-flex>
+                                    <v-flex xs12 sm3 md3 v-if="p.mapper.tag">
+                                        <v-text-field :rules="formRules.string" label="Tag"
+                                                      v-model="p.mapper.tag"
+                                                      hint="提取请求特征时的额外参数，可选"></v-text-field>
+                                    </v-flex>
+                                </v-layout>
+                            </div>
+                        </v-form>
+                    </v-container>
+                    <small class="red--text">* 表示必填</small>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" flat @click.native="updatePolicyDialog = false">Close</v-btn>
+                    <v-btn color="blue darken-1" flat :loading="formLoading" @click.native="newRouterApi">Save
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <v-menu
+                offset-y
+                v-model="menu.phi"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="newApiServerDialog=true">
+                    <v-list-tile-title>新增Api Server</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-menu
+                offset-y
+                v-model="menu.host"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="updatePolicy">
+                    <v-list-tile-title>添加/编辑路由规则</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="updateRouter">
+                    <v-list-tile-title>修改Api Server</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="delRouterApi(node.name)">
+                    <v-list-tile-title>删除Api Server</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-menu
+                offset-y
+                v-model="menu.policy"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="">
+                    <v-list-tile-title>编辑路由规则</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="" v-if="!node.stable">
+                    <v-list-tile-title>删除路由规则</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-menu
+                offset-y
+                v-model="menu.upstream"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="">
+                    <v-list-tile-title>新建服务器组</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="" v-if="!node.stable">
+                    <v-list-tile-title>添加上游主机</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="">
+                    <v-list-tile-title style="color: ">删除服务器组</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-menu
+                offset-y
+                v-model="menu.server"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="" v-if="!node.stable">
+                    <v-list-tile-title>编辑主机</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="" v-if="!node.stable">
+                    <v-list-tile-title>删除主机</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="">
+                    <v-list-tile-title>启用/停用主机</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-snackbar
+                :color="alertOption.color"
+                :timeout="alertOption.timeout"
+                :top="alertOption.y === 'top'"
+                :bottom="alertOption.y === 'bottom'"
+                :right="alertOption.x === 'right'"
+                :left="alertOption.x === 'left'"
+                :multi-line="alertOption.mode === 'multi-line'"
+                :vertical="alertOption.mode === 'vertical'"
+                v-model="alertOption.show"
+                class="black--text"
+        >
+            {{ alertOption.message }}
+            <v-btn flat icon color="pink" @click.native="alertOption.show = false">
+                <v-icon>close</v-icon>
+            </v-btn>
+        </v-snackbar>
+        <v-dialog v-model="confirmOption.show" max-width="290">
+            <v-card>
+                <v-card-title class="'headline '+confirmOption.color">Confirm?</v-card-title>
+                <v-card-text>
+                    {{confirmOption.message}}
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="green darken-1" flat @click.native="confirmOption.show = false">No</v-btn>
+                    <v-btn color="green darken-1" flat @click.native="confirmFunc">Yes</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </v-app>
 </div>
 </body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vuetify/1.0.11/vuetify.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.0/vue-resource.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.0.4/echarts.min.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.5.16/vue.min.js"></script>
+<script src="https://cdn.bootcss.com/vuetify/1.0.11/vuetify.min.js"></script>
+<script src="https://cdn.bootcss.com/vue-resource/1.5.0/vue-resource.min.js"></script>
+<script src="https://cdn.bootcss.com/echarts/4.0.4/echarts.min.js"></script>
 <script src="/static/admin.js"></script>
 </html>

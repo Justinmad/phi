@@ -74,7 +74,6 @@ function instance:access()
     end
 end
 
--- TODO 需要在这里做一些统计的功能
 function instance:log()
     local ctx = ngx.ctx
     local var = ngx.var

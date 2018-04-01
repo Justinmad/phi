@@ -75,7 +75,7 @@ _M.add = {
         end
         local policies = body.data.policies
         if policies and #policies < 1 then
-            Response.failure("policies不能为空！")
+            body.data.policies = nil
         end
         local ok, err = self.routerService:setRouterPolicy(hostkey, body.data)
         if ok then
