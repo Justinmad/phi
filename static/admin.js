@@ -129,6 +129,7 @@ new Vue({
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
                         this.newApiServerDialog = false;
+                        this.updatePolicyDialog = false;
                         this.updateChart();
                     } else {
                         this.alert(resp.body.status.message, "warning");
