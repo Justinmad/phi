@@ -18,6 +18,7 @@ local balancer_wrapper = require "core.balancer.balancer_wrapper"
 local get_upstreams = ngx_upstream.get_upstreams
 local set_peer_down = ngx_upstream.set_peer_down
 local worker_pid = ngx.worker.pid
+local tonumber = tonumber
 local ipairs = ipairs
 local type = type
 local gsub = string.gsub
@@ -332,7 +333,7 @@ local function newBalancer(res)
                 mapper = v
             else
                 if not v.down then
-                    server_list[k] = v.weight or 1
+                    server_list[k] = tonumber(v.weight) or 1
                 end
             end
         end

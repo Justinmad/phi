@@ -120,6 +120,7 @@ function dashboardController:tree()
                                     -- 这是一个固定server，不能编辑，但是可以临时UP/DOWN
                                     tmpServerNode.type = "server"
                                     tmpServerNode.stable = true
+                                    tmpServerNode.down = s.down or false
                                     if s.down then
                                         tmpServerNode.itemStyle = {
                                             borderColor = "red"

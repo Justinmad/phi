@@ -55,7 +55,7 @@ var instance = new Vue({
             ],
             ups: [
                 v => !!v || '非空字段，必须填写！',
-                v => (/^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v) || instance.upstreams.indexOf(v) !== -1) || "输入ip:port或选择存在的upstream"
+                v => (/^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v) || (this.upstreams && this.upstreams.indexOf(v) !== -1)) || "输入ip:port或选择已存在的upstream"
             ]
         },
         formValid: false,
@@ -132,13 +132,6 @@ var instance = new Vue({
                 }
             }
         },
-        updateRouter() {
-            this.newRouter = {
-                hostkey: this.node.name,
-                data: this.node.router
-            };
-            this.newApiServerDialog = true;
-        },
         updatePolicy() {
             this.newRouter = {
                 hostkey: this.node.host || this.node.name,
@@ -147,7 +140,6 @@ var instance = new Vue({
             this.updatePolicyDialog = true;
         },
         updateUpstream() {
-            console.log(this.node)
             let keys = Object.keys(this.node.upstream);
             this.newUpstream.upstreamName = this.node.name;
             for (let i in keys) {

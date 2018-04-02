@@ -50,9 +50,13 @@
                                                   hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
                                 </v-flex>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field required :rules="formRules.string" label="Default Server"
-                                                  v-model="newRouter.data.default"
-                                                  hint="可以是[ip:port]也可以是具体upstream名称"></v-text-field>
+                                    <v-select combobox clearable
+                                              :rules="formRules.ups"
+                                              label="Default Server"
+                                              v-model="newRouter.data.default"
+                                              :items="upstreams"
+                                              required
+                                              hint="可以是[ip:port]也可以是具体upstream名称"></v-select>
                                 </v-flex>
 
                             </v-layout>
@@ -78,14 +82,19 @@
                         <v-form v-model="formValid" ref="policyForm">
                             <v-layout wrap>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field disabled :rules="formRules.string" label="Host"
+                                    <v-text-field :rules="formRules.string" label="Host"
                                                   v-model="newRouter.hostkey"
                                                   hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
                                 </v-flex>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field disabled required :rules="formRules.string" label="Default Server"
-                                                  v-model="newRouter.data.default"
-                                                  hint="可以是[ip:port]也可以是具体upstream名称"></v-text-field>
+                                    <v-select combobox clearable
+                                              :rules="formRules.ups"
+                                              label="Default Server"
+                                              v-model="newRouter.data.default"
+                                              :items="upstreams"
+                                              required
+                                              hint="可以是[ip:port]也可以是具体upstream名称"></v-select>
+
                                 </v-flex>
                             </v-layout>
                             <v-card class="mb-2 elevation-5" v-for="p,p_idx in newRouter.data.policies">
@@ -376,9 +385,6 @@
                 <v-list-tile @click="updatePolicy">
                     <v-list-tile-title>添加/编辑路由规则</v-list-tile-title>
                 </v-list-tile>
-                <v-list-tile @click="updateRouter">
-                    <v-list-tile-title>修改Api Server</v-list-tile-title>
-                </v-list-tile>
                 <v-list-tile @click="delRouterApi(node.name)">
                     <v-list-tile-title>删除Api Server</v-list-tile-title>
                 </v-list-tile>
@@ -417,7 +423,7 @@
                 <v-list-tile @click="newServerDialog=true" v-if="!node.stable">
                     <v-list-tile-title>添加上游主机</v-list-tile-title>
                 </v-list-tile>
-                <v-list-tile @click="delUpstreamApi(node.name)">
+                <v-list-tile @click="delUpstreamApi(node.name)" v-if="!node.stable">
                     <v-list-tile-title>删除服务器组</v-list-tile-title>
                 </v-list-tile>
             </v-list>
