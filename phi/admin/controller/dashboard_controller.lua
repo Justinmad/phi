@@ -12,6 +12,7 @@ local GET = CONST.METHOD.GET
 local POST = CONST.METHOD.POST
 local pairs = pairs
 local ipairs = ipairs
+local tonumber = tonumber
 local type = type
 local table_insert = table.insert
 local table_concat = table.concat
@@ -49,8 +50,8 @@ function dashboardController:tree()
         local ps = router_data.policies
         if ps then
             table_sort(router_data.policies, function(r1, r2)
-                local o1 = r1.order or 0
-                local o2 = r2.order or 0
+                local o1 = tonumber(r1.order) or 0
+                local o2 = tonumber(r2.order) or 0
                 return o1 > o2
             end)
             -- 三级节点，policies
@@ -74,7 +75,7 @@ function dashboardController:tree()
                     tmpPolicyNode.children = new_tab(#rt, 0)
                     for _, item in ipairs(rt) do
                         -- 四级节点 ups
-                        local tmpUpsNode = new_tab(0, 4)
+                        local tmpUpsNode = new_tab(0, 5)
                         table_insert(tmpPolicyNode.children, tmpUpsNode)
                         tmpUpsNode.name = item.result
                         tmpUpsNode.value = pretty_write(item.expression)
@@ -85,13 +86,15 @@ function dashboardController:tree()
                             if servers.strategy then
                                 -- 这是一个自定义upstream,允许编辑
                                 tmpUpsNode.children = {}
+                                tmpUpsNode.upstream = servers
                                 for k, v in pairs(servers) do
                                     if k ~= "strategy" and k ~= "mapper" then
-                                        local tmpServerNode = new_tab(0, 5)
+                                        local tmpServerNode = new_tab(0, 6)
                                         table_insert(tmpUpsNode.children, tmpServerNode)
                                         tmpServerNode.name = k
                                         tmpServerNode.info = v
                                         tmpServerNode.ups = item.result
+                                        tmpServerNode.down = v.down or false
                                         -- 这是一个自定义server，允许编辑
                                         tmpServerNode.type = "server"
                                         if v.down then
@@ -113,6 +116,7 @@ function dashboardController:tree()
                                     table_insert(tmpUpsNode.children, tmpServerNode)
                                     tmpServerNode.name = s.name
                                     tmpServerNode.info = s
+                                    tmpServerNode.ups = item.result
                                     -- 这是一个固定server，不能编辑，但是可以临时UP/DOWN
                                     tmpServerNode.type = "server"
                                     tmpServerNode.stable = true
@@ -155,5 +159,9 @@ end
 
 function dashboardController.policies()
     return Response.success(config.enabled_policies)
+end
+
+function dashboardController.balancers()
+    return Response.success({ "resty_chash", "roundrobin" })
 end
 return dashboardController

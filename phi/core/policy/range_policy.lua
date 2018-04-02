@@ -33,8 +33,8 @@ function range_policy.calculate(arg, routerTable)
     for _, item in ipairs(routerTable) do
         local up, policy = item.result, item.expression
         if policy and type(policy) == "table" then
-            local fromNum = policy[1]
-            local endNum = policy[2]
+            local fromNum = tonumber(policy[1])
+            local endNum = tonumber(policy[2])
             local selected = (type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and key >= endNum) --gt
                     or (type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and key <= fromNum) --lt
                     or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum) -- between

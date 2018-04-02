@@ -32,7 +32,7 @@ function suffix_policy.calculate(arg, routerTable)
             local up, policy = item.result, item.expression
             local policyLength = string_len(policy)
             if argLength >= policyLength then
-                local selected = sub(arg, argLength - policyLength + 1) == policy
+                local selected = sub(arg, 1, policyLength) == policy
                 if selected then
                     upstream = up
                     LOGGER(DEBUG, "参数[", arg, "]匹配到规则,suffix:[", policy, "]")

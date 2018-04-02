@@ -42,8 +42,8 @@ local function sortSerializer(row)
         -- 排序
         if type(row.policies) == "table" then
             sort(row.policies, function(r1, r2)
-                local o1 = r1.order or 0
-                local o2 = r2.order or 0
+                local o1 = tonumber(r1.order) or 0
+                local o2 = tonumber(r2.order) or 0
                 return o1 > o2
             end)
         end

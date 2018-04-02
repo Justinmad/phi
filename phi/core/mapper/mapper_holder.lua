@@ -16,7 +16,9 @@ local insert = table.insert
 local concat = table.concat
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 local _M = {}
 
@@ -26,7 +28,7 @@ local function doMap(self, ctx, mapperTable)
         LOGGER(ERR, "ctx参数不正确？")
         return nil, "ctx参数不正确？"
     end
-    local mapper = self[typeStr]
+    local mapper = self[typeStr:lower()]
     if not mapper then
         return nil, "未查询到可用的mapper:" .. typeStr
     end
@@ -54,8 +56,6 @@ function _M:map(ctx, mapperT)
         return nil, "错误的mapper数据格式!"
     end
 end
-
-local class
 
 function _M:new(config)
     if type(config) == "table" then

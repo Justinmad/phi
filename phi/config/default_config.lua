@@ -24,8 +24,9 @@ return {
     debug_port = 8172,
     enabled_admin = true,
     enabled_mio = true,
-    enabled_policies = { "UNIQUE", "RANGE", "PREFIX", "SUFFIX", "COMPOSITE", "MODULO", "REGEX" },
-    enabled_mappers = { "HEADER", "URI_ARGS", "IP", "URI" },
+--enabled_policies = { "unique", "range", "prefix", "suffix", "composite", "modulo", "regex" },
+    enabled_policies = { "unique", "range", "prefix", "suffix", "modulo", "regex" },
+    enabled_mappers = { "header", "uri_args", "ip", "uri" },
     default_paths = {
         current_path .. "phi.ini", conf_path .. "phi.ini"
     },

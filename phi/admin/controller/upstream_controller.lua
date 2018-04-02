@@ -112,7 +112,6 @@ _M.addOrUpdateUps = {
         local upstreamName = body.upstreamName
         local strategy = body.strategy
         local mapper = body.mapper
-        local tag = body.tag
         local servers = body.servers
         if not upstreamName or not servers or not strategy or not mapper then
             Response.failure("缺少必须的请求参数！")
@@ -127,9 +126,6 @@ _M.addOrUpdateUps = {
         end
         insert(servers, { name = "strategy", info = strategy })
         insert(servers, { name = "mapper", info = mapper })
-        if tag then
-            insert(servers, { name = "tag", info = tag })
-        end
         local ok, err = self.upstreamService:addOrUpdateUps(upstreamName, servers)
         if ok then
             Response.success()
