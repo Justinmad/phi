@@ -373,9 +373,9 @@ var instance = new Vue({
         myChart.showLoading();
         this.$http.get('/admin/tree').then(function (resp) {
             myChart.hideLoading();
-            // echarts.util.each(resp.body.data.children, function (datum, index) {
-            //     index % 2 === 0 && (datum.collapsed = true);
-            // });
+            echarts.util.each(resp.body.data.children, function (datum, index) {
+                index % 2 === 0 && (datum.collapsed = true);
+            });
             myChart.setOption({
                 tooltip: {
                     trigger: 'item',
