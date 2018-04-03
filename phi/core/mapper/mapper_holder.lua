@@ -61,13 +61,13 @@ function _M:new(config)
     if type(config) == "table" then
         for _, name in ipairs(config) do
             name = name:lower()
-            LOGGER(DEBUG, "[MAPPER_HOLDER]加载:" .. name)
+            LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. name)
             local mapper = require("core.mapper." .. name .. "_mapper")
             _M[name] = mapper
         end
     else
         config = config:lower()
-        LOGGER(DEBUG, "[MAPPER_HOLDER]加载:" .. config)
+        LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. config)
         local mapper = require("core.mapper." .. config .. "_mapper")
         _M[config] = mapper
     end

@@ -14,19 +14,20 @@ local _M = {}
 local mt = { __index = _M }
 
 local LOGGER = ngx.log
+local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 
 function _M:new(config)
     if type(config) == "table" then
         for _, name in ipairs(config) do
             local class = name:lower()
-            LOGGER(DEBUG, "[POLICY_HOLDER]加载规则:" .. class)
+            LOGGER(ERR, "[POLICY_HOLDER]加载规则:" .. class)
             _M[class] = require("core.policy." .. class .. "_policy")
         end
     else
-        LOGGER(DEBUG, "[POLICY_HOLDER]加载规则:" .. config)
-        local config = config:lower()
-        _M[config:lower()] = require("core.policy." .. config .. "_policy")
+        LOGGER(ERR, "[POLICY_HOLDER]加载规则:" .. config)
+        local path = config:lower()
+        _M[path:lower()] = require("core.policy." .. path .. "_policy")
     end
     return setmetatable({}, mt)
 end

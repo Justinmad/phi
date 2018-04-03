@@ -16,9 +16,9 @@ do
     end
     local constants = require "core.constants"
     local LOGGER = ngx.log
-    local ERROR = ngx.ERROR
+    local ERR = ngx.ERR
     local function log(msg)
-        LOGGER(ERROR, msg)
+        LOGGER(ERR, msg)
     end
 
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
@@ -70,6 +70,7 @@ do
     end
 
     -- bean init
+    log("init bean")
     for _, bean in pairs(context) do
         if type(bean.init) == "function" then
             bean:init()
@@ -77,6 +78,7 @@ do
     end
 
     -- 初始化components
+    log("init components")
     local components = {}
     for _, bean in pairs(context) do
         if string.lower(bean.__definition.type or "") == "component" then
@@ -85,6 +87,7 @@ do
     end
 
     -- 组件排序，所有的组件中order越大就有越高的优先级
+    log("sort components")
     table.sort(components, function(c1, c2)
         local o1 = c1.order or 0
         local o2 = c2.order or 0
@@ -94,6 +97,7 @@ do
 
     -- 初始化admin规则
     if config.enabled_admin then
+        log("enable phi admin")
         phi.admin = require "admin.phi_admin"
     end
     log("------------------------PHI初始化完成！------------------------")
