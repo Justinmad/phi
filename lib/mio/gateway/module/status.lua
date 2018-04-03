@@ -44,6 +44,8 @@ local table_insert = table.insert
 local ipairs = ipairs
 local math_floor = math.floor
 
+local balancer_upstream_name = require("Phi").config.balancer_upstream_name
+
 local ngx = ngx
 local shared_status = ngx.shared.status
 local ngx_worker_count = ngx.worker.count
@@ -70,6 +72,10 @@ local function hook_for_upstream(var)
     local upstream_name = var.proxy_host
     local addr = var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
     if upstream_name and addr then
+        if upstream_name == balancer_upstream_name and var.backend then
+            -- TODO 处理动态upstream
+            upstream_name = var.backend;
+        end
         local upstream_key = upstream_name .. '_' .. addr
 
         if var.upstream_status then

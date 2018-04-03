@@ -96,7 +96,6 @@ function _M.load()
 
     local conf = tablex.pairmap(overrides, default_conf, (from_file_conf or {}), {})
     conf = tablex.merge(default_conf, conf, true) -- 取交集，删除多余的配置
-    print(pl_pretty.write(conf))
 
     -- 打印最终配置在控制台
     do
