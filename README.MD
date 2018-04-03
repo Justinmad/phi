@@ -108,7 +108,8 @@
         - default_config.lua中指定的默认值
         
 ## 启动管理控制台
-phi配置中enabled_admin=true,在nginx配置中添加如下server
+- 如果你使用phi中的nginx配置，管理控制台默认是启用的，通过12345端口即可访问
+- 当你使用自定义的nginx配置，你需要确保phi配置中enabled_admin=true,并在nginx配置中添加如下server
 ```nginx
 server {
     listen 12345;
@@ -123,8 +124,9 @@ server {
 ![admin](/static/image/admin.png)
 
 ## 启动统计面板
-- 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启
-- phi配置中enabled_mio=true,并在nginx配置中添加如下server
+- 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启，使用install中的安装脚本默认会添加此模块到nginx
+- 如果你使用phi中的nginx配置，数据统计默认是启用的，通过12345端口即可访问
+- 当你使用自定义的nginx配置，你需要确保phi配置中enabled_admin=true,并在nginx配置中添加如下server
     ```nginx
     server {
             listen       9090;
@@ -418,18 +420,18 @@ server {
                     "backup": {}
                   },
                   "dynamic_ups": {
-                    "127.0.0.1:12346": {
-                      "weight": 100
-                    },
-                    "127.0.0.1:7777": {
-                      "weight": 10
-                    },
-                    "127.0.0.1:8888": {
-                      "weight": 10
-                    },
-                    "strategy": "resty_chash",
-                    "mapper": "ip"
-                  }
+                     "mapper": "ip",
+                     "servers": [{
+                         "weight": 10,
+                         "name": "127.0.0.1:5555",
+                         "down": false
+                     },{
+                         "weight": 10,
+                         "name": "127.0.0.1:6666",
+                         "down": true
+                     }],
+                     "strategy": "roundrobin"
+                 }
                 }
             }
             ```

@@ -19,7 +19,7 @@ local current_path = concat(tmp, "/") .. "/"
 local conf_path = current_path .. "../../conf/"
 
 return {
-    debug = true,
+    debug = false,
     debug_host = "127.0.0.1",
     debug_port = 8172,
     enabled_admin = true,
