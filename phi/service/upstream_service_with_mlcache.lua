@@ -33,6 +33,8 @@ if not _ok or type(new_tab) ~= "function" then
     end
 end
 
+local find = ngx.re.find
+
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
@@ -313,13 +315,15 @@ function _M:getUpstreamServers(upstream)
         data.servers = new_tab(50, 0)
         local tmp
         tmp, err = self.dao:getUpstreamServers(upstream)
-        for k, v in pairs(tmp) do
-            if k == "strategy" then
-                data.strategy = v
-            elseif k == "mapper" then
-                data.mapper = v
-            else
-                insert(data.servers, { name = k, weight = tonumber(v.weight) or 1, down = v.down or false })
+        if tmp then
+            for k, v in pairs(tmp) do
+                if k == "strategy" then
+                    data.strategy = v
+                elseif k == "mapper" then
+                    data.mapper = v
+                else
+                    insert(data.servers, { name = k, weight = tonumber(v.weight) or 1, down = v.down or false })
+                end
             end
         end
     end
@@ -352,12 +356,20 @@ end
 
 local function getFromDb(self, upstream)
     local res, err = self.dao:getUpstreamServers(upstream)
+    if res then
+        return res
+    else
+        -- 简单判断一下是否属于IP
+        local m = find(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
+        if m then
+            return "ip:port"
+        end
+    end
     if err then
         -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve upstream servers:", err)
-        return { notExists = true }, nil, 10
     end
-    return res
+    return { notExists = true }, nil, 10
 end
 
 -- 获取upstream信息

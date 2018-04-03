@@ -33,18 +33,13 @@ function _M:load(ctx)
     if upstream then
         local upstreamBalancer, err = self.service:getUpstreamBalancer(upstream)
         if err then
+            -- 查询出错
             LOGGER(ERR, "search upstream err：", err, "for upstream : ", upstream)
             return response.failure("Failed to load upstream balancer ,please try again latter :-(", 500)
         elseif upstream == self.default_upstream and upstreamBalancer == "stable" then
+            -- 返回固定ups，但是却等于phi_upstream的占位ups
             LOGGER(ERR, "Failed to dispatch to backend: ups_balancer is nil,", "for upstream : ", upstream)
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
-        elseif upstreamBalancer and upstreamBalancer.notExists then
-            -- 简单判断一下是否属于IP
-            local m = find(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
-            if not m then
-                LOGGER(ERR, "upstream : [", upstream, "]is not exists !")
-                return response.failure("Upstream:" .. upstream .. " is not exists ! :-(", 500)
-            end
         elseif type(upstreamBalancer) == "table" then
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器

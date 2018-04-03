@@ -116,7 +116,7 @@ var instance = new Vue({
                 return "<table>" +
                     "<tr><td>Host:</td><td>" + data.name + "</td></tr>" +
                     "<tr><td>Default:</td><td>" + data.router.default + "</td></tr>" +
-                    "<tr><td>Routers:</td><td>" + data.router.policies.length + "</td></tr>" +
+                    (data.router.policies ? "<tr><td>Routers:</td><td>" + data.router.policies.length + "</td></tr>" : "") +
                     "</table>"
             } else if (type === "policy") {
                 return "<table>" +
@@ -202,9 +202,9 @@ var instance = new Vue({
         },
         newRouterApi() {
             let valided;
-            if (this.newRouter.data.policies.length <= 0)
+            if (!this.newRouter.data.policies || this.newRouter.data.policies.length <= 0)
                 valided = this.$refs.routerForm.validate();
-            if (this.newRouter.data.policies.length > 0)
+            if (this.newRouter.data.policies && this.newRouter.data.policies.length > 0)
                 valided = this.$refs.policyForm.validate();
             if (valided) {
                 this.formLoading = true;
