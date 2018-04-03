@@ -46,7 +46,6 @@ end
 local function getKeyFunc(self, ctx, mapper)
     local key = get_host(ctx)
     if mapper then
-        print(pretty_write(mapper))
         local mappedKey, err = mapper_holder:map(ctx, mapper)
         if mappedKey == nil or err then
             return nil

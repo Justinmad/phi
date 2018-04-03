@@ -105,7 +105,6 @@ end
 
 function dashboardController:upsTree()
     local upstreams = self.upstreamService:getAllUpsInfo()
-    print(pretty_write(upstreams))
     local root = new_tab(0, 2)
     root.name = "upstream"
     root.children = new_tab(50, 0)
