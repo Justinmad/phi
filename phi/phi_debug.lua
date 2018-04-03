@@ -7,8 +7,8 @@ do
     local phi = require("Phi")
     local debug = phi.configuration.debug
     if debug then
-        local host = phi.configuration.debug_host
-        local port = phi.configuration.debug_port
+        local host = phi.configuration.debug_host or "127.0.0.1"
+        local port = phi.configuration.debug_port or 8172
         require("mobdebug").start(host, port)
     end
 end
