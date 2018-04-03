@@ -309,7 +309,19 @@ function _M:getUpstreamServers(upstream)
             insert(data, s)
         end
     else
-        data, err = self.dao:getUpstreamServers(upstream)
+        data = new_tab(0, 3)
+        data.servers = new_tab(50, 0)
+        local tmp
+        tmp, err = self.dao:getUpstreamServers(upstream)
+        for k, v in pairs(tmp) do
+            if k == "strategy" then
+                data.strategy = v
+            elseif k == "mapper" then
+                data.mapper = v
+            else
+                insert(data.servers, { name = k, weight = tonumber(v.weight) or 1, down = v.down or false })
+            end
+        end
     end
     if not err and not data then
         err = "不存在的upstream！"
@@ -318,11 +330,6 @@ function _M:getUpstreamServers(upstream)
 end
 
 local function newBalancer(res)
-    --[[
-        {
-            "host:port":"str"
-        }
-    ]]
     if type(res) == "table" and not res.notExists then
         local server_list = new_tab(0, #res)
         local strategy, mapper, tag

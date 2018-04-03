@@ -97,13 +97,8 @@
 
                                 </v-flex>
                             </v-layout>
-                            <v-card class="mb-2 elevation-5" v-for="p,p_idx in newRouter.data.policies">
+                            <v-card class="elevation-0" v-for="p,p_idx in newRouter.data.policies">
                                 <v-card-title>
-                                    <v-flex xs1>
-                                        <v-btn icon @click="newRouter.data.policies.splice(p_idx,1)">
-                                            <v-icon color="red">delete</v-icon>
-                                        </v-btn>
-                                    </v-flex>
                                     <v-flex xs11>
                                         <v-layout wrap>
                                             <v-flex xs12 sm3 md3>
@@ -153,16 +148,15 @@
                                             </v-flex>
                                         </v-layout>
                                     </v-flex>
+                                    <v-flex xs1>
+                                        <v-btn icon @click="newRouter.data.policies.splice(p_idx,1)">
+                                            <v-icon color="red">delete</v-icon>
+                                        </v-btn>
+                                    </v-flex>
                                 </v-card-title>
                                 <v-card-text>
-                                    <v-layout row v-if="p.routerTable"
+                                    <v-layout row
                                               v-for="rp,rp_index in p.routerTable">
-                                        <v-flex xs1>
-                                            <v-btn icon small
-                                                   @click="p.routerTable.splice(rp_index,1)">
-                                                <v-icon small>fa-minus</v-icon>
-                                            </v-btn>
-                                        </v-flex>
                                         <v-flex xs11>
                                             <v-layout row wrap>
                                                 <v-flex xs6>
@@ -206,29 +200,35 @@
                                                 </v-flex>
                                             </v-layout>
                                         </v-flex>
+                                        <v-flex xs1>
+                                            <v-btn icon small
+                                                   @click="p.routerTable.splice(rp_index,1)">
+                                                <v-icon small>fa-minus</v-icon>
+                                            </v-btn>
+                                        </v-flex>
                                     </v-layout>
                                     <v-layout>
                                         <v-btn block round flat small
                                                @click="p.routerTable.push({result:'',expression:[]})">
                                             <v-icon small>fa-plus</v-icon>
-                                            添加条目
+                                            &nbsp;Add New Policy Item
                                         </v-btn>
                                     </v-layout>
                                 </v-card-text>
+                                <v-card-actions>
+                                    <v-divider></v-divider>
+                                </v-card-actions>
                             </v-card>
-                            <v-flex xs12>
-                                <v-btn block round small
-                                       @click="newRouter.data.policies.push({order:0,mapper:'',policy:'',routerTable:[]})">
-                                    <v-icon small>fa-plus</v-icon>
-                                    &nbsp;添加新规则
-                                </v-btn>
-                            </v-flex>
                         </v-form>
                     </v-container>
                 </v-card-text>
                 <v-card-actions>
                     <small class="red--text">* 表示必填</small>
                     <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" flat
+                           @click.native="newRouter.data.policies.push({order:0,mapper:'',policy:'',routerTable:[]})">
+                        Add
+                    </v-btn>
                     <v-btn color="blue darken-1" flat @click.native="updatePolicyDialog = false">Close</v-btn>
                     <v-btn color="blue darken-1" flat :loading="formLoading" @click.native="newRouterApi">Save
                     </v-btn>
@@ -292,18 +292,30 @@
                                         </v-flex>
                                     </v-layout>
                                 </v-flex>
-                                <v-flex xs12 v-for="s in newUpstream.servers">
-                                    <v-layout>
-                                        <v-flex xs6>
-                                            <v-text-field required :rules="formRules.ip" label="Server Name"
-                                                          v-model="s.name"
-                                                          hint="主机ip:port,注意这里不支持域名解析！"></v-text-field>
+
+                                <v-flex xs12 v-for="s,s_idx in newUpstream.servers">
+                                    <v-layout wrap>
+                                        <v-flex xs11>
+                                            <v-layout row wrap>
+                                                <v-flex xs6>
+                                                    <v-text-field required :rules="formRules.ip" label="Server Name"
+                                                                  v-model="s.name"
+                                                                  hint="主机ip:port,注意这里不支持域名解析！"></v-text-field>
+                                                </v-flex>
+                                                <v-flex xs6>
+                                                    <v-text-field required :rules="formRules.string"
+                                                                  label="Server Weight"
+                                                                  v-model="s.info.weight"
+                                                                  type="number"
+                                                                  hint="主机权重值，决定了负载均衡时的流量大小"></v-text-field>
+                                                </v-flex>
+                                            </v-layout>
                                         </v-flex>
-                                        <v-flex xs6>
-                                            <v-text-field required :rules="formRules.string" label="Server Weight"
-                                                          v-model="s.info.weight"
-                                                          type="number"
-                                                          hint="主机权重值，决定了负载均衡时的流量大小"></v-text-field>
+                                        <v-flex xs1>
+                                            <v-btn icon small
+                                                   @click="newUpstream.servers.splice(s_idx,1)">
+                                                <v-icon small>fa-minus</v-icon>
+                                            </v-btn>
                                         </v-flex>
                                     </v-layout>
                                 </v-flex>
@@ -362,6 +374,7 @@
             </v-card>
         </v-dialog>
         <v-menu
+                lazy
                 offset-y
                 v-model="menu.phi"
                 absolute
@@ -370,11 +383,26 @@
         >
             <v-list dense>
                 <v-list-tile @click="newApiServerDialog=true">
-                    <v-list-tile-title>新增Api Server</v-list-tile-title>
+                    <v-list-tile-title>New Api Server</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
         <v-menu
+                lazy
+                offset-y
+                v-model="menu.ups_root"
+                absolute
+                :position-x="x"
+                :position-y="y"
+        >
+            <v-list dense>
+                <v-list-tile @click="newUpstreamDialog=true">
+                    <v-list-tile-title>New Upstream</v-list-tile-title>
+                </v-list-tile>
+            </v-list>
+        </v-menu>
+        <v-menu
+                lazy
                 offset-y
                 v-model="menu.host"
                 absolute
@@ -383,30 +411,15 @@
         >
             <v-list dense>
                 <v-list-tile @click="updatePolicy">
-                    <v-list-tile-title>添加/编辑路由规则</v-list-tile-title>
+                    <v-list-tile-title>Edit Route Policy</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="delRouterApi(node.name)">
-                    <v-list-tile-title>删除Api Server</v-list-tile-title>
+                    <v-list-tile-title>Delete Api Server</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
-        <!--<v-menu-->
-        <!--offset-y-->
-        <!--v-model="menu.policy"-->
-        <!--absolute-->
-        <!--:position-x="x"-->
-        <!--:position-y="y"-->
-        <!--&gt;-->
-        <!--<v-list dense>-->
-        <!--<v-list-tile @click="">-->
-        <!--<v-list-tile-title>编辑路由规则</v-list-tile-title>-->
-        <!--</v-list-tile>-->
-        <!--<v-list-tile @click="" v-if="!node.stable">-->
-        <!--<v-list-tile-title>删除路由规则</v-list-tile-title>-->
-        <!--</v-list-tile>-->
-        <!--</v-list>-->
-        <!--</v-menu>-->
         <v-menu
+                lazy
                 offset-y
                 v-model="menu.upstream"
                 absolute
@@ -414,21 +427,19 @@
                 :position-y="y"
         >
             <v-list dense>
-                <v-list-tile @click="newUpstreamDialog=true">
-                    <v-list-tile-title>新建服务器组</v-list-tile-title>
-                </v-list-tile>
                 <v-list-tile @click="updateUpstream" v-if="!node.stable">
-                    <v-list-tile-title>编辑服务器组</v-list-tile-title>
-                </v-list-tile>
-                <v-list-tile @click="newServerDialog=true" v-if="!node.stable">
-                    <v-list-tile-title>添加上游主机</v-list-tile-title>
+                    <v-list-tile-title>Edit Upstream</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="delUpstreamApi(node.name)" v-if="!node.stable">
-                    <v-list-tile-title>删除服务器组</v-list-tile-title>
+                    <v-list-tile-title>Delete Upstream</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="newServerDialog=true" v-if="!node.stable">
+                    <v-list-tile-title>Add Server To Upstream</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
         <v-menu
+                lazy
                 offset-y
                 v-model="menu.server"
                 absolute
@@ -436,14 +447,11 @@
                 :position-y="y"
         >
             <v-list dense>
-                <!--<v-list-tile @click="" v-if="!node.stable">-->
-                <!--<v-list-tile-title>编辑主机</v-list-tile-title>-->
-                <!--</v-list-tile>-->
                 <v-list-tile @click="deleteServerFromUpsApi(node.ups)" v-if="!node.stable">
-                    <v-list-tile-title>删除主机</v-list-tile-title>
+                    <v-list-tile-title>Delete Server</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="setPeerDown(node.ups)">
-                    <v-list-tile-title>启用/停用主机</v-list-tile-title>
+                    <v-list-tile-title>Server Up/Down</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>

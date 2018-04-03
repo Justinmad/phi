@@ -2,12 +2,6 @@ var instance = new Vue({
     el: '#app',
     data: {
         chart: {},
-        items: [
-            {title: 'Click Me'},
-            {title: 'Click Me'},
-            {title: 'Click Me'},
-            {title: 'Click Me 2'}
-        ],
         node: {},
         menu: {
             phi: false,
@@ -15,6 +9,8 @@ var instance = new Vue({
             policy: false,
             upstream: false,
             server: false,
+            ups_root: false,
+            phi_upstream: false
         },
         chartLayout: "",
         x: 0,
@@ -55,7 +51,11 @@ var instance = new Vue({
             ],
             ups: [
                 v => !!v || '非空字段，必须填写！',
-                v => (/^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v) || (this.upstreams && this.upstreams.indexOf(v) !== -1)) || "输入ip:port或选择已存在的upstream"
+                v => {
+                    let b = /^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v);
+                    let c = (this.upstreams && this.upstreams.indexOf(v) !== -1) || (instance && instance.upstreams.indexOf(v) !== -1);
+                    return b || c || "输入ip:port或选择已存在的upstream"
+                }
             ]
         },
         formValid: false,
@@ -105,21 +105,66 @@ var instance = new Vue({
                 alert("错误的节点类型:" + menuType);
             }
         },
+        showTooltip(params) {
+            let data = params.data;
+            let type = data.type;
+            if (type === "phi") {
+                return "This is Phi Api Gateway !"
+            } else if (type === "ups_root") {
+                return "This is Upstream Root !"
+            } else if (type === "host") {
+                return "<table>" +
+                    "<tr><td>Host:</td><td>" + data.name + "</td></tr>" +
+                    "<tr><td>Default:</td><td>" + data.router.default + "</td></tr>" +
+                    "<tr><td>Routers:</td><td>" + data.router.policies.length + "</td></tr>" +
+                    "</table>"
+            } else if (type === "policy") {
+                return "<table>" +
+                    "<tr><td>Host:</td><td>" + data.host + "</td></tr>" +
+                    (data.stable ? "<tr><td>Default:</td><td>" + data.name + "</td></tr>" : "") +
+                    (data.stable ? "" : "<tr><td>Policy:</td><td>" + data.policy + "</td></tr>") +
+                    (data.stable ? "" : "<tr><td>Mapper:</td><td>" + data.mapper + "</td></tr>") +
+                    (data.tag ? "<tr><td>Tag:</td><td>" + data.tag + "</td></tr>" : "") +
+                    "</table>"
+            } else if (type === "phi_upstream") {
+                return "<table>" +
+                    "<tr><td>Target:</td><td>" + data.name + "</td></tr>" +
+                    "<tr><td>Calculation:</td><td>" + data.calculation + "</td></tr>" +
+                    "<tr><td>Condition:</td><td>" + data.condition + "</td></tr>" +
+                    "</table>"
+            } else if (type === "upstream") {
+                return "<table>" +
+                    "<tr><td>Editable:</td><td>" + (!data.stable) + "</td></tr>" +
+                    "<tr><td>Servers:</td><td>" + data.children.length + "</td></tr>" +
+                    (data.stable ? "" : "<tr><td>Load Balance:</td><td>" + data.strategy + "</td></tr>") +
+                    ((!data.stable && data.mapper) ? "<tr><td>Mapper:</td><td>" + data.mapper + "</td></tr>" : "") +
+                    ((!data.stable && data.tag) ? "<tr><td>Tag:</td><td>" + data.tag + "</td></tr>" : "") +
+                    "</table>"
+            } else if (type === "server") {
+                return "<table>" +
+                    "<tr><td>Upstream:</td><td>" + data.ups + "</td></tr>" +
+                    "<tr><td>Server:</td><td>" + data.name + "</td></tr>" +
+                    "</table>"
+            }
+        },
         updateChart() {
             this.chart.showLoading();
             this.$http.get('/admin/tree').then(resp => {
-                this.chart.hideLoading();
-                // echarts.util.each(resp.body.data.children, function (datum, index) {
-                //     index % 2 === 0 && (datum.collapsed = true);
-                // });
-                this.chart.setOption({
-                    series: [
-                        {
-                            data: [resp.body.data]
-                        }]
+                echarts.util.each(resp.body.data.children, function (datum, index) {
+                    index % 2 === 0 && (datum.collapsed = true);
                 });
-            }, function (reason) {
-                console.log(reason);
+                this.$http.get('/admin/upsTree').then(resp2 => {
+                    this.chart.hideLoading();
+                    this.chart.setOption({
+                        series: [
+                            {data: [resp.body.data]},
+                            {data: [resp2.body.data]},
+                        ]
+                    });
+                }, reason => {
+                    this.alert("获取数据失败！", "error");
+                })
+            }, reason => {
                 this.alert("获取数据失败！", "error");
             });
         },
@@ -142,16 +187,16 @@ var instance = new Vue({
         updateUpstream() {
             let keys = Object.keys(this.node.upstream);
             this.newUpstream.upstreamName = this.node.name;
-            for (let i in keys) {
-                let k = keys[i];
-                if (k === "strategy" || k === "mapper") {
-                    this.newUpstream[k] = this.node.upstream[k]
-                } else {
-                    this.newUpstream.servers.push({
-                        name: k,
-                        info: this.node.upstream[k]
-                    });
-                }
+            this.newUpstream.strategy = this.node.upstream.strategy;
+            this.newUpstream.mapper = this.node.upstream.mapper;
+            for (let i in this.node.upstream.servers) {
+                let s = this.node.upstream.servers[i];
+                this.newUpstream.servers.push({
+                    name: s.name,
+                    info: {
+                        weight: s.weight
+                    }
+                });
             }
             this.newUpstreamDialog = true;
         },
@@ -208,8 +253,8 @@ var instance = new Vue({
                 this.$http.get("/router/del?hostkey=" + hostkey).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        window.location = "/"
-                        // this.updateChart()
+                        // window.location = "/"
+                        this.updateChart()
                     } else {
                         this.alert(resp.body.status.message, "warning");
                     }
@@ -265,7 +310,7 @@ var instance = new Vue({
                 }).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        window.location = "/"
+                        this.updateChart();
                     } else {
                         this.alert(resp.body.status.message, "warning");
                     }
@@ -363,57 +408,97 @@ var instance = new Vue({
         elementById.style.height = window.innerHeight - 36 - 48 + "px";
         let myChart = echarts.init(elementById);
         myChart.showLoading();
-        this.$http.get('/admin/tree').then(function (resp) {
-            myChart.hideLoading();
-            echarts.util.each(resp.body.data.children, function (datum, index) {
-                index % 2 === 0 && (datum.collapsed = true);
-            });
-            myChart.setOption({
-                tooltip: {
-                    trigger: 'item',
-                    triggerOn: 'mousemove',
-                    formatter: function (params, ticket, callback) {
-                        return "Loading";
-                    }
-                },
-                series: [
-                    {
-                        type: 'tree',
-                        data: [resp.body.data],
-                        symbolSize: 10,
-                        label: {
-                            normal: {
-                                position: 'left',
-                                verticalAlign: 'middle',
-                                align: 'right',
-                                fontSize: 10
-                            }
+        this.$http.get('/admin/tree').then(resp => {
+            let tree1 = resp.body.data;
+            this.$http.get('/admin/upsTree').then(function (resp2) {
+                let tree2 = resp2.body.data;
+                myChart.hideLoading();
+                echarts.util.each(resp.body.data.children, function (datum, index) {
+                    index % 2 === 0 && (datum.collapsed = true);
+                });
+                myChart.setOption({
+                    tooltip: {
+                        trigger: 'item',
+                        triggerOn: 'mousemove',
+                        formatter: (params, ticket, callback) => {
+                            return this.showTooltip(params);
+                        }
+                    },
+                    legend: {
+                        top: '2%',
+                        left: '3%',
+                        orient: 'vertical',
+                        data: [{
+                            name: 'Phi',
+                            icon: 'rectangle'
                         },
-                        leaves: {
+                            {
+                                name: 'Upstream',
+                                icon: 'rectangle'
+                            }],
+                        borderColor: '#c23531'
+                    },
+                    series: [
+                        {
+                            type: 'tree',
+                            name: 'Phi',
+                            top: '5%',
+                            left: '7%',
+                            bottom: '2%',
+                            right: '60%',
+                            data: [tree1],
+                            symbolSize: 10,
                             label: {
                                 normal: {
-                                    position: 'right',
+                                    position: 'left',
                                     verticalAlign: 'middle',
-                                    align: 'left'
+                                    align: 'right',
+                                    fontSize: 10
                                 }
-                            }
+                            },
+                            itemStyle: {
+                                borderColor: "green"
+                            },
+                            expandAndCollapse: true,
+                            animationDuration: 550,
+                            animationDurationUpdate: 750,
+                            initialTreeDepth: -1
                         },
-                        itemStyle: {
-                            borderColor: "green"
-                        },
-                        expandAndCollapse: true,
-                        animationDuration: 550,
-                        animationDurationUpdate: 750,
-                        initialTreeDepth: -1
-                    }
-                ]
+                        {
+                            type: 'tree',
+                            name: 'Upstream',
+                            top: '20%',
+                            left: '60%',
+                            bottom: '22%',
+                            right: '5%',
+                            data: [tree2],
+                            symbolSize: 10,
+                            label: {
+                                normal: {
+                                    position: 'left',
+                                    verticalAlign: 'middle',
+                                    align: 'right',
+                                    fontSize: 10
+                                }
+                            },
+                            itemStyle: {
+                                borderColor: "green"
+                            },
+                            expandAndCollapse: true,
+                            animationDuration: 550,
+                            animationDurationUpdate: 750,
+                            initialTreeDepth: -1
+                        }
+                    ]
+                });
+            }, reason => {
+                this.alert("获取数据失败！", "error");
             });
-        }, function (reason) {
-            console.log(reason);
+        }, reason => {
             this.alert("获取数据失败！", "error");
         });
         myChart.on("contextmenu", (params) => {
-            console.log(params);
+            // console.log(params);
             this.show(params);
         });
         this.chart = myChart;
@@ -424,12 +509,32 @@ var instance = new Vue({
     },
     watch: {
         chartLayout: function (newVal) {
-            this.chart.setOption({
+            let option = {
                 series: [
                     {
                         layout: newVal
-                    }]
-            });
+                    },
+                    {
+                        layout: newVal
+                    }
+                ]
+            };
+            if (newVal === "orthogonal") {
+                let label = {
+                    normal: {
+                        position: 'left',
+                        verticalAlign: 'middle',
+                        align: 'right',
+                        fontSize: 10
+                    }
+                };
+                option.series[0].label = label;
+                option.series[1].label = label;
+            } else {
+                option.series[0].label = {};
+                option.series[1].label = {};
+            }
+            this.chart.setOption(option);
         },
         newApiServerDialog: function (newVal) {
             if (newVal === false) {

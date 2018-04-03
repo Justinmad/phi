@@ -57,17 +57,20 @@ function dashboardController:tree()
             -- 三级节点，policies
             tmpNode.children = new_tab(#ps + 1, 0)
             for _, p in ipairs(ps) do
-                local tmpPolicyNode = new_tab(0, 4)
+                local tmpPolicyNode = new_tab(0, 6)
                 -- 这是一条路由规则，允许编辑
                 tmpPolicyNode.type = "policy"
-                tmpPolicyNode.router = router_data
+                tmpPolicyNode.policy = p.policy
                 tmpPolicyNode.host = k
                 table_insert(tmpNode.children, tmpPolicyNode)
                 local mapper = p.mapper
                 if type(mapper) == "table" then
                     local cacheT = { mapper.type, mapper.tag, p.policy }
                     tmpPolicyNode.name = table_concat(cacheT, ":")
+                    tmpPolicyNode.mapper = mapper.type
+                    tmpPolicyNode.tag = mapper.tag
                 else
+                    tmpPolicyNode.mapper = mapper
                     tmpPolicyNode.name = mapper .. ":" .. p.policy
                 end
                 local rt = p.routerTable
@@ -75,66 +78,12 @@ function dashboardController:tree()
                     tmpPolicyNode.children = new_tab(#rt, 0)
                     for _, item in ipairs(rt) do
                         -- 四级节点 ups
-                        local tmpUpsNode = new_tab(0, 5)
+                        local tmpUpsNode = new_tab(0, 4)
                         table_insert(tmpPolicyNode.children, tmpUpsNode)
                         tmpUpsNode.name = item.result
-                        tmpUpsNode.value = pretty_write(item.expression)
-                        local servers = self.upstreamService:getUpstreamServers(item.result)
-                        tmpUpsNode.type = "upstream"
-                        if type(servers) == "table" then
-                            -- 五级节点 servers
-                            if servers.strategy then
-                                -- 这是一个自定义upstream,允许编辑
-                                tmpUpsNode.children = {}
-                                tmpUpsNode.upstream = servers
-                                for k, v in pairs(servers) do
-                                    if k ~= "strategy" and k ~= "mapper" then
-                                        local tmpServerNode = new_tab(0, 6)
-                                        table_insert(tmpUpsNode.children, tmpServerNode)
-                                        tmpServerNode.name = k
-                                        tmpServerNode.info = v
-                                        tmpServerNode.ups = item.result
-                                        tmpServerNode.down = v.down or false
-                                        -- 这是一个自定义server，允许编辑
-                                        tmpServerNode.type = "server"
-                                        if v.down then
-                                            tmpServerNode.itemStyle = {
-                                                borderColor = "#FF0000"
-                                            }
-                                        else
-                                            tmpServerNode.itemStyle = {
-                                                borderColor = "green"
-                                            }
-                                        end
-                                    end
-                                end
-                            else
-                                tmpUpsNode.stable = true
-                                tmpUpsNode.children = new_tab(#servers, 0)
-                                for _, s in ipairs(servers) do
-                                    local tmpServerNode = new_tab(0, 5)
-                                    table_insert(tmpUpsNode.children, tmpServerNode)
-                                    tmpServerNode.name = s.name
-                                    tmpServerNode.info = s
-                                    tmpServerNode.ups = item.result
-                                    -- 这是一个固定server，不能编辑，但是可以临时UP/DOWN
-                                    tmpServerNode.type = "server"
-                                    tmpServerNode.stable = true
-                                    tmpServerNode.down = s.down or false
-                                    if s.down then
-                                        tmpServerNode.itemStyle = {
-                                            borderColor = "red"
-                                        }
-                                    else
-                                        tmpServerNode.itemStyle = {
-                                            borderColor = "green"
-                                        }
-                                    end
-                                end
-                            end
-                        else
-                            tmpUpsNode.stable = true
-                        end
+                        tmpUpsNode.calculation = p.policy
+                        tmpUpsNode.condition = item.expression
+                        tmpUpsNode.type = "phi_upstream"
                     end
                 end
             end
@@ -152,6 +101,74 @@ function dashboardController:tree()
         tmpPolicyNode.stable = true
     end
     return Response.success(result)
+end
+
+function dashboardController:upsTree()
+    local upstreams = self.upstreamService:getAllUpsInfo()
+    print(pretty_write(upstreams))
+    local root = new_tab(0, 2)
+    root.name = "upstream"
+    root.children = new_tab(50, 0)
+    root.type = "ups_root"
+    for k, ups_info in pairs(upstreams) do
+        local tmpUpsNode = new_tab(0, 5)
+        table_insert(root.children, tmpUpsNode)
+        tmpUpsNode.name = k
+        tmpUpsNode.type = "upstream"
+        -- 五级节点 servers
+        if ups_info.strategy then
+            -- 这是一个自定义upstream,允许编辑
+            local servers = ups_info.servers
+            tmpUpsNode.upstream = ups_info
+            tmpUpsNode.strategy = ups_info.strategy
+            tmpUpsNode.mapper = type(ups_info.mapper) == "table" or ups_info.mapper or ups_info.mapper.type
+            tmpUpsNode.tag = type(ups_info.mapper) == "table" or nil or ups_info.mapper.tag
+            tmpUpsNode.children = {}
+            for _, s in ipairs(servers) do
+                local tmpServerNode = new_tab(0, 6)
+                table_insert(tmpUpsNode.children, tmpServerNode)
+                tmpServerNode.name = s.name
+                tmpServerNode.ups = k
+                tmpServerNode.down = s.down or false
+                -- 这是一个自定义server，允许编辑
+                tmpServerNode.type = "server"
+                if s.down then
+                    tmpServerNode.itemStyle = {
+                        borderColor = "#FF0000"
+                    }
+                else
+                    tmpServerNode.itemStyle = {
+                        borderColor = "green"
+                    }
+                end
+            end
+        else
+            tmpUpsNode.stable = true
+            tmpUpsNode.children = new_tab(#ups_info, 0)
+            for _, s in ipairs(ups_info) do
+                local tmpServerNode = new_tab(0, 5)
+                table_insert(tmpUpsNode.children, tmpServerNode)
+                tmpServerNode.name = s.name
+                tmpServerNode.ups = k
+                -- 这是一个固定server，不能编辑，但是可以临时UP/DOWN
+                tmpServerNode.type = "server"
+                tmpServerNode.stable = true
+                tmpServerNode.down = s.down or false
+                if s.down then
+                    tmpServerNode.itemStyle = {
+                        borderColor = "red"
+                    }
+                else
+                    tmpServerNode.itemStyle = {
+                        borderColor = "green"
+                    }
+                end
+            end
+        end
+
+
+    end
+    return Response.success(root)
 end
 
 function dashboardController.mappers()

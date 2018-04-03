@@ -119,6 +119,8 @@ server {
     }
 }
 ```
+- 管理面板截图
+![admin](/static/image/admin.png)
 
 ## 启动统计面板
 - 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启
