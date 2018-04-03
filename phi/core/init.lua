@@ -16,9 +16,9 @@ do
     end
     local constants = require "core.constants"
     local LOGGER = ngx.log
-    local DEBUG = ngx.DEBUG
-    local function debug(msg)
-        LOGGER(DEBUG, msg)
+    local ERROR = ngx.ERROR
+    local function log(msg)
+        LOGGER(ERROR, msg)
     end
 
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
@@ -31,7 +31,7 @@ do
         end
     end
 
-    debug("------------------------PHI初始化开始------------------------")
+    log("------------------------PHI初始化开始------------------------")
     -- 加载配置
     local config, err = require "config.loader".load()
     if err then
@@ -40,13 +40,13 @@ do
     phi.configuration = config
     -- 开启debug
     if config.debug then
-        debug("add mobdebug to package path")
+        log("add mobdebug to package path")
         package.path = "../lib/debug/mobdebug/?.lua;../lib/debug/socket/?.lua;../lib/debug/?.lua;" .. package.path
         if os:match("[L|l]inux") then
-            debug("add linux lua socket lib to package cpath")
+            log("add linux lua socket lib to package cpath")
             package.cpath = "../lib/debug/clibs/?.so;" .. package.cpath
         else
-            debug("add windows lua socket lib to package cpath")
+            log("add windows lua socket lib to package cpath")
             package.cpath = "../lib/debug/clibs/?.dll;" .. package.cpath
         end
     end
@@ -63,7 +63,7 @@ do
 
     -- 开启mio统计
     if config.enabled_mio then
-        debug("add mio to package path")
+        log("add mio to package path")
         package.path = "../lib/mio/?.lua;" .. package.path
         local mio = require("component.statistics.mio_handler"):new()
         context.mio = mio
@@ -96,5 +96,5 @@ do
     if config.enabled_admin then
         phi.admin = require "admin.phi_admin"
     end
-    debug("------------------------PHI初始化完成！------------------------")
+    log("------------------------PHI初始化完成！------------------------")
 end
