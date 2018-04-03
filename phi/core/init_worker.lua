@@ -7,6 +7,12 @@
 --
 local phi = require "Phi"
 do
+    local logger = ngx.log
+    local ERR = ngx.ERR
+    local log = function(msg)
+        logger(ERR, msg)
+    end
+    log("begin to init worker")
     local ev = require "resty.worker.events"
     local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
     local ok, err = ev.configure {
@@ -18,12 +24,13 @@ do
         wait_max = 0.5, -- max wait time before discarding event
     }
     if not ok then
-        ngx.log(ngx.ERR, "failed to start event system: ", err)
+        logger(ERR, "failed to start event system: ", err)
         return
     end
 
     phi.observer = ev
     local context = phi.context
+    log("begin to init bean worker")
     for _, bean in pairs(context) do
         if type(bean.init_worker) == "function" then
             bean:init_worker(ev)
