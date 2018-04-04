@@ -16,8 +16,7 @@ local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local exit = ngx.exit
-
-local find = ngx.re.find
+local current_upstream_name = require "ngx.upstream".current_upstream_name
 
 local _M = {}
 
@@ -51,6 +50,7 @@ function _M:load(ctx)
         return response.failure("Sorry,The domain you requested was denied access! :-(", 410)
     end
     ngx.var.backend = upstream
+    ctx.upstream_name = upstream
 end
 
 function _M:balance(ctx)
