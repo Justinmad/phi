@@ -2,9 +2,9 @@
 
 local common = require "gateway.module.common"
 local upstream = require "ngx.upstream"
-local ngx_get_upstreams = upstream.get_upstreams;
-local ngx_get_primary_peers = upstream.get_primary_peers;
-local ngx_get_backup_peers = upstream.get_backup_peers;
+local ngx_get_upstreams = upstream.get_upstreams
+local ngx_get_primary_peers = upstream.get_primary_peers
+local ngx_get_backup_peers = upstream.get_backup_peers
 local current_upstream_name = upstream.current_upstream_name
 local ngx = ngx
 local gsub = string.gsub
@@ -76,7 +76,7 @@ end
 
 local function hook_for_upstream(var, ctx)
     local cur_seconds = ngx_time()
-    local upstream_name = current_upstream_name
+    local upstream_name = var.proxy_host or current_upstream_name()
     local addr = var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
     print(upstream_name, "===============================", require("pl.pretty").write(addr))
     if upstream_name and addr then
