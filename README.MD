@@ -1,5 +1,7 @@
 ## 项目简介
 基于openresty+nginx的api网关，实现了基本的动态路由、动态upstream、负载均衡、限流、降级的功能，同时提供了类似于nginx plus的统计功能
+## 系统简图
+![Phi](/static/image/phi.png)
 ## 目录
 - [**安装**](#安装)
 - [**启动和配置**](#启动和配置)

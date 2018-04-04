@@ -19,7 +19,7 @@ new Vue({
             })
         }
     }, computed: {
-        servers: function () {
+        upsServers: function () {
             let all = 0;
             let up = [];
             let down = [];
@@ -37,7 +37,7 @@ new Vue({
                         } else {
                             up.push(peer)
                         }
-                        if (peer.fails > peer.requests || (peer.requests > 0 && peer.fails / peer.requests > 0.05)) {
+                        if (peer.fails > peer.requests || (peer.requests > 0 && peer.fails / peer.requests > 0.01)) {
                             alerts.push(peer)
                         }
                     }
