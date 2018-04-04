@@ -144,6 +144,7 @@ var instance = new Vue({
                 return "<table>" +
                     "<tr><td>Upstream:</td><td>" + data.ups + "</td></tr>" +
                     "<tr><td>Server:</td><td>" + data.name + "</td></tr>" +
+                    "<tr><td>Weight:</td><td>" + data.server.weight + "</td></tr>" +
                     "</table>"
             }
         },

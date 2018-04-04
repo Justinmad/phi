@@ -22,14 +22,13 @@ function modulo_policy.calculate(arg, routerTable)
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
     local val = key % 10
     for _, item in ipairs(routerTable) do
-        local up, policy = item.result, item.expression
-        if policy ~= "number" and (policy < 0 or policy > 9) then
-            return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
-        end
-        if val == policy then
+        local up, policy = item.result, tonumber(item.expression)
+        if policy and (policy < 0 or policy > 9) and val == policy then
             upstream = up
             LOGGER(DEBUG, "参数[", key, "]匹配到规则,modulo:[" .. policy .. "]")
             break
+        else
+            return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
         end
         LOGGER(DEBUG, "参数[", key, "]未匹配到规则,modulo:[" .. policy .. "]")
     end

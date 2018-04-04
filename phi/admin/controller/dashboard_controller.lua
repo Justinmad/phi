@@ -131,6 +131,7 @@ function dashboardController:upsTree()
                 tmpServerNode.down = s.down or false
                 -- 这是一个自定义server，允许编辑
                 tmpServerNode.type = "server"
+                tmpServerNode.server = s
                 if s.down then
                     tmpServerNode.itemStyle = {
                         borderColor = "#FF0000"
@@ -145,7 +146,7 @@ function dashboardController:upsTree()
             tmpUpsNode.stable = true
             tmpUpsNode.children = new_tab(#ups_info, 0)
             for _, s in ipairs(ups_info) do
-                local tmpServerNode = new_tab(0, 5)
+                local tmpServerNode = new_tab(0, 7)
                 table_insert(tmpUpsNode.children, tmpServerNode)
                 tmpServerNode.name = s.name
                 tmpServerNode.ups = k
@@ -153,6 +154,7 @@ function dashboardController:upsTree()
                 tmpServerNode.type = "server"
                 tmpServerNode.stable = true
                 tmpServerNode.down = s.down or false
+                tmpServerNode.server = s
                 if s.down then
                     tmpServerNode.itemStyle = {
                         borderColor = "red"

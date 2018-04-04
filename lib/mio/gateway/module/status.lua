@@ -5,6 +5,8 @@ local upstream = require "ngx.upstream"
 local ngx_get_upstreams = upstream.get_upstreams;
 local ngx_get_primary_peers = upstream.get_primary_peers;
 local ngx_get_backup_peers = upstream.get_backup_peers;
+local ngx = ngx
+local gsub = string.gsub
 
 local _M = {}
 
@@ -40,13 +42,17 @@ local UPSTREAM_REQUEST_LEN = "upstream_request_len"
 local UPSTREAM_REP_LEN = "upstream_rep_len"
 local UPSTREAM_REP_TIME = "upstream_rep_time"
 
+local CONST = require "core.constants"
+local PHI_UPSTREAM_DICT_NAME = CONST.DICTS.PHI_UPSTREAM
+local DYNAMIC_UPS_SHARED_DICT = ngx.shared[PHI_UPSTREAM_DICT_NAME]
+local phi = require("Phi")
+local context = phi.context
+local balancer_upstream_name = context["balancer"].default_upstream
+
 local table_insert = table.insert
 local ipairs = ipairs
 local math_floor = math.floor
 
-local balancer_upstream_name = require("Phi").config.balancer_upstream_name
-
-local ngx = ngx
 local shared_status = ngx.shared.status
 local ngx_worker_count = ngx.worker.count
 local ngx_time = ngx.time
@@ -67,23 +73,22 @@ function _M.init()
 
 end
 
-local function hook_for_upstream(var)
+local function hook_for_upstream(var, ctx)
     local cur_seconds = ngx_time()
     local upstream_name = var.proxy_host
     local addr = var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
     if upstream_name and addr then
         if upstream_name == balancer_upstream_name and var.backend then
             -- TODO 处理动态upstream
-            upstream_name = var.backend;
+            upstream_name = ctx.dynamic_ups;
         end
         local upstream_key = upstream_name .. '_' .. addr
-
         if var.upstream_status then
             -- upstreams 可能挂了，返回的 code 是 nil
             local status = math_floor((tonumber(var.upstream_status) or 500) / 100) .. 'xx'
             shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1, 0)
         end
-        --UPSTREAM_REQUEST_LEN
+        -- UPSTREAM_REQUEST_LEN
         shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(var.request_length) or 0, 0)
         -- send_per_second
         shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN .. cur_seconds, tonumber(var.request_length) or 0, 0, TIMEOUT_QPS)
@@ -167,9 +172,9 @@ function _M.log(var, ctx)
     shared_status:incr(TRAFFIC_WRITE, tonumber(var.bytes_sent), 0)
     shared_status:incr(TIME_TOTAL, var.request_time, 0)
     -- upstream
-    hook_for_upstream(var)
+    hook_for_upstream(var, ctx)
     -- server zone
-    hook_for_server(var)
+    hook_for_server(var, ctx)
 end
 
 local function get_nginx_info(var)
@@ -252,6 +257,20 @@ local function get_upstreams_info()
         for _, peers_info in ipairs(ngx_get_backup_peers(upstream_name)) do
             peers_info.backup = true
             table_insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, peers_info))
+        end
+    end
+
+    local upsNames = DYNAMIC_UPS_SHARED_DICT:get_keys()
+    for _, key in ipairs(upsNames) do
+        local upstream_name = gsub(key, "dynamic_ups_cache", "")
+        local info = context["upstreamService"]:getUpstreamServers(upstream_name)
+        if info and info.servers then
+            report[upstream_name] = {}
+            report[upstream_name].peers = {}
+            for _, server_info in ipairs(info.servers) do
+                server_info.backup = false
+                table_insert(report[upstream_name].peers, get_upstream_peers_info(upstream_name, server_info))
+            end
         end
     end
     return report

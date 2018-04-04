@@ -41,6 +41,7 @@ function _M:load(ctx)
             LOGGER(ERR, "Failed to dispatch to backend: ups_balancer is nil,", "for upstream : ", upstream)
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif type(upstreamBalancer) == "table" then
+            ctx.dynamic_ups = upstream
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer

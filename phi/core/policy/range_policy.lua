@@ -19,6 +19,7 @@ local ERR = ngx.ERR
 local tonumber = tonumber
 local ipairs = ipairs
 local type = type
+local cjson = require("cjson.safe")
 
 local range_policy = {}
 
@@ -35,9 +36,9 @@ function range_policy.calculate(arg, routerTable)
         if policy and type(policy) == "table" then
             local fromNum = tonumber(policy[1])
             local endNum = tonumber(policy[2])
-            local selected = (type(fromNum) == 'string' and fromNum == "NONE" and type(endNum) == 'number' and key >= endNum) --gt
-                    or (type(endNum) == 'string' and endNum == "NONE" and type(fromNum) == 'number' and key <= fromNum) --lt
-                    or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum) -- between
+            local selected = (fromNum == "NONE" and type(endNum) == 'number' and key >= endNum)                         --gt
+                    or (endNum == "NONE" and type(fromNum) == 'number' and key <= fromNum)                              --lt
+                    or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum)    -- between
             if selected then
                 upstream = up
                 LOGGER(DEBUG, key, "匹配到规则,range:[", fromNum, ",", endNum, "]")
@@ -46,7 +47,7 @@ function range_policy.calculate(arg, routerTable)
             LOGGER(DEBUG, key, "未匹配到规则,range:[", fromNum, ",", endNum, "]")
         else
             err = "非法的规则表！"
-            LOGGER(ERR, err)
+            LOGGER(ERR, err, cjson.encode(routerTable))
         end
     end
     return upstream, err
