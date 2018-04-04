@@ -77,6 +77,7 @@ local function hook_for_upstream(var, ctx)
     local cur_seconds = ngx_time()
     local upstream_name = var.proxy_host
     local addr = var.upstream_addr -- TODO：看文档这个会有多个值，后面需要精准获取一个，还不知道怎么获取
+    print(upstream_name, "===============================", require("pl.pretty").write(addr))
     if upstream_name and addr then
         if upstream_name == balancer_upstream_name and var.backend then
             -- TODO 处理动态upstream
@@ -86,7 +87,8 @@ local function hook_for_upstream(var, ctx)
         if var.upstream_status then
             -- upstreams 可能挂了，返回的 code 是 nil
             local status = math_floor((tonumber(var.upstream_status) or 500) / 100) .. 'xx'
-            shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1, 0)
+            local count = shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1, 0)
+            print("======================================>>>>>", count)
         end
         -- UPSTREAM_REQUEST_LEN
         shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(var.request_length) or 0, 0)
