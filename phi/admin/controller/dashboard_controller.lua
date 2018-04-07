@@ -139,7 +139,7 @@ function dashboardController:upsTree()
                     }
                 end
             end
-        else
+        elseif ups_info == "stable" then
             tmpUpsNode.stable = true
             tmpUpsNode.children = new_tab(#ups_info, 0)
             for _, s in ipairs(ups_info) do
