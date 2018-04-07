@@ -16,7 +16,6 @@ local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local exit = ngx.exit
-local current_upstream_name = require "ngx.upstream".current_upstream_name
 
 local _M = {}
 
@@ -57,12 +56,16 @@ function _M:balance(ctx)
     local ups_balancer = ctx.balancer
     if ups_balancer then
         local server = ups_balancer:find(ctx)
-        LOGGER(DEBUG, "select server：", server)
-        local ok, err = balancer.set_current_peer(server)
-        if not ok then
-            LOGGER(ERR, "failed to set the current peer: ", err)
-            --            return response.failure("Failed to set the current peer :-(", 500)
-            exit(500)
+        if server then
+            LOGGER(DEBUG, "select server：", server)
+            local ok, err = balancer.set_current_peer(server)
+            if not ok then
+                LOGGER(ERR, "failed to set the current peer: ", err)
+                exit(500)
+            end
+        else
+            LOGGER(ERR, "service unavailable for upstream: ", ctx.dynamic_ups)
+            exit(503)
         end
     else
         LOGGER(ERR, "failed to dispatch to backend: ups_balancer is nil?")

@@ -107,9 +107,11 @@ function _M:getAllRuntimeInfo()
     local upsNames = SHARED_DICT:get_keys()
     local result = new_tab(0, getn(upsNames))
     for _, name in ipairs(upsNames) do
-        name = gsub(name, "dynamic_ups_cache", "")
-        local info = self:getUpstreamServers(name)
-        result[name] = info
+        if self:getUpstreamBalancer(name) ~= "ip:port" then
+            name = gsub(name, "dynamic_ups_cache", "")
+            local info = self:getUpstreamServers(name)
+            result[name] = info
+        end
     end
     return result
 end
@@ -119,9 +121,11 @@ function _M:getAllUpsInfo()
     local result = {}
     local upsNames = SHARED_DICT:get_keys()
     for _, name in ipairs(upsNames) do
-        name = gsub(name, "dynamic_ups_cache", "")
-        local info = self:getUpstreamServers(name)
-        result[name] = info
+        if self:getUpstreamBalancer(name) ~= "ip:port" then
+            name = gsub(name, "dynamic_ups_cache", "")
+            local info = self:getUpstreamServers(name)
+            result[name] = info
+        end
     end
     local dynamicUps, err = self.dao:getAllUpstreams(0, 1024)
     if not err then
