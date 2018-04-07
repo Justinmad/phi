@@ -6,7 +6,7 @@
 -- To change this template use File | Settings | File Templates.
 --
 local responses = require "kong.responses"
-
+local cjson = require "cjson"
 local _M = {}
 local function resp(code, success, message, data)
     responses.send_HTTP_OK({
@@ -19,11 +19,35 @@ local function resp(code, success, message, data)
     })
 end
 
-function _M.success(data, msg)
+local function resp_empty_empty_table_as_array(code, success, message, data)
+    local content = {
+        code = code,
+        status = {
+            success = success,
+            message = message
+        },
+        data = data
+    }
+    cjson.encode_empty_table_as_object(false)
+    local encoded, errMsg = cjson.encode(content)
+    if not encoded then
+        ngx.log(ngx.ERR, "[admin] could not encode value: ", err)
+    end
+    ngx.say(encoded)
+    return ngx.exit(200)
+end
+
+function _M.success(data, msg, encode_empty_table_as_array)
+    if encode_empty_table_as_array then
+        return resp_empty_empty_table_as_array(200, true, msg or "ok", data)
+    end
     resp(200, true, msg or "ok", data)
 end
 
-function _M.failure(msg, code, data)
+function _M.failure(msg, code, data, encode_empty_table_as_array)
+    if encode_empty_table_as_array then
+        return resp_empty_empty_table_as_array(code or 200, false, msg or "error", data)
+    end
     resp(code or 200, false, msg or "error", data)
 end
 

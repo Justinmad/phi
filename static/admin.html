@@ -97,7 +97,7 @@
 
                                 </v-flex>
                             </v-layout>
-                            <v-card class="elevation-0" v-for="p,p_idx in newRouter.data.policies">
+                            <v-card class="elevation-0" v-if="newRouter.data.policies" v-for="p,p_idx in newRouter.data.policies">
                                 <v-card-title>
                                     <v-flex xs11>
                                         <v-layout wrap>
@@ -226,7 +226,7 @@
                     <small class="red--text">* 表示必填</small>
                     <v-spacer></v-spacer>
                     <v-btn color="blue darken-1" flat
-                           @click.native="newRouter.data.policies.push({order:0,mapper:'',policy:'',routerTable:[]})">
+                           @click.native="addPolicy">
                         Add
                     </v-btn>
                     <v-btn color="blue darken-1" flat @click.native="updatePolicyDialog = false">Close</v-btn>

@@ -399,7 +399,13 @@ var instance = new Vue({
             }, reason => {
                 this.alert(reason.bodyText, "error");
             });
-        },
+        }, addPolicy() {
+            if (!this.newRouter.data.policies) {
+                this.newRouter.data.policies = []
+
+            }
+            this.newRouter.data.policies.push({order: 0, mapper: '', policy: '', routerTable: []})
+        }
     },
     mounted: function () {
         let elementById = document.getElementById('main');

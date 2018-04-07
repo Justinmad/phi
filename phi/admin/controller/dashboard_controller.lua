@@ -6,10 +6,7 @@
 -- 状态统计
 --
 local Response = require "core.response"
-local CONST = require "core.constants"
 local config = require("Phi").configuration
-local GET = CONST.METHOD.GET
-local POST = CONST.METHOD.POST
 local pairs = pairs
 local ipairs = ipairs
 local tonumber = tonumber
@@ -17,7 +14,6 @@ local type = type
 local table_insert = table.insert
 local table_concat = table.concat
 local table_sort = table.sort
-local pretty_write = require("pl.pretty").write
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
     new_tab = function()
@@ -89,6 +85,7 @@ function dashboardController:tree()
             end
         else
             tmpNode.children = new_tab(1, 0)
+            router_data.policies = {}
         end
         local tmpPolicyNode = new_tab(0, 6)
         table_insert(tmpNode.children, tmpPolicyNode)
@@ -100,7 +97,7 @@ function dashboardController:tree()
         tmpPolicyNode.type = "policy"
         tmpPolicyNode.stable = true
     end
-    return Response.success(result)
+    return Response.success(result, nil, true)
 end
 
 function dashboardController:upsTree()
@@ -166,8 +163,6 @@ function dashboardController:upsTree()
                 end
             end
         end
-
-
     end
     return Response.success(root)
 end
