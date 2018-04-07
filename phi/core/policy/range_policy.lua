@@ -36,9 +36,9 @@ function range_policy.calculate(arg, routerTable)
         if policy and type(policy) == "table" then
             local fromNum = tonumber(policy[1])
             local endNum = tonumber(policy[2])
-            local selected = (fromNum == "NONE" and type(endNum) == 'number' and key >= endNum)                         --gt
-                    or (endNum == "NONE" and type(fromNum) == 'number' and key <= fromNum)                              --lt
-                    or (type(fromNum) == 'number' and type(endNum) == 'number' and key >= fromNum and key <= endNum)    -- between
+            local selected = (fromNum == nil and type(endNum) == 'number' and key >= endNum) --gt
+                    or (endNum == nil and type(fromNum) == 'number' and key <= fromNum) --lt
+                    or (fromNum and endNum and key >= fromNum and key <= endNum)    -- between
             if selected then
                 upstream = up
                 LOGGER(DEBUG, key, "匹配到规则,range:[", fromNum, ",", endNum, "]")
