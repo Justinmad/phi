@@ -263,6 +263,7 @@ local function get_upstreams_info()
 
     local upsNames = DYNAMIC_UPS_SHARED_DICT:get_keys()
     for _, key in ipairs(upsNames) do
+        print("-----------------", key)
         local upstream_name = gsub(key, "dynamic_ups_cache", "")
         local info = context["upstreamService"]:getUpstreamServers(upstream_name)
         if info and info.servers then

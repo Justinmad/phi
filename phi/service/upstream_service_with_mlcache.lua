@@ -314,7 +314,7 @@ function _M:getUpstreamServers(upstream)
             s.backup = true
             insert(data, s)
         end
-    else
+    elseif type(upstreamInfo) == "table" then
         data = new_tab(0, 3)
         data.servers = new_tab(50, 0)
         local tmp

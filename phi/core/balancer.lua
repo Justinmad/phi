@@ -39,17 +39,21 @@ function _M:load(ctx)
             LOGGER(ERR, "Failed to dispatch to backend: ups_balancer is nil,", "for upstream : ", upstream)
             return response.failure("Failed to dispatch to backend: ups_balancer is nil :-(", 500)
         elseif type(upstreamBalancer) == "table" then
+            -- 动态upstream
             ctx.dynamic_ups = upstream
             upstream = self.default_upstream
             -- 获取cache中的负载均衡器
             ctx.balancer = upstreamBalancer
+            ctx.upstream_name = upstream
+        elseif upstreamBalancer ~= "ip:port" then
+            -- 固定ups
+            ctx.upstream_name = upstream
         end
     else
         LOGGER(ERR, "failed to load upstream balancer ,upstream is nil")
         return response.failure("Sorry,The domain you requested was denied access! :-(", 410)
     end
     ngx.var.backend = upstream
-    ctx.upstream_name = upstream
 end
 
 function _M:balance(ctx)

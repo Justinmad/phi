@@ -28,7 +28,6 @@ local utils = require "utils"
 local response = require "core.response"
 local type = type
 local setmetatable = setmetatable
-local tostring = tostring
 
 local LOGGER = ngx.log
 local ERR = ngx.ERR
@@ -51,7 +50,7 @@ function _M:access(ctx)
             end
             router:route(ctx)
         else
-            LOGGER(ERR, "Routing rules query error or bad policy type for hostkey : ", hostkey, " err：", err, ", policies:", tostring(rules))
+            LOGGER(ERR, "Routing rules query error or bad policy type for hostkey : ", hostkey, " err：", err)
             return response.failure("Routing rules query error or bad policy type :-(", 500)
         end
     else
