@@ -114,37 +114,37 @@ var instance = new Vue({
                 return "This is Upstream Root !"
             } else if (type === "host") {
                 return "<table>" +
-                    "<tr><td>Host:</td><td>" + data.name + "</td></tr>" +
-                    "<tr><td>Default:</td><td>" + data.router.default + "</td></tr>" +
-                    (data.router.policies ? "<tr><td>Routers:</td><td>" + data.router.policies.length + "</td></tr>" : "") +
+                    "<tr><td>Host:</td><td class='text-xs-right'>" + data.name + "</td></tr>" +
+                    "<tr><td>Default:</td><td class='text-xs-right'>" + data.router.default + "</td></tr>" +
+                    (data.router.policies ? "<tr><td>Routers:</td><td class='text-xs-right'>" + data.router.policies.length + "</td></tr>" : "") +
                     "</table>"
             } else if (type === "policy") {
                 return "<table>" +
-                    "<tr><td>Host:</td><td>" + data.host + "</td></tr>" +
-                    (data.stable ? "<tr><td>Default:</td><td>" + data.name + "</td></tr>" : "") +
-                    (data.stable ? "" : "<tr><td>Policy:</td><td>" + data.policy + "</td></tr>") +
-                    (data.stable ? "" : "<tr><td>Mapper:</td><td>" + data.mapper + "</td></tr>") +
-                    (data.tag ? "<tr><td>Tag:</td><td>" + data.tag + "</td></tr>" : "") +
+                    "<tr><td>Host:</td><td class='text-xs-right'>" + data.host + "</td></tr>" +
+                    (data.stable ? "<tr><td>Default:</td><td class='text-xs-right'>" + data.name + "</td></tr>" : "") +
+                    (data.stable ? "" : "<tr><td>Policy:</td><td class='text-xs-right'>" + data.policy + "</td></tr>") +
+                    (data.stable ? "" : "<tr><td>Mapper:</td><td class='text-xs-right'>" + data.mapper + "</td></tr>") +
+                    (data.tag ? "<tr><td>Tag:</td><td class='text-xs-right'>" + data.tag + "</td></tr>" : "") +
                     "</table>"
             } else if (type === "phi_upstream") {
                 return "<table>" +
-                    "<tr><td>Target:</td><td>" + data.name + "</td></tr>" +
-                    "<tr><td>Calculation:</td><td>" + data.calculation + "</td></tr>" +
-                    "<tr><td>Condition:</td><td>" + data.condition + "</td></tr>" +
+                    "<tr><td>Target:</td><td class='text-xs-right'>" + data.name + "</td></tr>" +
+                    "<tr><td>Calculation:</td><td class='text-xs-right'>" + data.calculation + "</td></tr>" +
+                    "<tr><td>Condition:</td><td class='text-xs-right'>" + data.condition + "</td></tr>" +
                     "</table>"
             } else if (type === "upstream") {
                 return "<table>" +
-                    "<tr><td>Editable:</td><td>" + (!data.stable) + "</td></tr>" +
-                    "<tr><td>Servers:</td><td>" + data.children.length + "</td></tr>" +
-                    (data.stable ? "" : "<tr><td>Load Balance:</td><td>" + data.strategy + "</td></tr>") +
-                    ((!data.stable && data.mapper) ? "<tr><td>Mapper:</td><td>" + data.mapper + "</td></tr>" : "") +
-                    ((!data.stable && data.tag) ? "<tr><td>Tag:</td><td>" + data.tag + "</td></tr>" : "") +
+                    "<tr><td>Editable:</td><td class='text-xs-right'>" + (!data.stable) + "</td></tr>" +
+                    "<tr><td>Servers:</td><td class='text-xs-right'>" + data.children.length + "</td></tr>" +
+                    (data.stable ? "" : "<tr><td>Load Balance:</td><td class='text-xs-right'>" + data.strategy + "</td></tr>") +
+                    ((!data.stable && data.mapper) ? "<tr><td>Mapper:</td><td class='text-xs-right'>" + data.mapper + "</td></tr>" : "") +
+                    ((!data.stable && data.tag) ? "<tr><td>Tag:</td><td class='text-xs-right'>" + data.tag + "</td></tr>" : "") +
                     "</table>"
             } else if (type === "server") {
                 return "<table>" +
-                    "<tr><td>Upstream:</td><td>" + data.ups + "</td></tr>" +
-                    "<tr><td>Server:</td><td>" + data.name + "</td></tr>" +
-                    "<tr><td>Weight:</td><td>" + data.server.weight + "</td></tr>" +
+                    "<tr><td>Upstream:</td><td class='text-xs-right'>" + data.ups + "</td></tr>" +
+                    "<tr><td>Server:</td><td class='text-xs-right'>" + data.name + "</td></tr>" +
+                    "<tr><td>Weight:</td><td class='text-xs-right'>" + data.server.weight + "</td></tr>" +
                     "</table>"
             }
         },
@@ -254,7 +254,6 @@ var instance = new Vue({
                 this.$http.get("/router/del?hostkey=" + hostkey).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        // window.location = "/"
                         this.updateChart()
                     } else {
                         this.alert(resp.body.status.message, "warning");
@@ -269,7 +268,6 @@ var instance = new Vue({
                 this.$http.get("/upstream/delUps?upstreamName=" + ups).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        // window.location = "/"
                         this.updateChart()
                     } else {
                         this.alert(resp.body.status.message, "warning");
@@ -450,8 +448,8 @@ var instance = new Vue({
                             type: 'tree',
                             name: 'Phi',
                             top: '5%',
-                            left: '7%',
-                            bottom: '2%',
+                            left: '5%',
+                            bottom: '5%',
                             right: '60%',
                             data: [tree1],
                             symbolSize: 10,
@@ -476,7 +474,7 @@ var instance = new Vue({
                             name: 'Upstream',
                             top: '20%',
                             left: '60%',
-                            bottom: '22%',
+                            bottom: '20%',
                             right: '5%',
                             data: [tree2],
                             symbolSize: 10,
