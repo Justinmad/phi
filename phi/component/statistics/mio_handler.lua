@@ -19,15 +19,11 @@ function mio_handler:new()
 end
 
 function mio_handler.init()
-    ngx.log(ngx.ERR, "init===================================pid", ngx.worker.pid())
-    ngx.log(ngx.ERR, "init===================================id", ngx.worker.id())
     xpcall(status.init, common.err_handle)
 end
 
 function mio_handler.init_worker()
     mio_handler.super:init_worker()
-    ngx.log(ngx.ERR, "init worker-----------------------------------pid", ngx.worker.pid())
-    ngx.log(ngx.ERR, "init worker-----------------------------------id", ngx.worker.id())
     xpcall(summary.sync_data_to_shared_dict, common.err_handle)
 end
 
