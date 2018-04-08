@@ -107,8 +107,8 @@ local function hook_for_upstream(var, ctx)
     end
 end
 
-local function hook_for_server(var)
-    local server_zone = var.server_name
+local function hook_for_server(var, ctx)
+    local server_zone = ctx.__host or var.server_name
     if not server_zone or server_zone == '' then
         return
     end
@@ -180,8 +180,8 @@ end
 
 local function get_nginx_info(var)
     local ngx_lua_version = ngx.config.ngx_lua_version --例如 0.9.2 就对应返回值 9002; 1.4.3 就对应返回值 1004003
-
     local report = {}
+
     report.nginx_version = var.nginx_version
     report.ngx_lua_version = math_floor(ngx_lua_version / 1000000) .. '.' .. math_floor(ngx_lua_version / 1000) .. '.' .. math_floor(ngx_lua_version % 1000)
     report.address = var.server_addr .. ":" .. var.server_port
@@ -190,11 +190,13 @@ local function get_nginx_info(var)
     report.timestamp = ngx_time()
     report.generation = shared_status:get(NGX_RELOAD_GENERATION)
     report.pid = shared_status:get( MASTER_PID )
+
     return report
 end
 
 local function get_connections_info(var)
     local report = {}
+
     report.current = tonumber(var.connections_active) --包括读、写和空闲连接数
     report.active = var.connections_reading + var.connections_writing
     report.idle = tonumber(var.connections_waiting)

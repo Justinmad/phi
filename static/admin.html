@@ -14,7 +14,7 @@
 <body>
 <div id="app">
     <v-app>
-        <v-toolbar dense style="background: white">
+        <v-toolbar dense>
             <v-toolbar-side-icon>
                 <v-icon large class="mb-4 grey--text">φ</v-icon>
             </v-toolbar-side-icon>
@@ -191,10 +191,10 @@
                                                         <v-flex xs12>
                                                             <v-text-field
                                                                     :rules="formRules.string"
-                                                                    label="Router Expression"
+                                                                    label="Router Condition"
                                                                     v-model="rp.expression"
                                                                     required
-                                                                    hint="路由计算表达式"></v-text-field>
+                                                                    hint="路由匹配条件"></v-text-field>
                                                         </v-flex>
                                                     </v-layout>
                                                 </v-flex>
@@ -208,7 +208,7 @@
                                         </v-flex>
                                     </v-layout>
                                     <v-layout>
-                                        <v-btn block round small
+                                        <v-btn block flat round small
                                                @click="p.routerTable.push({result:'',expression:[]})">
                                             <v-icon small>fa-plus</v-icon>
                                             &nbsp;Add New Policy Item
