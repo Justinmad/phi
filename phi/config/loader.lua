@@ -93,10 +93,12 @@ function _M.load()
             return nil, err
         end
     end
-
-    local conf = tablex.pairmap(overrides, default_conf, (from_file_conf or {}), {})
-    conf = tablex.merge(default_conf, conf, true) -- 取交集，删除多余的配置
-
+    local conf = tablex.pairmap(overrides, default_conf, (from_file_conf or {}))
+    for k, v in pairs(from_file_conf or {}) do
+        if conf[k] == nil then
+            conf[k] = v
+        end
+    end
     -- 打印最终配置在控制台
     do
         local conf_arr = {}

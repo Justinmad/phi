@@ -1,0 +1,11 @@
+.idea
+.gitignore
+.git
+openresty/
+.vscode
+*_temp
+*.log
+*.pid
+.iml
+conf/logs/
+install/

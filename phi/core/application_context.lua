@@ -7,6 +7,7 @@
 --
 local pl_config = require "pl.config"
 local pretty_write = require "pl.pretty".write
+local properties = require "Phi".configuration
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
 local INFO = ngx.INFO
@@ -17,7 +18,27 @@ local require = require
 local type = type
 local error = error
 local remove = table.remove
+local str_sub = string.sub
+local re_gsub = ngx.re.gsub
+local re_find = ngx.re.find
 local _M = {}
+
+local function replaceProp(m)
+    local result
+    local prop = m[0]
+    prop = str_sub(m[0], 3, #prop - 1)
+    local from = re_find(prop, ":")
+    if from then
+        local key = str_sub(prop, 1, from - 1)
+        local defaultValue = str_sub(prop, from + 1)
+        result = properties[key] or defaultValue
+        LOGGER(DEBUG, "replace placeholder str:[", key, "] with [", result, "]")
+    else
+        result = properties[prop]
+        LOGGER(DEBUG, "replace placeholder str:[", prop, "] with [", result, "]")
+    end
+    return result
+end
 
 local function loadConf(context, beanDefinitions, location)
     local conf = pl_config.read(location)
@@ -27,6 +48,22 @@ local function loadConf(context, beanDefinitions, location)
                 error("Duplicate bean definition in config file:" .. location)
             else
                 local class = require(definition.path)
+
+                for k, v in pairs(definition) do
+                    if type(v) == "string" then
+                        local val = re_gsub(v, "(\\$\\{(\\w)+(:.+)*\\})", replaceProp, "joi")
+                        local numResult = tonumber(val)
+                        if numResult then
+                            -- tonumber
+                            val = numResult
+                        elseif val == "true" or val == "false" then
+                            -- toboolean
+                            val = val == "true"
+                        end
+                        definition[k] = val
+                    end
+                end
+
                 -- 没有new函数，将此脚本直接放入context
                 if type(class.new) ~= "function" then
                     context[id] = class

@@ -21,6 +21,11 @@ local conf_path = current_path .. "../../conf/"
 return {
     debug = false,
     debug_host = "127.0.0.1",
+    redis_host = "127.0.0.1",
+    redis_port = 6379,
+    redis_db_index = 1,
+    redis_pool_size = 100,
+    redis_keepalive = 10000,
     debug_port = 8172,
     enabled_admin = true,
     enabled_mio = true,

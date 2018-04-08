@@ -52,7 +52,7 @@ function stop(){
 function start(){
     mkdir -p ${prefix}/logs
     echo "start nginx with ${prefix}/main.conf"
-    `${startup_command}`
+    `${startup_command} -g 'daemon off;'`
 }
 
 function _test(){

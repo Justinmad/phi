@@ -12,6 +12,10 @@ new Vue({
     methods: {
         initData: function () {
             this.$http.get('status').then(function (resp) {
+                if (resp.body.mio_disabled) {
+                    this.mioDisabled = true;
+                    return
+                }
                 this.status = resp.body;
             }, function (reason) {
                 console.log(reason);

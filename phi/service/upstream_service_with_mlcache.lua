@@ -33,7 +33,7 @@ if not _ok or type(new_tab) ~= "function" then
     end
 end
 
-local find = ngx.re.find
+local re_match = ngx.re.match
 
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
@@ -364,7 +364,7 @@ local function getFromDb(self, upstream)
         return res
     else
         -- 简单判断一下是否属于IP
-        local m = find(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
+        local m = re_match(upstream, "^(\\d{1,3}\\.){3}\\d{1,3}\\:\\d{1,5}$", "jo")
         if m then
             return "ip:port"
         end

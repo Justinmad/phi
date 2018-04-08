@@ -10,15 +10,17 @@
 require "resty.core"
 local phi = require "Phi"
 do
-    local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
-    if os:match("[L|l]inux") then
-        package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
-    end
     local constants = require "core.constants"
     local LOGGER = ngx.log
     local ERR = ngx.ERR
     local function log(msg)
         LOGGER(ERR, msg)
+    end
+
+    local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
+    if os:match("[L|l]inux") then
+        log("add linux lib/*.so to package cpath")
+        package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
     end
 
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存

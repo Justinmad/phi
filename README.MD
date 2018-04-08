@@ -28,6 +28,11 @@
           ./install.sh ${path_to_nginx_src}
         ```
     - 请将/home/phi-0.0.1/sbin加入环境变量
+- 方式四
+    - 根据项目根目录下的Dockerfile制作docker镜像，并启动
+    - 项目默认安装在/home/phi目录下，默认暴露8080,9090,12345端口
+    - 你需要在配置文件中指定redis的主机和端口
+    - 你应该将conf目录映射到外部路径中
 
 ## 启动和配置
 - 确保nginx命令可执行,可以使用command -v nginx查看
