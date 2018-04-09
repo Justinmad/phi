@@ -131,9 +131,10 @@ server {
 ![admin](/static/image/admin.png)
 
 ## 启动统计面板
+- 目前的统计功能因为涉及很多对Shared_Dict的操作，以及对ngx.var的使用在性能上会有一定损失，单核心下差距明显(50%)，多核心下差距会缩小
 - 在执行Nginx的编译前的配置中请添加 --with-http_stub_status_module，[[OpenResty]]默认开启，使用install中的安装脚本默认会添加此模块到nginx
-- 如果你使用phi中的nginx配置，数据统计默认是启用的，通过12345端口即可访问
-- 当你使用自定义的nginx配置，你需要确保phi配置中enabled_admin=true,并在nginx配置中添加如下server
+- 数据统计默认是关闭的
+- 在bin/或comf/下添加phi.ini设置enabled_admin=true开启，并在nginx配置中添加如下server(如果没有)，通过12345端口可访问
     ```nginx
     server {
             listen       9090;

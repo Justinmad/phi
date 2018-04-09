@@ -17,25 +17,26 @@ remove(tmp, #tmp)
 
 local current_path = concat(tmp, "/") .. "/"
 local conf_path = current_path .. "../../conf/"
+local bin_path = current_path .. "../../bin/"
 
 return {
     debug = false,
     debug_host = "127.0.0.1",
+    debug_port = 8172,
     redis_host = "127.0.0.1",
     redis_port = 6379,
     redis_db_index = 1,
     redis_pool_size = 100,
     redis_keepalive = 10000,
-    debug_port = 8172,
     enabled_admin = true,
     enabled_mio = true,
 --enabled_policies = { "unique", "range", "prefix", "suffix", "composite", "modulo", "regex" },
     enabled_policies = { "unique", "range", "prefix", "suffix", "modulo", "regex" },
     enabled_mappers = { "header", "uri_args", "ip", "uri" },
     default_paths = {
-        current_path .. "phi.ini", conf_path .. "phi.ini"
+        current_path .. "phi.ini", conf_path .. "phi.ini", bin_path .. "phi.ini"
     },
     application_context_conf = {
-        current_path .. "application.ini", conf_path .. "application.ini"
+        current_path .. "application.ini", conf_path .. "application.ini", bin_path .. "application.ini"
     }
 }
