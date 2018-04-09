@@ -6,7 +6,7 @@ prefix=${current_path}/../conf
 conf=main.conf
 command=$1
 shift
-while getopts ":DP:H:p:c:" opt; do
+while getopts ":DP:H:p:c:d" opt; do
     case ${opt} in
     D)
         echo "enable remote debug mode"
