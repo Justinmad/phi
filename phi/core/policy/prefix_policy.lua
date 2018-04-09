@@ -29,7 +29,8 @@ function suffix_policy.calculate(arg, routerTable)
         -- 遍历规则表，寻找正确匹配的规则
         -- 范围匹配规则：允许符合后缀名的请求路由到预定义的upstream中
         for _, item in ipairs(routerTable) do
-            local up, policy = item.ups, item.policy
+            local up, policy = item.result, item.expression
+            print(require("pl.pretty").write(item))
             local policyLength = string_len(policy)
             if argLength >= policyLength then
                 local selected = sub(arg, 1, policyLength) == policy
