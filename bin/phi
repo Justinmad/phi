@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 shift $[$OPTIND-1]
 command -v nginx >/dev/null 2>&1 || { echo >&2 "I require nginx but it's not installed.  Aborting."; exit 1; }
 current_path=$(dirname $(readlink -f $0))
@@ -29,7 +30,7 @@ while getopts ":DP:H:p:c:d" opt; do
         echo "use config file ${conf}"
         ;;
     d)
-        daemon="-g 'daemon off;'"
+        daemon=-g 'daemon off;'
         ;;
     ?)
         echo "Invalid option: -$OPTARG"
