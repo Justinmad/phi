@@ -16,6 +16,8 @@ local LOGGER = ngx.log
 local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local exit = ngx.exit
+local re_sub = ngx.re.sub
+local utils = require "utils"
 
 local _M = {}
 
@@ -74,6 +76,14 @@ function _M:balance(ctx)
     else
         LOGGER(ERR, "failed to dispatch to backend: ups_balancer is nil?")
         exit(500)
+    end
+end
+
+function _M:header_filter(ctx)
+    local ups_balancer = ctx.balancer
+    local location = ngx.header.Location
+    if ups_balancer and location then
+        ngx.header.Location = re_sub(location, self.default_upstream, utils.getHost(ctx))
     end
 end
 

@@ -74,6 +74,13 @@ function instance:access()
     end
 end
 
+function instance:header_filter()
+    local ctx = ngx.ctx
+    for _, c in ipairs(components) do
+        c:header_filter(ctx)
+    end
+end
+
 function instance:log()
     local ctx = ngx.ctx
     local var = ngx.var

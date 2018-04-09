@@ -26,6 +26,10 @@ function BaseComponent:rewrite(ctx)
     LOGGER(DEBUG, "executing component \"", self._name, "\": rewrite")
 end
 
+function BaseComponent:header_filter()
+    LOGGER(DEBUG, "executing plugin \"", self._name, "\": header_filter")
+end
+
 function BaseComponent:access()
     LOGGER(DEBUG, "executing component \"", self._name, "\": access")
 end
