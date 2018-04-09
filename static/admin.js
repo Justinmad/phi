@@ -254,7 +254,8 @@ var instance = new Vue({
                 this.$http.get("/router/del?hostkey=" + hostkey).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        this.updateChart()
+                        // this.updateChart();
+                        window.location = "/"
                     } else {
                         this.alert(resp.body.status.message, "warning");
                     }
@@ -268,7 +269,8 @@ var instance = new Vue({
                 this.$http.get("/upstream/delUps?upstreamName=" + ups).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        this.updateChart()
+                        // this.updateChart();
+                        window.location = "/"
                     } else {
                         this.alert(resp.body.status.message, "warning");
                     }
@@ -309,7 +311,8 @@ var instance = new Vue({
                 }).then(resp => {
                     if (resp.body.status.success) {
                         this.alert(resp.body.status.message || "ok", "success");
-                        this.updateChart();
+                        // this.updateChart();
+                        window.location = "/"
                     } else {
                         this.alert(resp.body.status.message, "warning");
                     }
@@ -503,7 +506,6 @@ var instance = new Vue({
             this.alert("获取数据失败！", "error");
         });
         myChart.on("contextmenu", (params) => {
-            // console.log(params);
             this.show(params);
         });
         this.chart = myChart;
