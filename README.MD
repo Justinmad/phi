@@ -30,7 +30,7 @@
     - 请将/home/phi-0.0.1/sbin加入环境变量
 - 方式四
     - 根据项目根目录下的Dockerfile制作docker镜像，并启动
-    - 项目默认安装在/home/phi目录下，默认暴露8080,9090,12345端口
+    - 项目默认安装在/home/phi目录下，默认暴露80,9090,12345端口
     - 你需要在配置文件中指定redis的主机和端口
     - 你应该将conf目录映射到外部路径中
 
@@ -64,23 +64,36 @@
             lua_shared_dict phi_router              10m;
             lua_shared_dict phi_upstream            10m;
             lua_shared_dict phi_limiter             10m;
+            lua_shared_dict phi_degrader            10m;
             lua_shared_dict phi_limit_req           128m;
             lua_shared_dict phi_limit_conn          128m;
             lua_shared_dict phi_limit_count         128m;
+            # 开启mio统计面板的情况下需添加如下dict
+            lua_shared_dict status  8m;
+            lua_shared_dict summary 128m;
+            lua_shared_dict recording_summary 128m;
             #lua入口文件
             init_by_lua_file ../entry_lua_file/init_by_lua.lua;
             init_worker_by_lua_file ../entry_lua_file/init_worker_by_lua.lua;
-            log_by_lua_file ../entry_lua_file/log_by_lua.lua;
             server {
-                listen 8080;
-                location / {
-                    set $backend '';
-                    rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
-                    access_by_lua_file ../entry_lua_file/access_by_lua.lua;
-                    proxy_http_version 1.1;
-                    proxy_set_header Connection "";
-                    proxy_pass http://$backend;
-                }
+                    set $upstream_connection '';
+                    listen 80;
+                    server_name phi_entry;
+                    location = /favicon.ico {
+                        log_not_found off;
+                        access_log off;
+                    }
+                    location / {
+                        set $backend '';
+                        rewrite_by_lua_file ../entry_lua_file/rewrite_by_lua.lua;
+                        proxy_http_version 1.1;
+                        proxy_set_header Connection $upstream_connection;
+                        proxy_set_header Upgrade $http_upgrade;
+                        proxy_set_header Host $host;
+                        proxy_set_header X-Real-IP $remote_addr;
+                        proxy_pass http://$backend;
+                    }
+                    log_by_lua_file ../entry_lua_file/log_by_lua.lua;
             }
             upstream phi_upstream {
                 server 0.0.0.1;
@@ -166,7 +179,7 @@ server {
 
 ## 快速开始
 - 参考默认配置
-    - 使用8080端口作为api网关入口
+    - 使用80端口作为api网关入口
     - 使用9090端口作为统计面板入口
     - 使用12345端口作为管理控制台api入口
     - 将conf/vhost.conf引入nginx配置中，用来模拟后端服务器，分别占用5555、6666、7777、8888端口
@@ -178,7 +191,7 @@ server {
     ```
     - 访问刚才添加的api server
     ```text
-    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
+    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost
     ```
     返回内容
     ```text
@@ -198,7 +211,7 @@ server {
     ```
     - 访问刚才添加的api server
     ```text
-    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost:8080
+    curl -H 'content-type:application/json' -H 'Host:sample.com' http://localhost
     ```
     - 请求返回内容
     ```text
@@ -216,7 +229,7 @@ server {
     ```
     - 访问刚才添加的api server
     ```text
-    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost
     ```
     - 返回内容，取不到X-UID时，请求将会在5555/6666的server之间进行轮询
     ```text
@@ -230,7 +243,7 @@ server {
     ```
     - 访问刚才添加的api server
     ```text
-    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost
     ```
     - 返回内容
     ```text
@@ -254,7 +267,7 @@ server {
     ```
     - 访问刚才添加的api server
     ```text
-    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost:8080/test
+    curl -H 'content-type:application/json' -H 'Host:sample.com' -H 'X-UID:123458' http://localhost/test
     ```
     - 返回内容
     ```text
