@@ -28,6 +28,9 @@ while getopts ":DP:H:p:c:" opt; do
         conf=$OPTARG
         echo "use config file ${conf}"
         ;;
+    d)
+        daemon="-g 'daemon off;'"
+        ;;
     ?)
         echo "Invalid option: -$OPTARG"
         exit 1
@@ -52,7 +55,7 @@ function stop(){
 function start(){
     mkdir -p ${prefix}/logs
     echo "start nginx with ${prefix}/main.conf"
-    `${startup_command} -g 'daemon off;'`
+    `${startup_command} ${daemon}`
 }
 
 function _test(){
