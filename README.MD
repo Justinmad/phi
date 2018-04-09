@@ -44,6 +44,7 @@
         - -P: 远程debug 端口,默认8172
         - -p: nginx启动目录，同nginx -p参数
         - -c: nginx启动配置文件名称，同nginx -c参数
+        - -d: 以非守护进程方式启动，同-g 'daemon off'
 - 你也可以使用nginx启动命令来启动项目
 - 你也可以自行指定nginx配置文件，但需要在你已存在的nginx配置中添加如下内容
     - Nginx 配置

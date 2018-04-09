@@ -30,7 +30,7 @@ while getopts ":DP:H:p:c:d" opt; do
         echo "use config file ${conf}"
         ;;
     d)
-        daemon=-g 'daemon off;'
+        daemon=off
         ;;
     ?)
         echo "Invalid option: -$OPTARG"
@@ -56,7 +56,11 @@ function stop(){
 function start(){
     mkdir -p ${prefix}/logs
     echo "start nginx with ${prefix}/main.conf"
-    `${startup_command} ${daemon}`
+    if [ ${daemon} ] ; then
+        $(nginx -c ${conf} -p ${prefix} -g 'daemon off;')
+    else
+        `${startup_command}`
+    fi
 }
 
 function _test(){
@@ -94,6 +98,7 @@ case ${command} in
             -H: remote debug host，default is localhost
             -P: remote debug port，default is 8172
             -p: nginx conf directory prefix
-            -c: nginx config file name"
+            -c: nginx config file name
+            -d: nginx -g 'daemon off'"
     ;;
 esac
