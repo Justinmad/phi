@@ -87,7 +87,7 @@ local function hook_for_upstream(var, ctx)
         if var.upstream_status then
             -- upstreams 可能挂了，返回的 code 是 nil
             local status = math_floor((tonumber(var.upstream_status) or 500) / 100) .. 'xx'
-            local count = shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1, 0)
+            shared_status:incr(upstream_key .. RESPONSE_CODE .. status, 1, 0)
         end
         -- UPSTREAM_REQUEST_LEN
         shared_status:incr(upstream_key .. UPSTREAM_REQUEST_LEN, tonumber(var.request_length) or 0, 0)
