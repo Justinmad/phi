@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="overflow: auto">
+<html lang="en" style="overflow: auto" class="custom-scrollbar">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -10,6 +10,24 @@
     <link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <link href="https://cdn.bootcss.com/vuetify/1.0.11/vuetify.min.css" rel="stylesheet">
     <link href="/static/css/materialdesignicons.min.css" media="all" rel="stylesheet" type="text/css"/>
+    <style>
+        /* Document scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            box-shadow: inset 0 0 6px rgba(255, 255, 255, 0);
+            /*border-radius: 10px;*/
+        }
+        ::-webkit-scrollbar-thumb {
+            /*border-radius: 10px;*/
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+        }
+        /* Scrollable element */
+        .custom-scrollbar::webkit-scrollbar {
+        }
+
+    </style>
 </head>
 <body>
 <div id="app">
