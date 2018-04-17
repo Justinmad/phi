@@ -20,6 +20,8 @@ local instance = {
     configuration = nil,
 -- 扩展组件
     components = nil,
+-- DB
+    db = nil,
 -- 规则计算
     policy_holder = nil,
 -- 请求映射
@@ -27,7 +29,9 @@ local instance = {
 -- 事件总线
     observer = nil,
 -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
-    context = {}
+    context = {},
+-- mvc容器
+    mvc = nil
 }
 
 local router, balancer, components

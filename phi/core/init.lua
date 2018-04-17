@@ -85,6 +85,8 @@ do
     for _, bean in pairs(context) do
         if string.lower(bean.__definition.type or "") == "component" then
             table.insert(components, bean)
+        elseif string.lower(bean.__definition.type or "") == "datasource" and phi.db == nil then
+            phi.db = bean;
         end
     end
 
@@ -96,6 +98,21 @@ do
         return o1 > o2
     end)
     phi.components = components
+
+    do
+        local lor = require("lor.index")
+        local app = lor()
+        local router = require("api.router")
+
+        -- routes
+        app:conf("view enable", true)
+        app:conf("view engine", "tmpl")
+        app:conf("view ext", "html")
+        app:conf("views", "../static")
+        app:use(router())
+
+        app:run()
+    end
 
     -- 初始化admin规则
     if config.enabled_admin then
