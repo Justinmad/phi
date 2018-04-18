@@ -1,7 +1,7 @@
 local type = type
 local pairs = pairs
-local common = require "gateway.module.common"
-local uri_lrucache = require "gateway.module.summary_lru" -- 用作持久的统计使用
+local common = require "mio.gateway.module.common"
+local uri_lrucache = require "mio.gateway.module.summary_lru" -- 用作持久的统计使用
 local ngx = ngx
 local ngx_time = ngx.time
 local ngx_time_at = ngx.timer.at

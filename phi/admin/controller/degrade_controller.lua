@@ -27,8 +27,8 @@ _M.del = {
     method = GET,
     mapping = "del",
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
-        local uri = request.args["uri"]
+        local hostkey = request.query.hostkey
+        local uri = request.query.uri
         local ok, err
         if hostkey then
             ok, err = self.degradationService:delDegradation(hostkey, uri)
@@ -70,9 +70,9 @@ _M.enabled = {
     method = GET,
     mapping = "enabled",
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
-        local uri = request.args["uri"]
-        local enabled = request.args["enabled"]
+        local hostkey = request.query["hostkey"]
+        local uri = request.query["uri"]
+        local enabled = request.query["enabled"]
         local ok, err
         if hostkey and uri and enabled ~= nil then
             ok, err = self.degradationService:enabled(hostkey, uri, enabled == "true")
@@ -89,7 +89,7 @@ _M.enabled = {
 _M.get = {
     method = GET,
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
+        local hostkey = request.query["hostkey"]
         local policies, err
         if hostkey then
             policies, err = self.degradationService:getDegradations(hostkey)
@@ -112,8 +112,8 @@ _M.get = {
 _M.getAll = {
     method = GET,
     handler = function(self, request)
-        local from = tonumber(request.args.from) or 0
-        local count = tonumber(request.args.count) or 1024
+        local from = tonumber(request.query.from) or 0
+        local count = tonumber(request.query.count) or 1024
         if from and count then
             local res, err = self.degradationService:getAllDegradations(from, count)
             if err then

@@ -33,7 +33,7 @@ _M.del = {
     method = GET,
     mapping = "del",
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
+        local hostkey = request.query["hostkey"]
         local ok, err
         if hostkey then
             ok, err = self.routerService:delRouterPolicy(hostkey)
@@ -94,7 +94,7 @@ _M.add = {
 _M.get = {
     method = GET,
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
+        local hostkey = request.query["hostkey"]
         local policies, err
         if hostkey then
             policies, err = self.routerService:getRouterPolicy(hostkey)
@@ -117,8 +117,8 @@ _M.get = {
 _M.getAll = {
     method = GET,
     handler = function(self, request)
-        local from = tonumber(request.args.from) or 0
-        local count = tonumber(request.args.count) or 1024
+        local from = tonumber(request.query.from) or 0
+        local count = tonumber(request.query.count) or 1024
         if from and count then
             local res, err = self.routerService:getAllRouterPolicy(from, count)
             if err then

@@ -27,7 +27,7 @@ function _M:getAllUpsInfo()
 end
 
 function _M:getUpstreamServers(request)
-    local upstreamName = request.args.upstreamName
+    local upstreamName = request.query.upstreamName
     if not upstreamName then
         Response.failure("upstreamName不能为空！")
     end
@@ -138,7 +138,7 @@ _M.addOrUpdateUps = {
 _M.delUps = {
     method = GET,
     handler = function(self, request)
-        local upstreamName = request.args.upstreamName
+        local upstreamName = request.query.upstreamName
         if not upstreamName then
             Response.failure("缺少必须的请求参数！upstreamName")
         end
@@ -190,9 +190,9 @@ _M.delUpstreamServers = {
     @param down: true=关闭/false=开启
 -- ]]
 function _M:setPeerDown(request)
-    local upstreamName = request.args["upstreamName"]
-    local peerId = request.args["serverName"]
-    local down = request.args["down"]
+    local upstreamName = request.query["upstreamName"]
+    local peerId = request.query["serverName"]
+    local down = request.query["down"]
     if (not upstreamName) or (down == nil) or (not peerId) then
         Response.failure("缺少必须参数！")
     end

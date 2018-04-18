@@ -1,6 +1,6 @@
 -- -*- coding: utf-8 -*-
 
-local common = require "gateway.module.common"
+local common = require "mio.gateway.module.common"
 local upstream = require "ngx.upstream"
 local ngx_get_upstreams = upstream.get_upstreams
 local ngx_get_primary_peers = upstream.get_primary_peers

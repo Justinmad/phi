@@ -25,7 +25,7 @@ _M.del = {
     method = GET,
     mapping = "del",
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
+        local hostkey = request.query["hostkey"]
         local ok, err
         if hostkey then
             ok, err = self.rateLimitingService:delLimitPolicy(hostkey)
@@ -95,7 +95,7 @@ _M.add = {
 _M.get = {
     method = GET,
     handler = function(self, request)
-        local hostkey = request.args["hostkey"]
+        local hostkey = request.query["hostkey"]
         local policies, err
         if hostkey then
             policies, err = self.rateLimitingService:getLimitPolicy(hostkey)
@@ -119,8 +119,8 @@ _M.get = {
 _M.getAll = {
     method = GET,
     handler = function(self, request)
-        local from = request.args.from
-        local count = request.args.count
+        local from = request.query.from
+        local count = request.query.count
         if from and count then
             local res, err = self.rateLimitingService:getAllLimitPolicy(from, count)
             if err then

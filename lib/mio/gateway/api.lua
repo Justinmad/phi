@@ -1,5 +1,5 @@
-local status = require("gateway.module.status")
-local summary = require("gateway.module.summary")
+local status = require("mio.gateway.module.status")
+local summary = require("mio.gateway.module.summary")
 
 local API = {}
 
