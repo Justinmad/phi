@@ -5,7 +5,7 @@ if not enabled_mio then
 end
 local lor = require("lor.index")
 local app = lor()
-local router = require("api.router")
+local router = require("mio.api.router")
 
 -- routes
 app:conf("view enable", true)

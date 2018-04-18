@@ -25,8 +25,8 @@ return {
         }
     },
     METHOD = {
-        GET = "GET",                                            -- HTTP METHOD GET
-        POST = "POST"                                           -- HTTP METHOD POST
+        GET = "get",                                            -- HTTP METHOD GET
+        POST = "post"                                           -- HTTP METHOD POST
     },
     DICTS = {
         PHI_ROUTER = "phi_router",                              -- 存储路由信息，作为二级缓存

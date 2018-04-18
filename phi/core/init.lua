@@ -40,6 +40,53 @@ do
         error("不能加载配置！err：" .. err)
     end
     phi.configuration = config
+
+    -- 加载计算规则
+    phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
+
+    -- 加载Mapper规则
+    phi.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
+
+    -- 初始化context
+    local context = require "core.application_context":init(config.application_context_conf)
+    phi.context = context
+
+    -- 初始化components
+    do
+        log("init components")
+        local components = {}
+        -- 包括application.ini中定义的type=component的bean，以及符合规则自定义组件
+        for _, bean in pairs(context) do
+            if string.lower(bean.__definition.type or "") == "component" then
+                table.insert(components, bean)
+            elseif string.lower(bean.__definition.type or "") == "datasource" and phi.db == nil then
+                phi.db = bean;
+            end
+        end
+        -- 开启mio统计组件
+        if config.enabled_mio then
+            log("add mio to components list")
+            local mio = require("component.statistics.mio_handler"):new()
+            context.mio = mio
+        end
+        -- 组件排序，所有的组件中order越大就有越高的优先级
+        log("sort components")
+        table.sort(components, function(c1, c2)
+            local o1 = c1.order or 0
+            local o2 = c2.order or 0
+            return o1 > o2
+        end)
+        phi.components = components
+    end
+
+    -- bean init
+    log("init bean")
+    for _, bean in pairs(context) do
+        if type(bean.init) == "function" then
+            bean:init()
+        end
+    end
+
     -- 开启debug
     if config.debug then
         log("add mobdebug to package path")
@@ -53,71 +100,11 @@ do
         end
     end
 
-    -- 加载计算规则
-    phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
-
-    -- 加载Mapper规则
-    phi.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
-
-    -- 初始化context
-    local context = require "core.application_context":init(config.application_context_conf)
-    phi.context = context
-
-    -- 开启mio统计
-    if config.enabled_mio then
-        log("add mio to package path")
-        package.path = "../lib/mio/?.lua;" .. package.path
-        local mio = require("component.statistics.mio_handler"):new()
-        context.mio = mio
-    end
-
-    -- bean init
-    log("init bean")
-    for _, bean in pairs(context) do
-        if type(bean.init) == "function" then
-            bean:init()
-        end
-    end
-
-    -- 初始化components
-    log("init components")
-    local components = {}
-    for _, bean in pairs(context) do
-        if string.lower(bean.__definition.type or "") == "component" then
-            table.insert(components, bean)
-        elseif string.lower(bean.__definition.type or "") == "datasource" and phi.db == nil then
-            phi.db = bean;
-        end
-    end
-
-    -- 组件排序，所有的组件中order越大就有越高的优先级
-    log("sort components")
-    table.sort(components, function(c1, c2)
-        local o1 = c1.order or 0
-        local o2 = c2.order or 0
-        return o1 > o2
-    end)
-    phi.components = components
-
-    do
-        local lor = require("lor.index")
-        local app = lor()
-        local router = require("api.router")
-
-        -- routes
-        app:conf("view enable", true)
-        app:conf("view engine", "tmpl")
-        app:conf("view ext", "html")
-        app:conf("views", "../static")
-        app:use(router())
-
-        app:run()
-    end
-
-    -- 初始化admin规则
+    -- 开启admin
     if config.enabled_admin then
         log("enable phi admin")
-        phi.admin = require "admin.phi_admin"
+        -- mvc组件，映射api到外部
+        phi.admin = require "core.phi_mvc":init(context)
     end
     log("------------------------PHI初始化完成！------------------------")
 end

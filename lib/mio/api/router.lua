@@ -6,7 +6,7 @@ local string_lower = string.lower
 local lor = require("lor.index")
 local api_router = lor:Router()
 --- 加载gateway暴露出来的API
-local default_api_path = "gateway.api"
+local default_api_path = "mio.gateway.api"
 local ok, api = pcall(require, default_api_path)
 
 if not ok or not api or type(api) ~= "table" then

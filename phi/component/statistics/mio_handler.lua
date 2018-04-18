@@ -4,9 +4,9 @@
 --- DateTime: 2018/3/29 9:37
 ---
 local base_component = require "component.base_component"
-local status = require "gateway.module.status"
-local common = require "gateway.module.common"
-local summary = require "gateway.module.summary"
+local status = require "mio.gateway.module.status"
+local common = require "mio.gateway.module.common"
+local summary = require "mio.gateway.module.summary"
 local xpcall = xpcall
 
 local mio_handler = base_component:extend()
