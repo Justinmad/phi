@@ -5,15 +5,14 @@
 -- Time: 15:46
 -- 初始化worker
 --
-local phi = require "Phi"
-do
-    local logger = ngx.log
-    local ERR = ngx.ERR
+local logger = ngx.log
+local ERR = ngx.ERR
+return function(phi)
     local log = function(msg)
         logger(ERR, msg)
     end
     log("begin to init worker")
-    local ev = require "resty.worker.events"
+    local ev = phi.observer
     local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
     local ok, err = ev.configure {
         shm = PHI_EVENTS, -- defined by "lua_shared_dict"

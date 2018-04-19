@@ -11,7 +11,6 @@ local ipairs = ipairs
 local setmetatable = setmetatable
 
 local _M = {}
-local mt = { __index = _M }
 
 local LOGGER = ngx.log
 local ERR = ngx.ERR
@@ -29,7 +28,7 @@ function _M:new(config)
         local path = config:lower()
         _M[path:lower()] = require("core.policy." .. path .. "_policy")
     end
-    return setmetatable({}, mt)
+    return setmetatable({}, { __index = _M })
 end
 
 function _M:calculate(policyType, arg, routerTable)

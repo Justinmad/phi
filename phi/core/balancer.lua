@@ -21,12 +21,6 @@ local utils = require "utils"
 
 local _M = {}
 
-function _M:init()
-end
-
-function _M:before()
-end
-
 -- 检查是否属于动态upstream，如果是路由到default_upstream中进行balance操作
 function _M:load(ctx)
     local upstream = ctx.backend
@@ -91,16 +85,11 @@ function _M:header_filter(ctx)
     end
 end
 
-function _M:after()
-end
-
-local class = {}
-
-function class:new(ref, config)
+function _M:new(ref, config)
     local instance = {}
     instance.default_upstream = config.balancer_upstream_name
     instance.service = ref
     return setmetatable(instance, { __index = _M })
 end
 
-return class
+return _M

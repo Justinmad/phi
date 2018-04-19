@@ -7,14 +7,12 @@
 local phi = require "Phi"
 local mapper_holder = phi.mapper_holder
 local policy_holder = phi.policy_holder
-
 local setmetatable = setmetatable
 local ipairs = ipairs
 local ngx = ngx
 
 local LOGGER = ngx.log
 local NOTICE = ngx.NOTICE
-local ERR = ngx.ERR
 
 local _M = {}
 function _M:route(ctx)

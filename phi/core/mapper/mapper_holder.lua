@@ -6,7 +6,6 @@
 -- 预加载所有允许使用的mapper，不建议使用需要解析请求体的api，这会增加额外的开销
 --
 local LOGGER = ngx.log
-local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
 local require = require
 local type = type
@@ -21,6 +20,23 @@ if not _ok or type(new_tab) ~= "function" then
     end
 end
 local _M = {}
+
+function _M:new(config)
+    if type(config) == "table" then
+        for _, name in ipairs(config) do
+            name = name:lower()
+            LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. name)
+            local mapper = require("core.mapper." .. name .. "_mapper")
+            _M[name] = mapper
+        end
+    else
+        config = config:lower()
+        LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. config)
+        local mapper = require("core.mapper." .. config .. "_mapper")
+        _M[config] = mapper
+    end
+    return setmetatable({}, { __index = _M })
+end
 
 local function doMap(self, ctx, mapperTable)
     local typeStr = type(mapperTable) == "string" and mapperTable or mapperTable.type
@@ -55,23 +71,6 @@ function _M:map(ctx, mapperT)
     else
         return nil, "错误的mapper数据格式!"
     end
-end
-
-function _M:new(config)
-    if type(config) == "table" then
-        for _, name in ipairs(config) do
-            name = name:lower()
-            LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. name)
-            local mapper = require("core.mapper." .. name .. "_mapper")
-            _M[name] = mapper
-        end
-    else
-        config = config:lower()
-        LOGGER(ERR, "[MAPPER_HOLDER]加载:" .. config)
-        local mapper = require("core.mapper." .. config .. "_mapper")
-        _M[config] = mapper
-    end
-    return _M
 end
 
 return _M

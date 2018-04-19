@@ -8,8 +8,7 @@
 
 -- 提前加载依赖，提高性能
 require "resty.core"
-local phi = require "Phi"
-do
+return function(phi)
     local constants = require "core.constants"
     local LOGGER = ngx.log
     local ERR = ngx.ERR
@@ -22,7 +21,6 @@ do
         log("add linux lib/*.so to package cpath")
         package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
     end
-
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
     for _, dict in pairs(constants.DICTS) do
         if not ngx.shared[dict] then
@@ -32,7 +30,6 @@ do
                     "directive is defined.")
         end
     end
-
     log("------------------------PHI初始化开始------------------------")
     -- 加载配置
     local config, err = require "config.loader".load()
@@ -40,17 +37,15 @@ do
         error("不能加载配置！err：" .. err)
     end
     phi.configuration = config
-
     -- 加载计算规则
-    phi.policy_holder = require "core.policy.policy_holder":new(config.enabled_policies)
-
+    phi.policy_holder = phi.policy_holder:new(config.enabled_policies)
     -- 加载Mapper规则
-    phi.mapper_holder = require "core.mapper.mapper_holder":new(config.enabled_mappers)
-
+    phi.mapper_holder = phi.mapper_holder:new(config.enabled_mappers)
     -- 初始化context
-    local context = require "core.application_context":init(config.application_context_conf)
+    local context = phi.context:init(config)
     phi.context = context
-
+    phi.router = context["router"]
+    phi.balancer = context["balancer"]
     -- 初始化components
     do
         log("init components")
@@ -65,6 +60,7 @@ do
         end
         -- 开启mio统计组件
         if config.enabled_mio then
+            log("Enable mio statistics")
             log("add mio to components list")
             local mio = require("component.statistics.mio_handler"):new()
             context.mio = mio
@@ -78,7 +74,6 @@ do
         end)
         phi.components = components
     end
-
     -- bean init
     log("init bean")
     for _, bean in pairs(context) do
@@ -86,9 +81,9 @@ do
             bean:init()
         end
     end
-
     -- 开启debug
     if config.debug then
+        log("Enable debug mode")
         log("add mobdebug to package path")
         package.path = "../lib/debug/mobdebug/?.lua;../lib/debug/socket/?.lua;../lib/debug/?.lua;" .. package.path
         if os:match("[L|l]inux") then
@@ -99,12 +94,11 @@ do
             package.cpath = "../lib/debug/clibs/?.dll;" .. package.cpath
         end
     end
-
     -- 开启admin
     if config.enabled_admin then
-        log("enable phi admin")
+        log("Enable phi admin")
         -- mvc组件，映射api到外部
-        phi.admin = require "core.phi_mvc":init(context)
+        phi.admin = phi.admin:init(context)
     end
     log("------------------------PHI初始化完成！------------------------")
 end

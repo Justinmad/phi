@@ -3,3 +3,16 @@
 --- Created by Administrator.
 --- DateTime: 2018/4/18 17:26
 ---
+local _M = {
+    mapping = "/jwt",
+}
+
+function _M:add(req, res, next)
+
+end
+
+function _M:sign(req, res, next)
+
+end
+
+return _M

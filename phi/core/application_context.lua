@@ -7,11 +7,15 @@
 --
 local pl_config = require "pl.config"
 local pretty_write = require "pl.pretty".write
-local properties = require "Phi".configuration
+
 local LOGGER = ngx.log
 local DEBUG = ngx.DEBUG
+local ERR = ngx.ERR
 local INFO = ngx.INFO
 local NOTICE = ngx.NOTICE
+local re_gsub = string.gsub
+local re_find = string.find
+
 local pairs = pairs
 local ipairs = ipairs
 local require = require
@@ -19,23 +23,23 @@ local type = type
 local error = error
 local remove = table.remove
 local str_sub = string.sub
-local re_gsub = ngx.re.gsub
-local re_find = ngx.re.find
+local properties = {}
+
 local _M = {}
 
 local function replaceProp(m)
     local result
-    local prop = m[0]
-    prop = str_sub(m[0], 3, #prop - 1)
+    local prop = m
+    prop = str_sub(m, 3, #prop - 1)
     local from = re_find(prop, ":")
     if from then
         local key = str_sub(prop, 1, from - 1)
         local defaultValue = str_sub(prop, from + 1)
         result = properties[key] or defaultValue
-        LOGGER(DEBUG, "replace placeholder str:[", key, "] with [", result, "]")
+        LOGGER(ERR, "replace placeholder str:[", key, "] with [", result, "]")
     else
         result = properties[prop]
-        LOGGER(DEBUG, "replace placeholder str:[", prop, "] with [", result, "]")
+        LOGGER(ERR, "replace placeholder str:[", prop, "] with [", result, "]")
     end
     return result
 end
@@ -51,13 +55,18 @@ local function loadConf(context, beanDefinitions, location)
 
                 for k, v in pairs(definition) do
                     if type(v) == "string" then
-                        local val = re_gsub(v, "(\\$\\{(\\w)+(:.+)*\\})", replaceProp, "joi")
+                        local val = v
+                        -- find ${placeholder}
+                        local hasPlaceholder, hasPlaceholderAndDefaultValue
+                        val, hasPlaceholder = re_gsub(val, "(%${[%w_]+})", replaceProp)
+                        -- find ${placeholder:defaultValue}
+                        val, hasPlaceholderAndDefaultValue = re_gsub(val, "(%${[%w_]+(:.+)})", replaceProp)
                         local numResult = tonumber(val)
                         if numResult then
-                            -- tonumber
+                            -- to number
                             val = numResult
                         elseif val == "true" or val == "false" then
-                            -- toboolean
+                            -- to boolean
                             val = val == "true"
                         end
                         definition[k] = val
@@ -139,14 +148,18 @@ local function createBean(id, beanDefinitions, inCreation, context)
     end
 end
 
-function _M:init(configLocations)
+function _M:init(config)
+    properties = config
+    local configLocations = config.application_context_conf
     local context = {}
     local beanDefinitions = {}
     if type(configLocations) == "table" and #configLocations > 0 then
+        LOGGER(ERR, "init application context with config file:", "[", table.concat(configLocations, ", "), "]")
         for _, location in ipairs(configLocations) do
             loadConf(context, beanDefinitions, location)
         end
     elseif type(configLocations) == "string" then
+        LOGGER(ERR, "init application context with config file:", "[", configLocations, "]")
         loadConf(context, beanDefinitions, configLocations)
     else
         error("非法的配置文件路径！")
@@ -171,7 +184,6 @@ function _M:init(configLocations)
                 autowire = { autowire }
             end
             LOGGER(DEBUG, id, " need to autowire ", pretty_write(autowire, ","))
-            local bean = context[id]
             for _, ref_id in ipairs(autowire) do
                 bean[ref_id] = context[ref_id] or error(ref_id .. " is not exists in the context, check it ")
             end

@@ -34,19 +34,15 @@ local ERR = ngx.ERR
 local ALERT = ngx.ALERT
 local _M = {}
 
-function _M.before(ctx)
-end
-
 -- 主要:根据host查找路由表，根据对应规则对本次请求中的backend变量进行赋值，达到路由到指定upstream的目的
-function _M:access(ctx)
+function _M:rewrite(ctx)
     local hostkey = utils.getHost(ctx)
     if hostkey then
         -- 查询多级缓存
         local router, err = self.service:getRouter(hostkey)
         if not err and router and type(router) == "table" then
             if router.skipRouter then
-                LOGGER(ALERT, "skip router for hostkey:", hostkey)
-                return
+                return LOGGER(ALERT, "skip router for hostkey:", hostkey)
             end
             router:route(ctx)
         else
@@ -59,14 +55,9 @@ function _M:access(ctx)
     end
 end
 
-function _M.after(ctx)
-end
-
-local class = {}
-function class:new(ref)
+function _M:new(ref)
     local instance = {}
     instance.service = ref
     return setmetatable(instance, { __index = _M })
 end
-
-return class
+return _M

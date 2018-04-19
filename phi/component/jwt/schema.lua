@@ -4,5 +4,8 @@
 --- DateTime: 2018/4/18 17:26
 ---
 return {
-    definition = {}
+    definition = {
+        constructor_refs = "dataSource",
+        order = 10,
+    }
 }

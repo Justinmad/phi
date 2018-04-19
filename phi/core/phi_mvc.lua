@@ -8,7 +8,7 @@
 
 local DEBUG = ngx.DEBUG
 local ERR = ngx.ERR
-local WARN = ngx.ERR
+local NOTICE = ngx.NOTICE
 local INFO = ngx.INFO
 local LOGGER = ngx.log
 
@@ -82,7 +82,7 @@ local function doMapping(context, id, bean)
                     return LOGGER(ERR, "bad methods for handler:[" .. id .. "." .. k .. "]")
                 end
             else
-                LOGGER(ERR, "skip mapping field :[", k, "]")
+                LOGGER(NOTICE, "skip mapping field :[", k, "]")
             end
             if mappingUrl and mappingFunc then
                 if not mappingMethods then
@@ -122,9 +122,8 @@ function _M:mapping(base_path, apis)
     doMapping(nil, base_path, apis)
 end
 
-local class = {}
-function class:init(applicationContext)
+function _M:init(applicationContext)
     mappingAll(applicationContext)
     return setmetatable({ context = applicationContext }, { __index = _M })
 end
-return class
+return _M
