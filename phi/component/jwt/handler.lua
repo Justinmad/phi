@@ -3,6 +3,19 @@
 --- Created by Administrator.
 --- DateTime: 2018/4/18 17:25
 ---
+
+--[[
+    {
+      "hostkey": "www.sample.com",
+      "mapper": {
+        "header":"X-JWT-TOKEN"
+      },
+      "secret": "~!+_qwd23KASXZLPQWE,3%())<>,.!",
+      "alg": "HS256",
+      "include": ["/asd/*"],
+      "exclude": []
+    }
+]]
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
 local cjson = require "cjson.safe"
@@ -11,11 +24,20 @@ local response = require "core.response"
 local jwt = require "resty.jwt"
 local validators = require "resty.jwt-validators"
 
+local alg_enum = {
+    HS256 = "HS256",
+    HS512 = "HS512",
+    RS256 = "RS256",
+    RS512 = "RS512"
+}
+
 local ERR = ngx.ERR
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
 local jwt_auth = base_component:extend()
+
+jwt_auth._version = "0.0.1"
 
 function jwt_auth:new(ref, config)
     self.super.new(self, "jwt-auth")
@@ -28,16 +50,15 @@ local function createValidator()
 
 end
 
--- jwt签名
+-- jwt sign for dev
 function jwt_auth:sign(hostkey, alg, secret, sub)
-    local jwt_token = jwt:sign(
+    return jwt:sign(
             secret,
             {
-                header = { typ = "JWT", alg = alg },
+                header = { typ = "JWT", alg = alg_enum[alg] },
                 payload = { sub = sub, exp = ngx_now(), aud = "phi", iss = "phi" }
             }
     )
-    return jwt_token
 end
 
 -- jwt认证
