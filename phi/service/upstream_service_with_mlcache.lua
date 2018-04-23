@@ -167,7 +167,7 @@ function _M:setPeerDown(upstreamName, peerId, down)
         if not upstreamInfo then
             -- 查询DB
             upstreamInfo, err = self.dao:getUpstreamServers(upstreamName)
-            if err or upstreamName == nil then
+            if err or upstreamInfo == nil then
                 err = "查询upstream出错！可能是不存在upstreamName:" .. upstreamName
                 LOGGER(ERR, err)
                 return ok, err
@@ -340,7 +340,7 @@ end
 local function newBalancer(res)
     if type(res) == "table" and not res.notExists then
         local server_list = new_tab(0, #res)
-        local strategy, mapper, tag
+        local strategy, mapper
         for k, v in pairs(res) do
             if k == "strategy" then
                 strategy = v

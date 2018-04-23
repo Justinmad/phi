@@ -46,8 +46,6 @@ local limiter_wrapper = require "component.limit_traffic.limiter_wrapper"
 local CONST = require("core.constants")
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
-local ipairs = ipairs
-local insert = table.insert
 local sort = table.sort
 local getn = table.getn
 
@@ -72,7 +70,6 @@ local LOGGER = ngx.log
 
 local function newLimiterWrapper(policy)
     if not policy.skip then
-        local limiter, err
         local len = getn(policy)
         if len > 1 then
             sort(policy.policies, function(r1, r2)

@@ -57,10 +57,9 @@ local function loadConf(context, beanDefinitions, location)
                     if type(v) == "string" then
                         local val = v
                         -- find ${placeholder}
-                        local hasPlaceholder, hasPlaceholderAndDefaultValue
-                        val, hasPlaceholder = re_gsub(val, "(%${[%w_]+})", replaceProp)
+                        val = re_gsub(val, "(%${[%w_]+})", replaceProp)
                         -- find ${placeholder:defaultValue}
-                        val, hasPlaceholderAndDefaultValue = re_gsub(val, "(%${[%w_]+(:.+)})", replaceProp)
+                        val = re_gsub(val, "(%${[%w_]+(:.+)})", replaceProp)
                         local numResult = tonumber(val)
                         if numResult then
                             -- to number

@@ -44,7 +44,7 @@ function instance:init_worker()
     require("core.init_worker")(instance)
 end
 -- 处理balancer阶段，主要指upstream中的balancer_by_lua指令
-function instance.balancer()
+function instance:balancer()
     local ctx = ngx.ctx
     -- 负载均衡
     self.balancer:balance(ctx)

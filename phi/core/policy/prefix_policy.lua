@@ -23,7 +23,7 @@ local string_len = string.len
 local suffix_policy = {}
 
 function suffix_policy.calculate(arg, routerTable)
-    local upstream, err;
+    local upstream;
     if arg then
         local argLength = string_len(arg)
         -- 遍历规则表，寻找正确匹配的规则
@@ -43,7 +43,7 @@ function suffix_policy.calculate(arg, routerTable)
             end
         end
     end
-    return upstream, err
+    return upstream
 end
 
 return suffix_policy

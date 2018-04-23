@@ -31,7 +31,7 @@ local function resp_empty_empty_table_as_array(code, success, message, data)
     }
     local encoded, errMsg = cjson.encode(content)
     if not encoded then
-        ngx.log(ngx.ERR, "[admin] could not encode value: ", err)
+        ngx.log(ngx.ERR, "[admin] could not encode value: ", errMsg)
     end
     ngx.say(encoded)
     return ngx.exit(200)

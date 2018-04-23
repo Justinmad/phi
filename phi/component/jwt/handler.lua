@@ -19,10 +19,10 @@
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
 local cjson = require "cjson.safe"
-local ngx_now = ngx.now
 local response = require "core.response"
 local jwt = require "resty.jwt"
 local validators = require "resty.jwt-validators"
+local ngx_now = ngx.now
 
 local alg_enum = {
     HS256 = "HS256",
@@ -32,22 +32,33 @@ local alg_enum = {
 }
 
 local ERR = ngx.ERR
+local DEBUG = ngx.DEBUG
+local INFO = ngx.INFO
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
 local jwt_auth = base_component:extend()
 
 jwt_auth._version = "0.0.1"
+jwt_auth.lrucache_size = 1000
 
 function jwt_auth:new(ref, config)
+    if type(ref) ~= "table" then
+        error("redis obj is nil ?")
+    end
     self.super.new(self, "jwt-auth")
-    self.order = config.order
     self.redis = ref
+    self.order = config.order
     return self
 end
 
 local function createValidator()
 
+end
+
+-- jwt sign for dev
+function jwt_auth:add(schema)
+    self.redis:set(schema.hostkey)
 end
 
 -- jwt sign for dev
@@ -68,8 +79,13 @@ function jwt_auth:rewrite(ctx)
     local jwt_token = ngx.req.get_uri_args()["jwt_token"]
     local jwt_obj = jwt:verify("lua-resty-jwt", jwt_token, {
         exp = validators.is_not_expired(),
+        iss = validators.equals_any_of({ "phi" })
     })
-    ngx.say(cjson.encode(jwt_obj))
+    if not jwt_obj.verified then
+        local msg = jwt_obj.reason or "invalid jwt string"
+        LOGGER(INFO, msg)
+        return response.failure(msg)
+    end
 end
 
 return jwt_auth

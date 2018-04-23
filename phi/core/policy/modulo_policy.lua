@@ -17,7 +17,7 @@ function modulo_policy.calculate(arg, routerTable)
     if not key then
         return nil, "输入的第一个参数必须为数字！" .. (arg or "nil")
     end
-    local upstream, err;
+    local upstream;
     -- 遍历规则表，寻找正确匹配的规则
     -- 范围匹配规则：允许指定最小到最大值之间的请求路由到预定义的upstream中
     local val = key % 10
@@ -28,11 +28,11 @@ function modulo_policy.calculate(arg, routerTable)
             LOGGER(DEBUG, "参数[", key, "]匹配到规则,modulo:[" .. policy .. "]")
             break
         else
+            LOGGER(DEBUG, "参数[", key, "]未匹配到规则,modulo:[" .. policy .. "]")
             return nil, "输入的第二个参数必须是数字且必须在0-9之间！"
         end
-        LOGGER(DEBUG, "参数[", key, "]未匹配到规则,modulo:[" .. policy .. "]")
     end
-    return upstream, err
+    return upstream
 end
 
 return modulo_policy
