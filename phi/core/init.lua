@@ -16,11 +16,6 @@ return function(phi)
         LOGGER(ERR, msg)
     end
 
-    local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
-    if os:match("[L|l]inux") then
-        log("add linux lib/*.so to package cpath")
-        package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
-    end
     -- 确认nginx配置中是否已经声明了程序运行时所必须的lua_shared_dict共享缓存
     for _, dict in pairs(constants.DICTS) do
         if not ngx.shared[dict] then
@@ -104,6 +99,7 @@ return function(phi)
         log("Enable debug mode")
         log("add mobdebug to package path")
         package.path = "../lib/debug/mobdebug/?.lua;../lib/debug/socket/?.lua;../lib/debug/?.lua;" .. package.path
+        local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
         if os:match("[L|l]inux") then
             log("add linux lua socket lib to package cpath")
             package.cpath = "../lib/debug/clibs/?.so;" .. package.cpath

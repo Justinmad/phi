@@ -9,10 +9,15 @@
 local meta = require "meta"
 local ngx = ngx
 local ipairs = ipairs
-local require = require
 -- 开启后可以检查未能被luajit所编译的代码
 --local v = require "jit.v"
 --v.on("/home/phi/logs/jit.log")
+
+local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
+if os:match("[L|l]inux") then
+    log("add linux lib/*.so to package cpath")
+    package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
+end
 
 local instance = {
     -- 属性
