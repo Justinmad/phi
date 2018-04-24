@@ -12,7 +12,7 @@ return function(phi)
         logger(ERR, msg)
     end
     log("begin to init worker")
-    local ev = phi.observer
+    local ev = require("resty.worker.events")
     local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
     local ok, err = ev.configure {
         shm = PHI_EVENTS, -- defined by "lua_shared_dict"

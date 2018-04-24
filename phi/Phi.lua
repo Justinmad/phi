@@ -31,7 +31,7 @@ local instance = {
     -- 请求映射
     mapper_holder = require("core.mapper.mapper_holder"),
     -- 事件总线
-    observer = require("resty.worker.events"),
+    observer = {},
     -- 上下文，会将所有初始化的其他lua对象存放在context中，约定上下文中所有对象如果存在init_worker方法，都会在init_worker阶段自动执行
     context = require("core.application_context"),
     -- mvc容器
