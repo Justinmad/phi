@@ -15,7 +15,7 @@ local ipairs = ipairs
 
 local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
 if os:match("[L|l]inux") then
-    log("add linux lib/*.so to package cpath")
+    ngx.log(ngx.ERR, "add linux lib/*.so to package cpath")
     package.cpath = "../openresty/?.so;../lib/?.so;;" .. package.cpath
 end
 
