@@ -24,7 +24,8 @@ local error = error
 local remove = table.remove
 local str_sub = string.sub
 local properties = {}
-
+local context = {}
+local beanDefinitions = {}
 local _M = {}
 
 local function replaceProp(m)
@@ -44,54 +45,11 @@ local function replaceProp(m)
     return result
 end
 
-local function loadConf(context, beanDefinitions, location)
-    local conf = pl_config.read(location)
-    if conf then
-        for id, definition in pairs(conf) do
-            if context[id] or beanDefinitions[id] then
-                error("Duplicate bean definition in config file:" .. location)
-            else
-                local class = require(definition.path)
-
-                for k, v in pairs(definition) do
-                    if type(v) == "string" then
-                        local val = v
-                        -- find ${placeholder}
-                        val = re_gsub(val, "(%${[%w_]+})", replaceProp)
-                        -- find ${placeholder:defaultValue}
-                        val = re_gsub(val, "(%${[%w_]+(:.+)})", replaceProp)
-                        local numResult = tonumber(val)
-                        if numResult then
-                            -- to number
-                            val = numResult
-                        elseif val == "true" or val == "false" then
-                            -- to boolean
-                            val = val == "true"
-                        end
-                        definition[k] = val
-                    end
-                end
-
-                -- 没有new函数，将此脚本直接放入context
-                if type(class.new) ~= "function" then
-                    context[id] = class
-                    class.__definition = definition
-                    LOGGER(INFO, id, " is created now")
-                else
-                    -- 存在new函数，暂存入beanDefinitions，等待创建
-                    beanDefinitions[id] = definition
-                end
-            end
-        end
-    else
-        LOGGER(NOTICE, location .. " is not exists !")
-    end
-end
-
-local function createBean(id, beanDefinitions, inCreation, context)
+local function createBean(id, inCreation)
     local definition = beanDefinitions[id]
     if (type(definition) ~= "table") or not (definition.path) then
-        error("Error creating bean with name '" .. id .. "' the bean definition is not exists")
+        LOGGER(DEBUG, "Error creating bean with name '", id, "' the bean definition is not exists")
+        return
     end
     -- 依赖
     LOGGER(DEBUG, id, " is now in creation")
@@ -110,7 +68,7 @@ local function createBean(id, beanDefinitions, inCreation, context)
                 if inCreation[ref] then
                     error("Error creating bean with name '" .. id .. "':bean is currently in creation: Is there an unresolvable circular reference? check [" .. ref .. "]")
                 end
-                createBean(ref_id, beanDefinitions, inCreation, context)
+                createBean(ref_id, inCreation)
                 ref = context[ref_id]
             end
             if ref then
@@ -147,19 +105,74 @@ local function createBean(id, beanDefinitions, inCreation, context)
     end
 end
 
+local function requireBean(id, definition)
+    local class = require(definition.path)
+
+    for k, v in pairs(definition) do
+        if type(v) == "string" then
+            local val = v
+            -- find ${placeholder}
+            val = re_gsub(val, "(%${[%w_]+})", replaceProp)
+            -- find ${placeholder:defaultValue}
+            val = re_gsub(val, "(%${[%w_]+(:.+)})", replaceProp)
+            local numResult = tonumber(val)
+            if numResult then
+                -- to number
+                val = numResult
+            elseif val == "true" or val == "false" then
+                -- to boolean
+                val = val == "true"
+            end
+            definition[k] = val
+        end
+    end
+
+    -- 没有new函数，将此脚本直接放入context
+    if type(class.new) ~= "function" then
+        context[id] = class
+        class.__definition = definition
+        LOGGER(INFO, id, " is created now")
+    else
+        -- 存在new函数，暂存入beanDefinitions，等待创建
+        beanDefinitions[id] = definition
+    end
+end
+
+local function loadConf(location)
+    local conf = pl_config.read(location)
+    if conf then
+        for id, definition in pairs(conf) do
+            if context[id] or beanDefinitions[id] then
+                error("Duplicate bean definition in config file:" .. location)
+            else
+                requireBean(id, definition)
+            end
+        end
+    else
+        LOGGER(NOTICE, location .. " is not exists !")
+    end
+end
+
+function _M:addBean(id, beanDefinition)
+    requireBean(id, beanDefinition)
+    createBean(id, {})
+end
+
 function _M:init(config)
-    properties = config
+    for k, v in pairs(config) do
+        if not properties[k] then
+            properties[k] = v
+        end
+    end
     local configLocations = config.application_context_conf
-    local context = {}
-    local beanDefinitions = {}
     if type(configLocations) == "table" and #configLocations > 0 then
         LOGGER(ERR, "init application context with config file:", "[", table.concat(configLocations, ", "), "]")
         for _, location in ipairs(configLocations) do
-            loadConf(context, beanDefinitions, location)
+            loadConf(location)
         end
     elseif type(configLocations) == "string" then
         LOGGER(ERR, "init application context with config file:", "[", configLocations, "]")
-        loadConf(context, beanDefinitions, configLocations)
+        loadConf(configLocations)
     else
         error("非法的配置文件路径！")
     end
@@ -170,7 +183,7 @@ function _M:init(config)
         if context[id] then
             LOGGER(DEBUG, id, " is already in the context,skip it")
         else
-            createBean(id, beanDefinitions, inCreation, context)
+            createBean(id, inCreation)
         end
     end
 
@@ -190,8 +203,7 @@ function _M:init(config)
             LOGGER(DEBUG, id, " autowire list is empty,skip it")
         end
     end
-
-    return context
+    return setmetatable(context, { __index = _M })
 end
 
 return _M

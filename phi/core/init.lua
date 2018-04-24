@@ -50,7 +50,25 @@ return function(phi)
     do
         log("init components")
         local components = {}
+
+        local enabled_components = config.enabled_components
+
         -- 包括application.ini中定义的type=component的bean，以及符合规则自定义组件
+        for _, component_name in ipairs(enabled_components) do
+            local component_path = "component." .. component_name
+            local definition, api_definition
+            local _, schema = pcall(require, component_path .. ".schema")
+            definition = schema and schema.definition or {}
+            definition.path = component_path .. ".handler"
+            definition.type = "component"
+            context:addBean(component_name,  definition)
+
+            api_definition = schema and schema.api_definition or {}
+            api_definition.path = component_path .. ".api"
+            api_definition.type = "ctrl"
+            context:addBean(component_name .. "_api", api_definition)
+        end
+
         for _, bean in pairs(context) do
             if string.lower(bean.__definition.type or "") == "component" then
                 table.insert(components, bean)

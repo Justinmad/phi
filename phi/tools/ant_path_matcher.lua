@@ -19,7 +19,7 @@ local _M = {}
 --end
 
 local function matchStrings(pattern, path)
-    -- /? /foo
+    -- /? /f
     if "?" == pattern then
         return #path == 1
         -- /* /foo
@@ -48,7 +48,7 @@ function _M.match(pattern, path)
     local pathIdxStart = 1
     local pathIdxEnd = #pathDirs
 
-    -- 匹配第一个**前的所有内容
+    -- 从前往后，匹配第一个**前的所有内容
     while pattIdxStart <= pattIdxEnd and pathIdxStart <= pathIdxEnd do
         local pattDir = pattDirs[pattIdxStart]
         if "**" == pattDir then
@@ -62,19 +62,20 @@ function _M.match(pattern, path)
     end
 
     if pathIdxStart > pathIdxEnd then
-        -- Path is exhausted, only match if rest of pattern is * or **'s
+        -- path结束
         if pattIdxStart > pattIdxEnd then
+            -- pattern也结束，这里总是返回true
             return ends_with(pattern, PATH_SEPARATOR) == ends_with(path, PATH_SEPARATOR)
         end
 
         if not fullMatch then
             return true
         end
-
+        -- pattern到达最后一位，pattern是*且path最后一位应是/时才能匹配
         if pattIdxStart == pattIdxEnd and pattDirs[pattIdxStart] == "*" and ends_with(path, PATH_SEPARATOR) then
             return true
         end
-
+        -- pattern未结束，任何非**的pattern都不匹配
         for i = pattIdxStart, pattIdxEnd do
             if pattDirs[i] ~= "**" then
                 return false
@@ -82,14 +83,15 @@ function _M.match(pattern, path)
         end
         return true
     elseif pattIdxStart > pattIdxEnd then
-        -- String not exhausted, but pattern is. Failure.
+        -- path未结束，但是pattern已经结束，不匹配
         return false
 
     elseif (not fullMatch) and "**" == pattDirs[pattIdxStart] then
-        -- Path start definitely matches due to "**" part in pattern.
+        -- 非全路径匹配的情况下，pattern中的**将匹配所有的path后缀
         return true
     end
-    -- up to last '**'
+
+    -- 从后向前匹配，匹配最后一个**后的所有内容
     while (pattIdxStart <= pattIdxEnd and pathIdxStart <= pathIdxEnd) do
         local pattDir = pattDirs[pattIdxEnd]
         if pattDir == "**" then
@@ -103,7 +105,7 @@ function _M.match(pattern, path)
     end
 
     if pathIdxStart > pathIdxEnd then
-        -- String is exhausted
+        -- path结束, 任何非**的pattern都不匹配
         for i = pattIdxStart, pattIdxEnd do
             if pattDirs[i] ~= "**" then
                 return false;
@@ -114,6 +116,7 @@ function _M.match(pattern, path)
 
     while (pattIdxStart ~= pattIdxEnd and pathIdxStart <= pathIdxEnd) do
         local patIdxTmp = -1;
+        -- 跳过pattern头部的**，查找后一个**
         for i = pattIdxStart + 1, pattIdxEnd do
             if pattDirs[i] == "**" then
                 patIdxTmp = i;
@@ -121,18 +124,20 @@ function _M.match(pattern, path)
             end
         end
         if patIdxTmp == pattIdxStart + 1 then
-            -- '**/**' situation, so skip one
+            -- '**/**' 情况, 视为**
             pattIdxStart = pattIdxStart + 1;
         else
-            -- Find the pattern between padIdxStart & padIdxTmp in str between
-            -- strIdxStart & strIdxEnd
+            -- 从第一个**开始到下一个**之间的pattern长度
             local patLength = (patIdxTmp - pattIdxStart - 1);
+            -- 剩余path长度
             local strLength = (pathIdxEnd - pathIdxStart + 1);
             local foundIdx = -1;
 
-            for i = 1, strLength - patLength do
+            -- path剩余长度大于或等于pattern长度时，此时的path中至少会有一段完全匹配pattern
+            for i = 0, strLength - patLength do
                 local breakStrLoop
-                for j = 1, patLength do
+                -- 比较是否能和pattern完全匹配
+                for j = 0, patLength - 1 do
                     local subPat = pattDirs[pattIdxStart + j + 1];
                     local subStr = pathDirs[pathIdxStart + i + j];
                     if not matchStrings(subPat, subStr) then
@@ -141,11 +146,13 @@ function _M.match(pattern, path)
                     end
                 end
                 if not breakStrLoop then
+                    -- 记录全匹配时的idx
                     foundIdx = pathIdxStart + i;
                     break ;
                 end
             end
 
+            -- 未找到则不匹配
             if (foundIdx == -1) then
                 return false;
             end

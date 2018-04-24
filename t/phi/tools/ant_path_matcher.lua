@@ -4,7 +4,6 @@
 --- DateTime: 2018/4/23 11:01
 ---
 package.path = "E:/work/phi/lib/?.lua;E:/work/phi/phi/tools/ant_path_matcher.lua;;" .. package.path
-print(package.path)
 local antMatcher = require "tools.ant_path_matcher"
 
 antMatcher.match("/**/test/abc/", "/test")
@@ -20,14 +19,14 @@ print("/test                  ========================= ", antMatcher.match(patt
 print("/                      ========================= ", antMatcher.match(pattern2, "/"))
 local pattern3 = "/**/test/abc/"
 print("pattern [" .. pattern3 .. "]")
-print("/test/abc              ========================= ", antMatcher.match("/**/test/abc/", "/test/abc"))
+print("/foo/test/abc          ========================= ", antMatcher.match("/**/test/abc/", "/foo/test/abc/"))
 print("/test                  ========================= ", antMatcher.match("/**/test/abc/", "/test"))
 print("/                      ========================= ", antMatcher.match("/**/test/abc/", "/"))
 print("/foo/bar/abc           ========================= ", antMatcher.match("/**/test/abc/", "/foo/bar/abc"))
 print("/foo/bar/test/abc      ========================= ", antMatcher.match("/**/test/abc/", "/foo/bar/test/abc"))
-print("pattern [/**/test/abc]")
-local pattern4 = "/**/test/abc"
-print("/test/abc              ========================= ", antMatcher.match(pattern4, "/test/abc"))
+local pattern4 = "/**/test/abc/**"
+print("pattern [" .. pattern4 .. "]")
+print("/test/abc/ab           ========================= ", antMatcher.match(pattern4, "/test/abc/ab"))
 print("/test                  ========================= ", antMatcher.match(pattern4, "/test"))
 print("/                      ========================= ", antMatcher.match(pattern4, "/"))
 print("/foo/bar/abc           ========================= ", antMatcher.match(pattern4, "/foo/bar/abc"))
