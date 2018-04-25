@@ -7,5 +7,6 @@ return {
     definition = {
         constructor_refs = "dataSource",
         order = 10,
+        lrucache_size = 2000
     }
 }

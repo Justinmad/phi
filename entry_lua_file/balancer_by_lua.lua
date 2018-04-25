@@ -4,4 +4,4 @@
 --- DateTime: 2018/3/16 11:25
 ---
 local phi = require('Phi')
-phi:balancer()
+phi:balance()

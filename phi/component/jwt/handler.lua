@@ -85,6 +85,7 @@ function jwt_auth:init_worker(observer)
     end, EVENTS.SOURCE)
 end
 
+-- TODO NYI
 local function createValidator(schema)
     return function(ctx)
         if schema.skip then
@@ -181,9 +182,11 @@ function jwt_auth:new(ref, config)
     self.super.new(self, "jwt-auth")
     self.redis = ref
     self.order = config.order
-
+    if config.lrucache_size then
+        self.lrucache_size = config.lrucache_size
+    end
     local cache, err = mlcache.new("jwt-auth-cache", self.shared_dict_name, {
-        lru_size = self.lrucache_size or 1000,
+        lru_size = self.lrucache_size,
         ttl = 0,
         neg_ttl = 0,
         resty_lock_opts = {
@@ -197,6 +200,7 @@ function jwt_auth:new(ref, config)
         error("could not create mlcache for jwt-auth cache ! err :" .. err)
     end
     self.cache = cache
+    LOGGER(ERR,"self.lrucache_size=================",config.lrucache_size)
     return self
 end
 
