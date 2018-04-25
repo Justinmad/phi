@@ -6,7 +6,9 @@ current_path=$(dirname $(readlink -f $0))
 prefix=${current_path}/../conf
 conf=main.conf
 command=$1
-shift
+if [ -n "${command}" ] ; then
+    shift
+fi
 while getopts ":DP:H:p:c:d" opt; do
     case ${opt} in
     D)

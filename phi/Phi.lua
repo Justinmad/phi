@@ -11,7 +11,7 @@ local ngx = ngx
 local ipairs = ipairs
 -- 开启后可以检查未能被luajit所编译的代码
 --local v = require "jit.v"
---v.on("/home/phi/logs/jit.log")
+--v.on("/home/phi/conf/logs/jit.log")
 
 local os = os.getenv("OS") or io.popen("uname -s"):read("*l")
 if os:match("[L|l]inux") then

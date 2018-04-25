@@ -200,7 +200,6 @@ function jwt_auth:new(ref, config)
         error("could not create mlcache for jwt-auth cache ! err :" .. err)
     end
     self.cache = cache
-    LOGGER(ERR,"self.lrucache_size=================",config.lrucache_size)
     return self
 end
 
