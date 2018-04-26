@@ -99,7 +99,7 @@ _M.get = {
         local policies, err
         if hostkey then
             policies, err = self.rateLimitingService:getLimitPolicy(hostkey)
-            if policies then
+            if not err then
                 Response.success(policies)
             end
         else

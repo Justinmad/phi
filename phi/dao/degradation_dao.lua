@@ -17,7 +17,9 @@ local ceil = math.ceil
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local ALERT = ngx.ALERT
@@ -35,7 +37,11 @@ function _M:getDegradations(hostkey)
     local len = getn(res)
     local result = len ~= 0 and new_tab(0, len) or nil
     for i = 1, len, 2 do
-        result[res[i]] = cjson.decode(res[i + 1]) or res[i + 1]
+        result[(i + 1) / 2] = {
+            uri = res[i],
+            info = cjson.decode(res[i + 1]) or res[i + 1]
+        }
+        --result[res[i]] = cjson.decode(res[i + 1]) or res[i + 1]
     end
     if err then
         LOGGER(ALERT, "通过hostkey：[" .. hostkey .. "]未查询到对应的降级信息")

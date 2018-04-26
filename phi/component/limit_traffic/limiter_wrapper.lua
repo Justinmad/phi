@@ -12,6 +12,8 @@ local limit_conn = require "resty.limit.conn"
 local limit_count = require "resty.limit.count"
 local limit_req = require "resty.limit.req"
 local limit_traffic = require "resty.limit.traffic"
+local ant_path_match = require "tools.ant_path_matcher".match
+local get_uri = require "Phi".mapper_holder["uri"].map
 local response = require "core.response"
 local pretty_write = require("pl.pretty").write
 local phi = require "Phi"
@@ -40,10 +42,16 @@ local sleep = ngx.sleep
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
-local function getKeyFunc(self, ctx, mapper)
+local function getKeyFunc(self, ctx, mapper, uriPattern)
+    -- 在uri存在的条件下，匹配一次uri，查询是否需要对此次请求进行限流
+    if uriPattern and not ant_path_match(uriPattern, get_uri(ctx)) then
+        return nil
+    end
     local key = get_host(ctx)
     if mapper then
         local mappedKey, err = mapper_holder:map(ctx, mapper)
@@ -51,28 +59,39 @@ local function getKeyFunc(self, ctx, mapper)
             return nil
         else
             local tmp = new_tab(2, 0)
+            -- host
             insert(tmp, key)
+            -- upstream_name
+            insert(tmp, ctx.upstream_name)
             if type(mapper) == "table" then
                 if getn(mapper) > 0 then
+                    -- multi mapper
                     for _, m in ipairs(mapper) do
                         if type(m) == "string" then
+                            -- mapper
                             insert(tmp, m)
                         else
+                            -- mapper + tag
                             insert(tmp, m.type)
                             insert(tmp, m.tag)
                         end
                     end
                 else
+                    -- mapper + tag
                     insert(tmp, mapper.type)
                     insert(tmp, mapper.tag)
                 end
             elseif type(mapper) == "string" then
+                -- mapper
                 insert(tmp, mapper)
             end
+            -- mapped key
             insert(tmp, mappedKey)
+            -- final a complete key like [www.sample.com:dynamic_ups:uri_args:uid:1001]
             key = concat(tmp, ":")
         end
     end
+    LOGGER(DEBUG, "limit traffic key is ", key)
     return key
 end
 
@@ -80,7 +99,7 @@ local function getTrafficLimiterKeyFunc(self, ctx)
     local policy = self.policy
     local res = new_tab(getn(policy), 0)
     for idx, func in ipairs(self.limiter.keys) do
-        insert(res, func(self, ctx, policy[idx].mapper))
+        insert(res, func(self, ctx, policy[idx].mapper, policy[idx].uri))
     end
     return res
 end
@@ -164,8 +183,8 @@ local function connLeaving(ctx, lim, key, delay)
             local conn, err = lim:leaving(key, latency)
             if not conn then
                 LOGGER(ERR,
-                    "failed to record the connection leaving ",
-                    "request: ", err)
+                        "failed to record the connection leaving ",
+                        "request: ", err)
             end
         end
     end
@@ -174,7 +193,7 @@ end
 local _M = {}
 
 function _M:incoming(ctx, commit)
-    local key = self:get_key(ctx, self.mapper)
+    local key = self:get_key(ctx, self.mapper, self.uri)
     if key == nil then
         return
     end
@@ -195,7 +214,7 @@ function _M:incoming(ctx, commit)
     end
 
     if delay >= 0.001 then
-        LOGGER(DEBUG, "delay req for ", delay, " by key ", key)
+        LOGGER(DEBUG, "delay req for ", delay, " by key ", pretty_write(key))
         sleep(delay)
     end
 
@@ -274,6 +293,7 @@ function class:new(policy)
         return nil, err
     else
         return setmetatable({
+            uri = policy.uri,
             type = typeStr,
             get_key = get_key,
             limiter = limiter,

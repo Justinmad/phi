@@ -44,7 +44,8 @@ function degradation_handler:rewrite(ctx)
                 degrader:doDegrade(ctx)
             else
                 LOGGER(ERR, "Cannot perform a demotion strategy ,degrader is nil")
-                response.failure("Cannot perform a degrade strategy :-(")
+                --response.failure("Cannot perform a degrade strategy :-(")
+                response.failure("Cannot perform a degrade strategy,Limited access,Service Temporarily Unavailable,please try again later :-)", 503)
             end
         end
     end

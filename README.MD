@@ -644,7 +644,9 @@ server {
                 "time_window": 10,
                 "rejected": "xxx",
                 "rate": 1,
-                "type": "count"
+                "order": 1,
+                "type": "count",
+                "mapper":"ip"
               }
             }
             ```

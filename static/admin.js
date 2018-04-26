@@ -19,6 +19,9 @@ var instance = new Vue({
         updatePolicyDialog: false,
         newUpstreamDialog: false,
         newServerDialog: false,
+        limitTrafficDialog: false,
+        newRateLimitingDialog: false,
+        newDegradationDialog: false,
         newRouter: {
             hostkey: "",
             data: {
@@ -36,6 +39,8 @@ var instance = new Vue({
             name: '',
             info: {}
         },
+        newRateLimiting: {},
+        newDegradation: {info: {}},
         formRules: {
             string: [
                 v => !!v || '非空字段，必须填写！',
@@ -57,6 +62,29 @@ var instance = new Vue({
                     return b || c || "输入ip:port或选择已存在的upstream"
                 }
             ]
+        },
+        limitTrafficTab: {
+            tabActive: null,
+            headers: {
+                rateLimiting: [
+                    {text: 'Limit Key', align: 'right', value: "mapper"},
+                    {text: 'Type', align: 'right', value: "type"},
+                    {text: 'Rejected', align: 'right', value: "rejected"},
+                    {text: 'Uri', align: 'right', value: "uri"},
+                    {text: 'Actions', align: 'right', sortable: false}
+                ],
+                degradation: [
+                    {text: 'Uri', align: 'right', value: 'uri'},
+                    {text: 'Type', align: 'right', value: "info.type"},
+                    {text: 'Target', align: 'right', value: "info.target"},
+                    {text: 'Status', align: 'center', value: "info.enabled"},
+                    {text: 'Actions', align: 'right', sortable: false}
+                ]
+            },
+            items: {
+                rateLimiting: [],
+                degradation: []
+            },
         },
         formValid: false,
         formLoading: false,
@@ -84,7 +112,10 @@ var instance = new Vue({
         mappers: [],
         policies: [],
         upstreams: [],
-        balancers: []
+        balancers: [],
+        limiters: ["req", "conn", "count"],
+        rejectedStrategies: ["rejected", "degrade"],
+        degradationStrategies: ["redirect", "fake"],
     },
     methods: {
         show(params) {
@@ -249,6 +280,142 @@ var instance = new Vue({
                 this.alert("请检查表单项是否完整？", "warning");
             }
         },
+        newRateLimitingApi() {
+            let valided = this.$refs.rateForm.validate();
+            if (valided) {
+                this.formLoading = true;
+                let params = {
+                    hostkey: this.node.name,
+                    data: this.newRateLimiting
+                };
+                if (this.limitTrafficTab.items.rateLimiting.length > 0 && !(this.limitTrafficTab.items.rateLimiting.length === 1 && this.newRateLimiting.edit)) {
+                    let data = this.limitTrafficTab.items.rateLimiting.concat();
+                    // new item
+                    if (!this.newRateLimiting.edit) {
+                        data.push(this.newRateLimiting);
+                    } else {
+                        data[this.newRateLimiting.index] = this.newRateLimiting;
+                    }
+                    // traffic
+                    params.data = {
+                        type: "traffic",
+                        policies: data
+                    }
+                }
+                this.newRateLimiting.edit = undefined;
+                this.newRateLimiting.index = undefined;
+                this.$http.post("/rate/add", params
+                ).then(resp => {
+                    if (resp.body.status.success) {
+                        this.alert(resp.body.status.message || "ok", "success");
+                        this.getLimitTrafficApi(this.node.name);
+                        this.newRateLimitingDialog = false;
+                    } else {
+                        this.alert(resp.body.status.message, "warning");
+                    }
+                    this.formLoading = false;
+                }, reason => {
+                    this.alert(reason.bodyText, "error");
+                })
+            } else {
+                this.alert("请检查表单项是否完整？", "warning");
+            }
+        },
+        delRateLimitingApi(index) {
+            this.confirm(() => {
+                this.limitTrafficTab.items.rateLimiting.splice(index, 1);
+                if (this.limitTrafficTab.items.rateLimiting.length === 0) {
+                    this.$http.get("/rate/del?hostkey=" + this.node.name).then(resp => {
+                        if (resp.body.status.success) {
+                            this.alert(resp.body.status.message || "ok", "success");
+                        } else {
+                            this.alert(resp.body.status.message, "warning");
+                        }
+                    }, reason => {
+                        this.alert(reason.bodyText, "error");
+                    });
+                } else {
+                    let params = {
+                        hostkey: this.node.name,
+                        data: {
+                            type: "traffic",
+                            policies: this.limitTrafficTab.items.rateLimiting
+                        }
+                    };
+                    if (this.limitTrafficTab.items.rateLimiting.length === 1) {
+                        params = {
+                            hostkey: this.node.name,
+                            data: this.limitTrafficTab.items.rateLimiting[0]
+                        };
+                    }
+                    this.$http.post("/rate/add", params
+                    ).then(resp => {
+                        if (resp.body.status.success) {
+                            this.alert(resp.body.status.message || "ok", "success");
+                            this.getLimitTrafficApi(this.node.name);
+                            this.newRateLimitingDialog = false;
+                        } else {
+                            this.alert(resp.body.status.message, "warning");
+                        }
+                        this.formLoading = false;
+                    }, reason => {
+                        this.alert(reason.bodyText, "error");
+                    })
+                }
+                this.getLimitTrafficApi(this.node.name);
+            })
+        },
+        newDegradationApi() {
+            let valided = this.$refs.degradationForm.validate();
+            if (valided) {
+                this.$http.post("/degrade/add", {
+                        hostkey: this.node.name,
+                        infos: [this.newDegradation]
+                    }
+                ).then(resp => {
+                    if (resp.body.status.success) {
+                        this.alert(resp.body.status.message || "ok", "success");
+                        this.getLimitTrafficApi(this.node.name);
+                        this.newDegradationDialog = false;
+                    } else {
+                        this.alert(resp.body.status.message, "warning");
+                    }
+                    this.formLoading = false;
+                }, reason => {
+                    this.alert(reason.bodyText, "error");
+                })
+            } else {
+                this.alert("请检查表单项是否完整？", "warning");
+            }
+        },
+        delDegradationApi(hostkey, uri, index) {
+            this.confirm(() => {
+                this.$http.get("/degrade/del?hostkey=" + hostkey + "&uri=" + uri).then(resp => {
+                    if (resp.body.status.success) {
+                        this.alert(resp.body.status.message || "ok", "success");
+                        this.limitTrafficTab.items.degradation.splice(index, 1)
+                    } else {
+                        this.alert(resp.body.status.message, "warning");
+                    }
+                }, reason => {
+                    this.alert(reason.bodyText, "error");
+                });
+            });
+        },
+        enabledDegradationApi(hostkey, uri, enabled) {
+            this.confirm(() => {
+                this.$http.get("/degrade/enabled?hostkey=" + hostkey + "&uri=" + uri + "&enabled=" + enabled).then(resp => {
+                    if (resp.body.status.success) {
+                        this.alert(resp.body.status.message || "ok", "success");
+                        this.getLimitTrafficApi(hostkey);
+                    } else {
+                        this.alert(resp.body.status.message, "warning");
+                    }
+                }, reason => {
+                    this.alert(reason.bodyText, "error");
+                });
+            });
+        },
         delRouterApi(hostkey) {
             this.confirm(() => {
                 this.$http.get("/router/del?hostkey=" + hostkey).then(resp => {
@@ -400,12 +567,60 @@ var instance = new Vue({
             }, reason => {
                 this.alert(reason.bodyText, "error");
             });
-        }, addPolicy() {
+        },
+        getLimitTrafficApi(hostkey) {
+            this.$http.get("/rate/get?hostkey=" + hostkey).then(resp => {
+                if (resp.body.status.success) {
+                    let items = resp.body.data;
+                    if (items) {
+                        if (items.type === "traffic") {
+                            this.limitTrafficTab.items.rateLimiting = items.policies
+                        } else {
+                            this.limitTrafficTab.items.rateLimiting = [items]
+                        }
+                    }
+                } else {
+                    this.alert(resp.body.status.message, "warning");
+                }
+            }, reason => {
+                this.alert(reason.bodyText, "error");
+            });
+            this.$http.get("/degrade/get?hostkey=" + hostkey).then(resp => {
+                if (resp.body.status.success) {
+                    this.limitTrafficTab.items.degradation = resp.body.data;
+                } else {
+                    this.alert(resp.body.status.message, "warning");
+                }
+            }, reason => {
+                this.alert(reason.bodyText, "error");
+            });
+        },
+        addPolicy() {
             if (!this.newRouter.data.policies) {
                 this.newRouter.data.policies = []
 
             }
             this.newRouter.data.policies.push({order: 0, mapper: '', policy: '', routerTable: []})
+        },
+        mappedKey(mapper) {
+            if (typeof (mapper) === "string") {
+                return mapper
+            } else if (mapper.length > 0) {
+                let tmp = [];
+                mapper.forEach(function (element) {
+                    tmp.push(this.mappedKey(element))
+                });
+                return tmp.concat(":")
+            } else {
+                return mapper.type + (mapper.tag && (":" + mapper.tag))
+            }
+        },
+        formatJson(jsonStr) {
+            try {
+                return JSON.stringify(JSON.parse(jsonStr), null, 4)
+            } catch (e) {
+                return jsonStr
+            }
         }
     },
     mounted: function () {
@@ -551,6 +766,26 @@ var instance = new Vue({
         updatePolicyDialog: function (newVal) {
             if (newVal === false) {
                 this.initRouterData();
+            }
+        },
+        limitTrafficDialog: function (newVal) {
+            if (newVal === false) {
+                this.limitTrafficTab.items.degradation = [];
+                this.limitTrafficTab.items.rateLimiting = [];
+            } else {
+                this.getLimitTrafficApi(this.node.name);
+            }
+        },
+        newRateLimitingDialog: function (newVal) {
+            if (newVal === false) {
+                this.newRateLimiting = {};
+            } else {
+                this.getLimitTrafficApi(this.node.name);
+            }
+        },
+        newDegradationDialog: function (newVal) {
+            if (newVal === false) {
+                this.newDegradation = {info: {}};
             }
         },
         newUpstreamDialog: function (newVal) {

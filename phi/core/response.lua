@@ -7,6 +7,7 @@
 --
 local responses = require "kong.responses"
 local cjson = require "cjson.safe".new()
+
 cjson.encode_empty_table_as_object(false)
 local _M = {}
 local function resp(code, success, message, data)
@@ -51,8 +52,15 @@ function _M.failure(msg, code, data, encode_empty_table_as_array)
     resp(code or 200, false, msg or "error", data)
 end
 
-function _M.fake(data)
-    responses.send_HTTP_OK(data)
+function _M.fake(body, headers)
+    ngx.status = 200
+    if headers then
+        for k, v in pairs(headers) do
+            ngx.header[k] = v
+        end
+    end
+    ngx.say(body)
+    return ngx.exit(200)
 end
 
 return _M

@@ -15,14 +15,17 @@
         ::-webkit-scrollbar {
             width: 8px;
         }
+
         ::-webkit-scrollbar-track {
             box-shadow: inset 0 0 6px rgba(255, 255, 255, 0);
             /*border-radius: 10px;*/
         }
+
         ::-webkit-scrollbar-thumb {
             /*border-radius: 10px;*/
             box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
         }
+
         /* Scrollable element */
         .custom-scrollbar::webkit-scrollbar {
         }
@@ -90,6 +93,113 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-dialog v-model="limitTrafficDialog" max-width="600px">
+            <v-tabs
+                    fixed-tabs
+                    slider-color="blue"
+                    grow
+                    v-model="limitTrafficTab.tabActive"
+            >
+                <v-tab>
+                    Rate Limiting
+                </v-tab>
+                <v-tab>
+                    Degradation
+                </v-tab>
+                <v-tab-item>
+                    <v-card flat>
+                        <v-card-text>
+                            <v-data-table
+                                    :headers="limitTrafficTab.headers.rateLimiting"
+                                    :items="limitTrafficTab.items.rateLimiting"
+                                    hide-actions
+                            >
+                                <template slot="items" slot-scope="props">
+                                    <td class="text-xs-right">{{ mappedKey(props.item.mapper) }}</td>
+                                    <td class="text-xs-right">{{ props.item.type }}</td>
+                                    <td class="text-xs-right">{{ props.item.rejected }}</td>
+                                    <td class="text-xs-right">{{ props.item.uri || 'Global' }}</td>
+                                    <td class="justify-center layout px-0">
+                                        <v-btn icon class="mx-0"
+                                               @click="()=>{newRateLimitingDialog=true;newRateLimiting=props.item;newRateLimiting.edit=true,newRateLimiting.index=props.index}">
+                                            <v-icon color="teal">edit</v-icon>
+                                        </v-btn>
+                                        <v-btn icon class="mx-0" @click="delRateLimitingApi(props.index)">
+                                            <v-icon color="pink">delete</v-icon>
+                                        </v-btn>
+                                    </td>
+                                </template>
+                            </v-data-table>
+                        </v-card-text>
+                        <v-card-actions>
+                            <v-btn flat disabled>{{node.name}}</v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn color="blue darken-1" flat slot="activator" @click="newRateLimitingDialog = true">New
+                                Item
+                            </v-btn>
+                            <v-btn color="blue darken-1" flat @click.native="limitTrafficDialog = false">Close</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-tab-item>
+                <v-tab-item>
+                    <v-card flat>
+                        <v-card-text>
+                            <v-data-table
+                                    :headers="limitTrafficTab.headers.degradation"
+                                    :items="limitTrafficTab.items.degradation"
+                                    hide-actions
+                            >
+                                <template slot="items" slot-scope="props">
+                                    <td class="text-xs-right">{{ props.item.uri }}</td>
+                                    <td class="text-xs-right">{{ props.item.info.type }}</td>
+                                    <td class="text-xs-right">
+                                        <v-tooltip bottom>
+                                            <span v-if="props.item.info.type==='redirect'">{{props.item.info.target}}</span>
+                                            <pre v-if="props.item.info.type==='fake'">{{formatJson(props.item.info.target)}}</pre>
+                                            <span slot="activator">{{props.item.info.target.substring(0,50)}}</span>
+                                        </v-tooltip>
+                                    </td>
+                                    <td class="justify-right">
+                                        <v-tooltip bottom v-if="props.item.info.enabled" lazy>
+                                            <v-btn flat icon slot="activator"
+                                                   @click="enabledDegradationApi(node.name,props.item.uri,false)">
+                                                <v-icon color="red">mdi-wall</v-icon>
+                                            </v-btn>
+                                            <span>请求正被拦截</span>
+                                        </v-tooltip>
+                                        <v-tooltip bottom v-else lazy>
+                                            <v-btn flat icon slot="activator"
+                                                   @click="enabledDegradationApi(node.name,props.item.uri,true)">
+                                                <v-icon color="green">fa-plane</v-icon>
+                                            </v-btn>
+                                            <span>请求正被放行</span>
+                                        </v-tooltip>
+                                    </td>
+                                    <td class="justify-center layout px-0">
+                                        <v-btn icon class="mx-0"
+                                               @click="newDegradation = props.item;newDegradationDialog = true">
+                                            <v-icon color="teal">edit</v-icon>
+                                        </v-btn>
+                                        <v-btn icon class="mx-0"
+                                               @click="delDegradationApi(node.name,props.item.uri,props.index)">
+                                            <v-icon color="pink">delete</v-icon>
+                                        </v-btn>
+                                    </td>
+                                </template>
+                            </v-data-table>
+                        </v-card-text>
+                        <v-card-actions>
+                            <v-btn flat disabled>{{node.name}}</v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn color="blue darken-1" flat slot="activator" @click="newDegradationDialog = true">New
+                                Item
+                            </v-btn>
+                            <v-btn color="blue darken-1" flat @click="limitTrafficDialog = false">Close</v-btn>
+                        </v-card-actions>
+                    </v-card>
+                </v-tab-item>
+            </v-tabs>
+        </v-dialog>
         <v-dialog v-model="updatePolicyDialog" scrollable persistent max-width="600px">
             <v-card>
                 <v-card-title>
@@ -115,7 +225,8 @@
 
                                 </v-flex>
                             </v-layout>
-                            <v-card class="elevation-0" v-if="newRouter.data.policies" v-for="p,p_idx in newRouter.data.policies">
+                            <v-card class="elevation-0" v-if="newRouter.data.policies"
+                                    v-for="p,p_idx in newRouter.data.policies">
                                 <v-card-title>
                                     <v-flex xs11>
                                         <v-layout wrap>
@@ -391,6 +502,212 @@
                 </v-card-actions>
             </v-card>
         </v-dialog>
+        <v-dialog v-model="newRateLimitingDialog" persistent max-width="600px">
+            <v-card>
+                <v-card-title>
+                    <span class="headline">New Rate Limiting Item</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-container grid-list-md>
+                        <v-form v-model="formValid" ref="rateForm">
+                            <v-layout wrap>
+                                <v-flex xs12>
+                                    <v-flex xs12
+                                            v-if="!newRateLimiting.mapper || typeof(newRateLimiting.mapper)==='string'">
+                                        <v-select :rules="formRules.string"
+                                                  label="Mapper"
+                                                  required
+                                                  dense
+                                                  auto
+                                                  append-icon="fa-tags"
+                                                  :append-icon-cb="()=>newRateLimiting.mapper={type:newRateLimiting.mapper,tag:''}"
+                                                  :items="mappers"
+                                                  v-model="newRateLimiting.mapper"
+                                                  hint="提取请求特征的方式，点击tag图标可为此mapper添加tag字段"></v-select>
+                                    </v-flex>
+                                    <v-layout v-if="typeof(newRateLimiting.mapper)==='object'">
+                                        <v-flex xs6 v-if="typeof(newRateLimiting.mapper)==='object'">
+                                            <v-select :rules="formRules.string"
+                                                      label="Mapper"
+                                                      v-model="newRateLimiting.mapper.type"
+                                                      required
+                                                      dense
+                                                      auto
+                                                      :items="mappers"
+                                                      hint="提取请求特征的方式"></v-select>
+                                        </v-flex>
+                                        <v-flex xs6 v-if="typeof(newRateLimiting.mapper)==='object'">
+                                            <v-text-field :rules="formRules.string" label="Tag"
+                                                          v-model="newRateLimiting.mapper.tag"
+                                                          append-icon="close"
+                                                          :append-icon-cb="()=>newRateLimiting.mapper=newRateLimiting.mapper.type"
+                                                          hint="提取请求特征时的额外参数，可选"></v-text-field>
+                                        </v-flex>
+                                    </v-layout>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-select clearable
+                                              :rules="formRules.string"
+                                              label="Limiter Type"
+                                              v-model="newRateLimiting.type"
+                                              :items="limiters"
+                                              required
+                                              hint="限流类型：并发请求[req]、并发连接[conn]、单位时间最大请求数量[count]"></v-select>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-layout>
+                                        <v-flex xs12 md6 sm6
+                                                v-if="newRateLimiting.type==='req'||newRateLimiting.type==='count'">
+                                            <v-text-field label="Rate"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          v-model="newRateLimiting.rate"
+                                                          hint="访问速率"></v-text-field>
+                                        </v-flex>
+                                        <v-flex xs12 md6 sm6
+                                                v-if="newRateLimiting.type==='req'">
+                                            <v-text-field label="Burst"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          v-model="newRateLimiting.burst"
+                                                          hint="允许突发访问量（即允许超出Rate的突发量，超出Rate最大量的请求将会被delay）"></v-text-field>
+                                        </v-flex>
+                                        <v-flex xs12 md4 sm4
+                                                v-if="newRateLimiting.type==='conn'">
+                                            <v-text-field label="Connections"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          type="number"
+                                                          v-model="newRateLimiting.conn"
+                                                          hint="最大并发连接数"></v-text-field>
+                                        </v-flex>
+                                        <v-flex xs12 md4 sm4
+                                                v-if="newRateLimiting.type==='conn'">
+                                            <v-text-field label="Burst Connections"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          type="number"
+                                                          v-model="newRateLimiting.burst"
+                                                          hint="允许突发访问量（即允许超出Connections的突发量，超出Connections最大量的请求将会被delay）"></v-text-field>
+                                        </v-flex>
+                                        <v-flex xs12 md4 sm4 v-if="newRateLimiting.type==='conn'">
+                                            <v-text-field label="Delay"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          type="number"
+                                                          v-model="newRateLimiting.delay"
+                                                          hint="对突发请求的延迟时间，单位秒(s)">
+                                            </v-text-field>
+                                        </v-flex>
+                                        <v-flex xs12 md6 sm6 v-if="newRateLimiting.type==='count'">
+                                            <v-text-field label="Time Window"
+                                                          type="number"
+                                                          :rules="formRules.number"
+                                                          required
+                                                          v-model="newRateLimiting.time_window"
+                                                          hint="时间窗口大小，单位秒(s)"></v-text-field>
+                                        </v-flex>
+                                    </v-layout>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-select clearable
+                                              :rules="formRules.string"
+                                              label="Reject Strategy"
+                                              v-model="newRateLimiting.rejected"
+                                              :items="rejectedStrategies"
+                                              required
+                                              hint="被限流后的拒绝策略：拒绝访问[rejected]、执行降级[degrade]"></v-select>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-text-field label="Matched Uri"
+                                                  v-model="newRateLimiting.uri"
+                                                  hint="指定匹配路径，支持Ant风格Path路径，可选，置空即全局限流，建议留空"></v-text-field>
+                                </v-flex>
+                            </v-layout>
+                        </v-form>
+                    </v-container>
+                    <small class="red--text">* 表示必填</small>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" flat @click.native="newRateLimitingDialog = false">Close</v-btn>
+                    <v-btn color="blue darken-1" flat :loading="formLoading" @click.native="newRateLimitingApi">Save
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+        <v-dialog v-model="newDegradationDialog" persistent max-width="600px">
+            <v-card>
+                <v-card-title>
+                    <span class="headline">New Degradation Item</span>
+                </v-card-title>
+                <v-card-text>
+                    <v-container grid-list-md>
+                        <v-form v-model="formValid" ref="degradationForm">
+                            <v-layout wrap>
+                                <v-flex xs12>
+                                    <v-text-field label="Matched Uri"
+                                                  :rules="formRules.string"
+                                                  required
+                                                  v-model="newDegradation.uri"
+                                                  hint="指定匹配的准确路径"></v-text-field>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-select clearable
+                                              :rules="formRules.string"
+                                              label="Degradation Type"
+                                              v-model="newDegradation.info.type"
+                                              :items="degradationStrategies"
+                                              required
+                                              hint="降级类型：重定向[redirect]、Fake数据[fake]"></v-select>
+                                </v-flex>
+                                <v-flex xs12>
+                                    <v-text-field label="Target"
+                                                  multi-line
+                                                  :rules="formRules.string"
+                                                  required
+                                                  v-model="newDegradation.info.target"
+                                                  hint="需要返回的目标数据，重定向输入url，Fake数据输入响应数据"></v-text-field>
+                                </v-flex>
+                            </v-layout>
+                        </v-form>
+                    </v-container>
+                    <small class="red--text">* 表示必填</small>
+                    <v-tooltip right>
+                        <span v-if="newDegradation.info.type==='redirect'">Redirect时，必须填写完整的URL，如https://www.sample.com</span>
+                        <span v-if="newDegradation.info.type==='fake'">
+Fake数据格式：
+<li>指定响应头和响应体:</li>
+<pre>
+{
+    header:[],//响应头
+    body:{},//响应体
+}
+</pre>
+<li>仅指定响应体:</li>
+<pre>
+{
+    success:false,
+    message:"err msg"
+}
+</pre>
+<li>响应普通文本:</li>
+<pre>
+plain text
+</pre>
+
+                        </span>
+                        <v-icon dark color="primary" slot="activator">help</v-icon>
+                    </v-tooltip>
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer></v-spacer>
+                    <v-btn color="blue darken-1" flat @click.native="newDegradationDialog = false">Close</v-btn>
+                    <v-btn color="blue darken-1" flat :loading="formLoading" @click.native="newDegradationApi">Save
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
         <v-menu
                 lazy
                 offset-y
@@ -433,6 +750,9 @@
                 </v-list-tile>
                 <v-list-tile @click="delRouterApi(node.name)">
                     <v-list-tile-title>Delete Api Server</v-list-tile-title>
+                </v-list-tile>
+                <v-list-tile @click="limitTrafficDialog=true">
+                    <v-list-tile-title>Limit Traffic</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -507,7 +827,7 @@
 </div>
 </body>
 <script src="https://cdn.bootcss.com/vue/2.5.16/vue.min.js"></script>
-<script src="https://cdn.bootcss.com/vuetify/1.0.11/vuetify.min.js"></script>
+<script src="https://cdn.bootcss.com/vuetify/1.0.16/vuetify.min.js"></script>
 <script src="https://cdn.bootcss.com/vue-resource/1.5.0/vue-resource.min.js"></script>
 <script src="https://cdn.bootcss.com/echarts/4.0.4/echarts.min.js"></script>
 <script src="/static/admin.js"></script>

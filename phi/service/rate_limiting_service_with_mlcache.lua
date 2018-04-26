@@ -68,16 +68,20 @@ local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
+--local function oneLimiter(policy)
+--    local len = getn(policy)
+--    if len > 1 then
+--        sort(policy.policies, function(r1, r2)
+--            local o1 = r1.order or 0
+--            local o2 = r2.order or 0
+--            return o1 > o2
+--        end)
+--    end
+--    return
+--end
+
 local function newLimiterWrapper(policy)
     if not policy.skip then
-        local len = getn(policy)
-        if len > 1 then
-            sort(policy.policies, function(r1, r2)
-                local o1 = r1.order or 0
-                local o2 = r2.order or 0
-                return o1 > o2
-            end)
-        end
         return limiter_wrapper:new(policy)
     else
         return policy
@@ -197,7 +201,7 @@ function class:new(dao, config)
         ttl = 0, -- 缓存失效时间
         neg_ttl = 0, -- 未命中缓存失效时间
         resty_lock_opts = {
-        -- 回源DB的锁配置
+            -- 回源DB的锁配置
             exptime = 10, -- 锁失效时间
             timeout = 5 -- 获取锁超时时间
         },

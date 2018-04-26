@@ -93,7 +93,7 @@ _M.get = {
         local policies, err
         if hostkey then
             policies, err = self.degradationService:getDegradations(hostkey)
-            if policies then
+            if not err then
                 Response.success(policies)
             end
         else
