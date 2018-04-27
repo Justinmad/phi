@@ -17,7 +17,6 @@ if not _ok or type(new_tab) ~= "function" then
     new_tab = function() return {} end
 end
 
-
 local function rehash(server_list)
     local total_weight = 0
     for _, w in pairs(server_list) do

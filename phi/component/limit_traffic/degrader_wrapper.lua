@@ -54,17 +54,20 @@ function class:new(info)
     local t = info.type
     if t == "fake" then
         local targetObj = cjson.decode(info.target)
+
         if targetObj then
             if targetObj.headers then
                 instance.headers = targetObj.headers
                 instance.body = cjson.encode(targetObj.body)
             else
+                instance.headers = {}
+                instance.headers["Content-Type"] = "application/json;charset=utf-8"
                 instance.body = info.target
             end
         else
-            instance.body = info.target
             instance.headers = {}
-            instance.headers["Content-Type"] = "text/plain; charset = utf-8"
+            instance.body = info.target
+            instance.headers["Content-Type"] = "text/html;charset=utf-8"
         end
         instance.doDegrade = fake
     elseif t == "redirect" then
