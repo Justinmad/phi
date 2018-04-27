@@ -48,7 +48,7 @@ function _M:init_worker(observer)
         else
             -- 更新缓存
             self.cache:update()
-            self:getDegrader(data)
+            self:getDegrader(data.hostkey, data.uri)
             LOGGER(DEBUG, "received event; source=", source,
                     ", event=", event,
                     ", data=", pretty_write(data),
@@ -57,8 +57,11 @@ function _M:init_worker(observer)
     end, EVENTS.SOURCE)
 end
 
-function _M:updateEvent(hostkey)
-    self.observer.post(EVENTS.SOURCE, UPDATE, hostkey)
+function _M:updateEvent(hostkey, uri)
+    self.observer.post(EVENTS.SOURCE, UPDATE, {
+        hostkey = hostkey,
+        uri = uri
+    })
 end
 
 local function getFromDb(self, hostkey, uri)
@@ -100,7 +103,7 @@ function _M:addDegradations(hostkey, degradations)
                 LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存降级规则到mlcache失败！err:", err)
                 self.dao:delDegradation(hostkey, d.uri)
             else
-                self:updateEvent(hostkey)
+                self:updateEvent(hostkey, d.uri)
             end
         end
     end
@@ -116,7 +119,7 @@ function _M:enabled(hostkey, uri, enabled)
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]保存降级规则到mlcache失败！err:", err)
             self.dao:enabled(hostkey, uri, not enabled)
         else
-            self:updateEvent(hostkey)
+            self:updateEvent(hostkey, uri)
         end
     end
     return ok, err
@@ -129,7 +132,7 @@ function _M:delDegradation(hostkey, uri)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除降级规则失败！err:", err)
         else
-            self:updateEvent(hostkey)
+            self:updateEvent(hostkey, uri)
         end
     end
     return ok, err
