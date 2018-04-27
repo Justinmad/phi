@@ -66,10 +66,10 @@ function _M.init()
     if not newval and err == "not found" then
         shared_status:add(NGX_RELOAD_GENERATION, 0)
     end
-    shared_status:set( NGX_LOAD_TIMESTAMP, ngx_time()) -- set nginx reload/restart begin uptime
-    local ok, err = shared_status:add( STATUS_INIT, true )
+    shared_status:set(NGX_LOAD_TIMESTAMP, ngx_time()) -- set nginx reload/restart begin uptime
+    local ok, err = shared_status:add(STATUS_INIT, true)
     if ok then
-        shared_status:set( MASTER_PID, ngx_worker_pid() )
+        shared_status:set(MASTER_PID, ngx_worker_pid())
     end
 
 end
@@ -189,7 +189,7 @@ local function get_nginx_info(var)
     report.load_timestamp = shared_status:get(NGX_LOAD_TIMESTAMP)
     report.timestamp = ngx_time()
     report.generation = shared_status:get(NGX_RELOAD_GENERATION)
-    report.pid = shared_status:get( MASTER_PID )
+    report.pid = shared_status:get(MASTER_PID)
 
     return report
 end

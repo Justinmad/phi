@@ -85,13 +85,6 @@ return function(phi)
             context:addBean(component_name .. "_api", api_definition)
         end
 
-        for _, bean in pairs(context) do
-            if string.lower(bean.__definition.type or "") == "component" then
-                table.insert(components, bean)
-            elseif string.lower(bean.__definition.type or "") == "datasource" and phi.db == nil then
-                phi.db = bean;
-            end
-        end
         -- 开启mio统计组件
         if config.enabled_mio then
             log("Enable mio statistics")
@@ -99,6 +92,15 @@ return function(phi)
             local mio = require("component.statistics.mio_handler"):new()
             context.mio = mio
         end
+
+        for _, bean in pairs(context) do
+            if string.lower(bean.__definition.type or "") == "component" then
+                table.insert(components, bean)
+            elseif string.lower(bean.__definition.type or "") == "datasource" and phi.db == nil then
+                phi.db = bean;
+            end
+        end
+
         -- 组件排序，所有的组件中order越大就有越高的优先级
         log("sort components")
         table.sort(components, function(c1, c2)
