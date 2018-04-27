@@ -131,8 +131,13 @@ local function createLimiter(policy)
     return nil, err
 end
 
-local trafficLimiter = {}
+local SKIP_INSTANCE = {
+    incoming = function(self)
+        LOGGER(DEBUG, "skip limiter")
+    end
+}
 
+local trafficLimiter = {}
 function trafficLimiter:incoming(key)
     -- 跳过Key为空的限流器
     local tmp_limiter = new_tab(getn(self.limiters), 0)
@@ -281,6 +286,9 @@ end
 local class = {}
 
 function class:new(policy)
+    if policy.skip then
+        return SKIP_INSTANCE
+    end
     local limiter, get_key, err
     local typeStr = policy.type
     if typeStr == "traffic" then

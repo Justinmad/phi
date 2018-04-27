@@ -41,9 +41,6 @@ function _M:rewrite(ctx)
         -- 查询多级缓存
         local router, err = self.service:getRouter(hostkey)
         if not err and router and type(router) == "table" then
-            if router.skipRouter then
-                return LOGGER(ALERT, "skip router for hostkey:", hostkey)
-            end
             router:route(ctx)
         else
             LOGGER(ERR, "Routing rules query error or bad policy type for hostkey : ", hostkey, " err：", err)

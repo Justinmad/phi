@@ -53,13 +53,34 @@ return function(phi)
             local component_path = "component." .. component_name
             local definition, api_definition
             local _, schema = pcall(require, component_path .. ".schema")
-            definition = schema and schema.definition or {}
-            definition.path = component_path .. ".handler"
-            definition.type = "component"
-            context:addBean(component_name,  definition)
 
-            api_definition = schema and schema.api_definition or {}
-            api_definition.path = component_path .. ".api"
+            if not schema then
+                _, schema = pcall(require, component_name)
+                if not schema then
+                    error("component [" .. component_name .. "] not exists")
+                end
+            end
+
+            if schema.definition then
+                definition = schema.definition
+            else
+                definition = {}
+            end
+            if not definition.path then
+                definition.path = component_path .. ".handler"
+            end
+            definition.type = "component"
+            context:addBean(component_name, definition)
+
+            if schema.api_definition then
+                api_definition = schema.api_definition
+            else
+                api_definition = {}
+            end
+
+            if not api_definition.path then
+                api_definition.path = component_path .. ".api"
+            end
             api_definition.type = "ctrl"
             context:addBean(component_name .. "_api", api_definition)
         end

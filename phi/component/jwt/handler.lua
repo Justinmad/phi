@@ -58,6 +58,8 @@ local LOGGER = ngx.log
 local ngx_now = ngx.now
 local worker_pid = ngx.worker.pid
 local CACHE_KEY_PREFIX = "phi:plugin:jwt-auth:"
+local VERIFIED_VALUE = { verified = true }
+local NIL_VALUE = { skip = true }
 
 local jwt_auth = base_component:extend()
 
@@ -89,7 +91,7 @@ end
 local function createValidator(schema)
     return function(ctx)
         if schema.skip then
-            return { verified = true }
+            return VERIFIED_VALUE
         end
 
         local jwt_token = mapper_holder:map(ctx, schema.mapper)
@@ -110,7 +112,7 @@ local function createValidator(schema)
                 iss = validators.equals_any_of(schema.issuers)
             })
         else
-            return { verified = true }
+            return VERIFIED_VALUE
         end
     end
 end
@@ -121,9 +123,9 @@ local function getFromDb(redis, hostkey)
     if err then
         -- 查询出现错误，10秒内不再查询，放行
         LOGGER(ERR, "could not retrieve jwt-auth schema:", err)
-        return { skip = true }, nil, 10
+        return NIL_VALUE, nil, 10
     end
-    return cjson.decode(res) or { skip = true }
+    return cjson.decode(res) or NIL_VALUE
 end
 
 function jwt_auth:getValidator(hostkey)

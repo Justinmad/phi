@@ -55,6 +55,7 @@ local SHARED_DICT_NAME = CONST.DICTS.PHI_LIMITER
 local EVENTS = CONST.EVENT_DEFINITION.RATE_LIMITING_EVENTS
 local UPDATE = EVENTS.UPDATE
 local REBUILD = EVENTS.REBUILD
+local NIL_VALUE = { skip = true }
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
@@ -67,18 +68,6 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
-
---local function oneLimiter(policy)
---    local len = getn(policy)
---    if len > 1 then
---        sort(policy.policies, function(r1, r2)
---            local o1 = r1.order or 0
---            local o2 = r2.order or 0
---            return o1 > o2
---        end)
---    end
---    return
---end
 
 local function newLimiterWrapper(policy)
     if not policy.skip then
@@ -126,9 +115,9 @@ local function getFromDb(self, hostkey)
     if err then
         -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve limiter:", err)
-        return { skip = true }, nil, 10
+        return NIL_VALUE, nil, 10
     end
-    return res or { skip = true }
+    return res or NIL_VALUE
 end
 
 function _M:getLimiter(hostkey)
@@ -173,7 +162,7 @@ end
 function _M:delLimitPolicy(hostkey)
     local ok, err = self.dao:delLimitPolicy(hostkey)
     if ok then
-        ok, err = self.cache:set(hostkey, nil, { skip = true })
+        ok, err = self.cache:set(hostkey, nil, NIL_VALUE)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除限流规则失败！err:", err)
         else

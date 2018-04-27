@@ -38,9 +38,17 @@ function _M:set(id, weight)
     self.balancer:set(id, weight)
 end
 
+local SKIP_INSTANCE = {
+    find = function()
+    end
+}
+
 local class = {}
 
 function class:new(strategy, server_list, mapper)
+    if not strategy then
+        return SKIP_INSTANCE
+    end
     local balancer
     if strategy == "resty_chash" then
         if not mapper_holder[mapper] then

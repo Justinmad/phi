@@ -23,19 +23,19 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
+local NIL_VALUE = { skip = true }
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
-    new_tab = function() return {} end
+    new_tab = function()
+        return {}
+    end
 end
 
 local _M = {}
 
 local function createDegrader(row)
-    if not row.skip then
-        return degrader_wrapper:new(row)
-    end
-    return row
+    return degrader_wrapper:new(row)
 end
 
 -- 初始化worker
@@ -50,9 +50,9 @@ function _M:init_worker(observer)
             self.cache:update()
             self:getDegrader(data)
             LOGGER(DEBUG, "received event; source=", source,
-                ", event=", event,
-                ", data=", pretty_write(data),
-                ", from process ", pid)
+                    ", event=", event,
+                    ", data=", pretty_write(data),
+                    ", from process ", pid)
         end
     end, EVENTS.SOURCE)
 end
@@ -66,9 +66,9 @@ local function getFromDb(self, hostkey, uri)
     if err then
         -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve degrader:", err)
-        return { skip = true }, nil, 10
+        return NIL_VALUE, nil, 10
     end
-    return res or { skip = true }
+    return res or NIL_VALUE
 end
 
 function _M:getDegrader(hostkey, uri)
@@ -125,7 +125,7 @@ end
 function _M:delDegradation(hostkey, uri)
     local ok, err = self.dao:delDegradation(hostkey, uri)
     if ok then
-        ok, err = self.cache:set(hostkey .. ":" .. uri, nil, { skip = true })
+        ok, err = self.cache:set(hostkey .. ":" .. uri, nil, NIL_VALUE)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除降级规则失败！err:", err)
         else

@@ -9,12 +9,23 @@ local mapper_holder = phi.mapper_holder
 local policy_holder = phi.policy_holder
 local setmetatable = setmetatable
 local ipairs = ipairs
+--local get_host = require("utils").getHost
 local ngx = ngx
-
+local INFO = ngx.INFO
+local tab_sort = table.sort
 local LOGGER = ngx.log
 local NOTICE = ngx.NOTICE
 
+local function skipRouter(self, ctx)
+    return LOGGER(INFO, "skip router")
+end
+
+local SKIP_INSTANCE = {
+    route = skipRouter
+}
+
 local _M = {}
+
 function _M:route(ctx)
     -- 先取默认值
     local result = self.default
@@ -42,8 +53,18 @@ end
 
 local class = {}
 function class:new(data)
+    if data.skip then
+        return SKIP_INSTANCE
+    end
     if not data.default then
         return nil, "default result must not be nil"
+    end
+    if type(data.policies) == "table" then
+        tab_sort(data.policies, function(r1, r2)
+            local o1 = tonumber(r1.order) or 0
+            local o2 = tonumber(r2.order) or 0
+            return o1 > o2
+        end)
     end
     return setmetatable({
         default = data.default,

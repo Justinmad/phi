@@ -13,7 +13,6 @@ local mlcache = require "resty.mlcache"
 local router_wrapper = require "core.router.router_wrapper"
 local pretty_write = require("pl.pretty").write
 local worker_pid = ngx.worker.pid
-local sort = table.sort
 local type = type
 
 local EVENTS = CONST.EVENT_DEFINITION.ROUTER_EVENTS
@@ -26,6 +25,7 @@ local ERR = ngx.ERR
 local DEBUG = ngx.DEBUG
 local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
+local NIL_VALUE = { skip = true }
 
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
@@ -37,19 +37,8 @@ end
 local _M = {}
 
 -- 所有的规则中order越大就有越高的优先级
-local function sortSerializer(row)
-    if not row.skipRouter then
-        -- 排序
-        if type(row.policies) == "table" then
-            sort(row.policies, function(r1, r2)
-                local o1 = tonumber(r1.order) or 0
-                local o2 = tonumber(r2.order) or 0
-                return o1 > o2
-            end)
-        end
-        return router_wrapper:new(row)
-    end
-    return row
+local function createRouter(row)
+    return router_wrapper:new(row)
 end
 
 -- 初始化worker
@@ -80,9 +69,9 @@ local function getFromDb(self, hostkey)
     if err then
         -- 查询出现错误，10秒内不再查询
         LOGGER(ERR, "could not retrieve router policy:", err)
-        return { skipRouter = true }, nil, 10
+        return NIL_VALUE, nil, 10
     end
-    return res or { skipRouter = true }
+    return res or NIL_VALUE
 end
 
 -- 获取单个路由规则
@@ -118,7 +107,7 @@ end
 function _M:delRouterPolicy(hostkey)
     local ok, err = self.dao:delRouterPolicy(hostkey)
     if ok then
-        ok, err = self.cache:set(hostkey, nil, { skipRouter = true })
+        ok, err = self.cache:set(hostkey, nil, NIL_VALUE)
         if not ok then
             LOGGER(ERR, "通过hostkey：[" .. hostkey .. "]从mlcache删除路由规则失败！err:", err)
         else
@@ -146,12 +135,12 @@ function class:new(ref, config)
         ttl = 0, -- 缓存失效时间
         neg_ttl = 0, -- 未命中缓存失效时间
         resty_lock_opts = {
-        -- 回源DB的锁配置
+            -- 回源DB的锁配置
             exptime = 10, -- 锁失效时间
             timeout = 5 -- 获取锁超时时间
         },
         ipc_shm = PHI_EVENTS_DICT_NAME, -- 通知其他worker的事件总线
-        l1_serializer = sortSerializer -- 结果排序处理
+        l1_serializer = createRouter -- 结果排序处理
     })
     if err then
         error("could not create mlcache for router cache ! err :" .. err)

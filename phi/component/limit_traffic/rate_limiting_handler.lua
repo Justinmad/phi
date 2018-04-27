@@ -30,11 +30,7 @@ function rate_limiting_handler:rewrite(ctx)
         -- 查询出现错误，放行
         LOGGER(ERR, "failed to get limiter by hostkey :", hostkey, ",err : ", err)
     else
-        if limiter.skip then
-            LOGGER(DEBUG, "skip limiter for hostkey:", hostkey)
-        else
-            limiter:incoming(ctx, true)
-        end
+        limiter:incoming(ctx, true)
     end
 end
 

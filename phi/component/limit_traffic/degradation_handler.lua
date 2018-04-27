@@ -8,10 +8,8 @@
 local base_component = require "component.base_component"
 local get_host = require("utils").getHost
 local get_uri = require("Phi").mapper_holder["uri"].map
-local response = require "core.response"
 
 local ERR = ngx.ERR
-local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
 local degradation_handler = base_component:extend()
@@ -38,15 +36,7 @@ function degradation_handler:rewrite(ctx)
             isDegraded = degrader.enabled
         end
         if isDegraded then
-            if not degrader.skip then
-                -- 做降级处理 1、fake数据 2、重定向 3、内部请求
-                LOGGER(NOTICE, "request will be degraded")
-                degrader:doDegrade(ctx)
-            else
-                LOGGER(ERR, "Cannot perform a demotion strategy ,degrader is nil")
-                --response.failure("Cannot perform a degrade strategy :-(")
-                response.failure("Cannot perform a degrade strategy,Limited access,Service Temporarily Unavailable,please try again later :-)", 503)
-            end
+            degrader:doDegrade(ctx)
         end
     end
 end
