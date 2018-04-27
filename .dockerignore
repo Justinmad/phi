@@ -9,3 +9,4 @@ openresty/
 .iml
 conf/logs/
 install/
+t/
