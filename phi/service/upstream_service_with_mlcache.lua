@@ -338,20 +338,7 @@ function _M:getUpstreamServers(upstream)
 end
 
 local function newBalancer(res)
-    local server_list = new_tab(0, #res)
-    local strategy, mapper
-    for k, v in pairs(res) do
-        if k == "strategy" then
-            strategy = v
-        elseif k == "mapper" then
-            mapper = v
-        else
-            if not v.down then
-                server_list[k] = tonumber(v.weight) or 1
-            end
-        end
-    end
-    return balancer_wrapper:new(strategy, server_list, mapper)
+    return balancer_wrapper:new(res)
 end
 
 local function getFromDb(self, upstream)

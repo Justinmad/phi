@@ -16,6 +16,13 @@ if not ok then
     resty_chash = require "core.balancer.simple_hash"
 end
 
+local _ok, new_tab = pcall(require, "table.new")
+if not _ok or type(new_tab) ~= "function" then
+    new_tab = function()
+        return {}
+    end
+end
+
 local LOGGER = ngx.log
 local ERR = ngx.ERR
 
@@ -45,10 +52,25 @@ local SKIP_INSTANCE = {
 
 local class = {}
 
-function class:new(strategy, server_list, mapper)
-    if not strategy then
+function class:new(res)
+    if res.notExists then
         return SKIP_INSTANCE
     end
+
+    local server_list = new_tab(0, #res)
+    local strategy, mapper
+    for k, v in pairs(res) do
+        if k == "strategy" then
+            strategy = v
+        elseif k == "mapper" then
+            mapper = v
+        elseif type(v) == "table" then
+            if v.down then
+                server_list[k] = tonumber(v.weight) or 1
+            end
+        end
+    end
+
     local balancer
     if strategy == "resty_chash" then
         if not mapper_holder[mapper] then
