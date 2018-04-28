@@ -71,14 +71,14 @@ var instance = new Vue({
                     {text: 'Type', align: 'right', value: "type"},
                     {text: 'Rejected', align: 'right', value: "rejected"},
                     {text: 'Uri', align: 'right', value: "uri"},
-                    {text: 'Actions', align: 'right', sortable: false}
+                    {text: 'Actions', align: 'center', sortable: false}
                 ],
                 degradation: [
                     {text: 'Uri', align: 'right', value: 'uri'},
                     {text: 'Type', align: 'right', value: "info.type"},
                     {text: 'Target', align: 'right', value: "info.target"},
                     {text: 'Status', align: 'center', value: "info.enabled"},
-                    {text: 'Actions', align: 'right', sortable: false}
+                    {text: 'Actions', align: 'center', sortable: false}
                 ]
             },
             items: {

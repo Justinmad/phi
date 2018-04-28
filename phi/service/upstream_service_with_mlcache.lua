@@ -57,7 +57,6 @@ function _M:init()
 end
 
 function _M:init_worker(observer)
-    -- self.cache:update()
     self.observer = observer
     -- 关注dynamic upstream的更新操作
     observer.register(function(data, event, source, pid)
