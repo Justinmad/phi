@@ -30,6 +30,7 @@ function rate_limiting_handler:rewrite(ctx)
         -- 查询出现错误，放行
         LOGGER(ERR, "failed to get limiter by hostkey :", hostkey, ",err : ", err)
     else
+        print(require("pl.pretty").write(limiter))
         limiter:incoming(ctx, true)
     end
 end

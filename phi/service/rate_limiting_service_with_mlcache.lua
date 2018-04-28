@@ -70,11 +70,7 @@ local NOTICE = ngx.NOTICE
 local LOGGER = ngx.log
 
 local function newLimiterWrapper(policy)
-    if not policy.skip then
-        return limiter_wrapper:new(policy)
-    else
-        return policy
-    end
+    return limiter_wrapper:new(policy)
 end
 
 local function updateLimiterWrapper(policy)

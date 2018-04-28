@@ -179,9 +179,23 @@ function _M:setPeerDown(upstreamName, peerId, down)
         if not err then
             if down then
                 weight = 0
+
             end
-            self:getUpstreamBalancer(upstreamName):set(peerId, weight)
-            self:peerStateChangeEvent(upstreamName, peerId, weight)
+            local balancer = self:getUpstreamBalancer(upstreamName)
+            if balancer and type(balancer.set) == "function" then
+                --balancer:set(peerId, weight)
+                local ok, res = pcall(balancer.set, balancer, peerId, weight)
+                if not ok then
+                    self.dao:downUpstreamServer(upstreamName, peerId, false)
+                    self.cache:delete(upstreamName)
+                    self:dynamicUpsChangeEvent(upstreamName)
+                    return nil, "empty upstream nodes"
+                end
+                self:peerStateChangeEvent(upstreamName, peerId, weight)
+            else
+                self.cache:delete(upstreamName)
+                self:dynamicUpsChangeEvent(upstreamName)
+            end
             ok = true
         end
     end

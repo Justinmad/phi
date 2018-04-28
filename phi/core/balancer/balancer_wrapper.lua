@@ -59,16 +59,22 @@ function class:new(res)
 
     local server_list = new_tab(0, #res)
     local strategy, mapper
+    local count = 0
     for k, v in pairs(res) do
         if k == "strategy" then
             strategy = v
         elseif k == "mapper" then
             mapper = v
         elseif type(v) == "table" then
-            if v.down then
+            if not v.down then
                 server_list[k] = tonumber(v.weight) or 1
+                count = count + 1
             end
         end
+    end
+
+    if count < 1 then
+        return nil, "empty upstream nodes"
     end
 
     local balancer

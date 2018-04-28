@@ -165,14 +165,14 @@
                                                    @click="enabledDegradationApi(node.name,props.item.uri,false)">
                                                 <v-icon color="red">mdi-wall</v-icon>
                                             </v-btn>
-                                            <span>请求正被拦截</span>
+                                            <span>请求正被拦截,点击放行</span>
                                         </v-tooltip>
                                         <v-tooltip bottom v-else lazy>
                                             <v-btn flat icon slot="activator"
                                                    @click="enabledDegradationApi(node.name,props.item.uri,true)">
                                                 <v-icon color="green">fa-plane</v-icon>
                                             </v-btn>
-                                            <span>请求正被放行</span>
+                                            <span>请求正被放行，点击拦截</span>
                                         </v-tooltip>
                                     </td>
                                     <td class="justify-center layout px-0">
@@ -246,7 +246,7 @@
                                                           :items="policies"
                                                           hint="规则的计算类型"></v-select>
                                             </v-flex>
-                                            <v-flex xs12 sm3 md3 v-if="typeof(p.mapper)==='string'">
+                                            <v-flex xs12 sm6 md6 v-if="typeof(p.mapper)==='string'">
                                                 <v-select :rules="formRules.string"
                                                           label="Mapper"
                                                           required
@@ -387,7 +387,7 @@
                                                       :items="balancers"
                                                       hint="负载均衡策略"></v-select>
                                         </v-flex>
-                                        <v-flex xs12 sm6 md6
+                                        <v-flex xs12
                                                 v-if="newUpstream.strategy=='resty_chash' && typeof(newUpstream.mapper)==='string'">
                                             <v-select :rules="formRules.string"
                                                       label="Mapper"
