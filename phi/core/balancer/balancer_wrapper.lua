@@ -7,7 +7,6 @@
 --
 local resty_roundrobin = require "resty.roundrobin"
 local phi = require "Phi"
-local response = require "core.response"
 local setmetatable = setmetatable
 local mapper_holder = phi.mapper_holder
 
@@ -33,7 +32,7 @@ function _M:find(ctx)
         local tag, err = mapper_holder:map(ctx, self.mapper)
         if err or not tag then
             LOGGER(ERR, "failed to calculate the hash ，mapper: ", self.mapper, "，tag：", self.tag)
-            return response.failure("Failed to calculate the hash :-(", 500)
+            return nil, err or "failed to calculate the hash"
         end
         return self.balancer:find(tag)
     else
@@ -47,6 +46,7 @@ end
 
 local SKIP_INSTANCE = {
     find = function()
+        return nil, "balancer is not exists"
     end
 }
 

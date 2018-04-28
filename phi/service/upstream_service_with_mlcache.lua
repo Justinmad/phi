@@ -352,6 +352,9 @@ function _M:getUpstreamServers(upstream)
 end
 
 local function newBalancer(res)
+    if res == "stable" or res == "ip:port" then
+        return res
+    end
     return balancer_wrapper:new(res)
 end
 
