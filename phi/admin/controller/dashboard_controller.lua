@@ -30,7 +30,7 @@ function dashboardController:tree()
     local err
     local routers
     routers, err = self.routerService:getAllRouterPolicy(0, 1024);
-    local result = { name = "Phi", children = new_tab(routers.count, 0), type = "phi" }
+    local result = { name = "Phi", symbol = "image://static/svg/entry.svg", children = new_tab(routers.count, 0), type = "phi" }
     local children = result.children
     if err then
         return Response.failure(err)
@@ -43,6 +43,7 @@ function dashboardController:tree()
         -- 这是一条路由hostkey，允许编辑
         tmpNode.type = "host"
         tmpNode.router = router_data
+        tmpNode.symbol = "image://static/svg/router.svg"
         local ps = router_data.policies
         if ps then
             table_sort(router_data.policies, function(r1, r2)
@@ -53,10 +54,11 @@ function dashboardController:tree()
             -- 三级节点，policies
             tmpNode.children = new_tab(#ps + 1, 0)
             for _, p in ipairs(ps) do
-                local tmpPolicyNode = new_tab(0, 6)
+                local tmpPolicyNode = new_tab(0, 7)
                 -- 这是一条路由规则，允许编辑
                 tmpPolicyNode.type = "policy"
                 tmpPolicyNode.policy = p.policy
+                tmpPolicyNode.symbol = "image://static/svg/router-switch.svg"
                 tmpPolicyNode.host = k
                 table_insert(tmpNode.children, tmpPolicyNode)
                 local mapper = p.mapper
@@ -74,8 +76,9 @@ function dashboardController:tree()
                     tmpPolicyNode.children = new_tab(#rt, 0)
                     for _, item in ipairs(rt) do
                         -- 四级节点 ups
-                        local tmpUpsNode = new_tab(0, 4)
+                        local tmpUpsNode = new_tab(0, 5)
                         table_insert(tmpPolicyNode.children, tmpUpsNode)
+                        tmpUpsNode.symbol = "image://static/svg/ups-stable.svg"
                         tmpUpsNode.name = item.result
                         tmpUpsNode.calculation = p.policy
                         tmpUpsNode.condition = item.expression
@@ -87,7 +90,7 @@ function dashboardController:tree()
             tmpNode.children = new_tab(1, 0)
             router_data.policies = {}
         end
-        local tmpPolicyNode = new_tab(0, 6)
+        local tmpPolicyNode = new_tab(0, 7)
         table_insert(tmpNode.children, tmpPolicyNode)
         tmpPolicyNode.name = router_data.default
         tmpPolicyNode.value = router_data.default
@@ -95,6 +98,7 @@ function dashboardController:tree()
         tmpPolicyNode.host = k
         -- 这是一个默认值，不允许删除
         tmpPolicyNode.type = "policy"
+        tmpPolicyNode.symbol = "image://static/svg/ups-stable.svg"
         tmpPolicyNode.stable = true
     end
     return Response.success(result, nil, true)
@@ -103,7 +107,8 @@ end
 function dashboardController:upsTree()
     local upstreams = self.upstreamService:getAllUpsInfo()
     local root = new_tab(0, 2)
-    root.name = "upstream"
+    root.name = "Upstream"
+    root.symbol = "image://static/svg/ups.svg"
     root.children = new_tab(50, 0)
     root.type = "ups_root"
     for k, ups_info in pairs(upstreams) do
@@ -116,6 +121,7 @@ function dashboardController:upsTree()
             -- 这是一个自定义upstream,允许编辑
             local servers = ups_info.servers
             tmpUpsNode.upstream = ups_info
+            tmpUpsNode.symbol = "image://static/svg/ups-dynamic.svg"
             tmpUpsNode.strategy = ups_info.strategy
             tmpUpsNode.mapper = type(ups_info.mapper) == "table" or ups_info.mapper or ups_info.mapper.type
             tmpUpsNode.tag = type(ups_info.mapper) == "table" or nil or ups_info.mapper.tag
@@ -130,17 +136,14 @@ function dashboardController:upsTree()
                 tmpServerNode.type = "server"
                 tmpServerNode.server = s
                 if s.down then
-                    tmpServerNode.itemStyle = {
-                        borderColor = "#FF0000"
-                    }
+                    tmpServerNode.symbol = "image://static/svg/server-down.svg"
                 else
-                    tmpServerNode.itemStyle = {
-                        borderColor = "green"
-                    }
+                    tmpServerNode.symbol = "image://static/svg/server-up.svg"
                 end
             end
         else
             tmpUpsNode.stable = true
+            tmpUpsNode.symbol = "image://static/svg/ups-stable.svg"
             tmpUpsNode.children = new_tab(#ups_info, 0)
             for _, s in ipairs(ups_info) do
                 local tmpServerNode = new_tab(0, 7)
@@ -153,13 +156,9 @@ function dashboardController:upsTree()
                 tmpServerNode.down = s.down or false
                 tmpServerNode.server = s
                 if s.down then
-                    tmpServerNode.itemStyle = {
-                        borderColor = "red"
-                    }
+                    tmpServerNode.symbol = "image://static/svg/server-down.svg"
                 else
-                    tmpServerNode.itemStyle = {
-                        borderColor = "green"
-                    }
+                    tmpServerNode.symbol = "image://static/svg/server-up.svg"
                 end
             end
         end

@@ -240,6 +240,7 @@
                                                           dense
                                                           auto
                                                           label="规则"
+                                                          @change="(v)=>p.routerTable=[]"
                                                           v-model="p.policy"
                                                           :items="policies"
                                                           hint="规则的计算类型"></v-select>
@@ -299,7 +300,7 @@
                                                     <v-layout wrap v-if="'range' === p.policy">
                                                         <v-flex xs6>
                                                             <v-text-field
-                                                                    :rules="formRules.string"
+                                                                    :rules="formRules.range"
                                                                     label="From"
                                                                     v-model="rp.expression[0]"
                                                                     required
@@ -307,7 +308,7 @@
                                                         </v-flex>
                                                         <v-flex xs6>
                                                             <v-text-field
-                                                                    :rules="formRules.string"
+                                                                    :rules="formRules.range"
                                                                     label="End"
                                                                     required
                                                                     v-model="rp.expression[1]"

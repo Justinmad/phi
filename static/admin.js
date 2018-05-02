@@ -50,6 +50,10 @@ var instance = new Vue({
                 v => !isNaN(Number(v)) || '请填写数字！',
                 v => !!v || '非空字段，必须填写！',
             ],
+            range: [
+                v => !(isNaN(Number(v)) && v !== 'NONE') || '请填写数字或NONE！',
+                v => !!v || '非空字段，必须填写！',
+            ],
             ip: [
                 v => !!v || '非空字段，必须填写！',
                 v => /^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v) || "ip:port格式必须正确"
@@ -651,14 +655,16 @@ var instance = new Vue({
                         top: '2%',
                         left: '3%',
                         orient: 'vertical',
-                        data: [{
-                            name: 'Phi',
-                            icon: 'rectangle'
-                        },
+                        data: [
                             {
-                                name: 'Upstream',
+                                name: 'Phi',
                                 icon: 'rectangle'
-                            }],
+                            },
+                            {
+                                name: 'Upstreams',
+                                icon: 'rectangle'
+                            }
+                        ],
                         borderColor: '#c23531'
                     },
                     series: [
@@ -670,7 +676,7 @@ var instance = new Vue({
                             bottom: '5%',
                             right: '60%',
                             data: [tree1],
-                            symbolSize: 10,
+                            symbolSize: 25,
                             label: {
                                 normal: {
                                     position: 'left',
@@ -689,13 +695,13 @@ var instance = new Vue({
                         },
                         {
                             type: 'tree',
-                            name: 'Upstream',
+                            name: 'Upstreams',
                             top: '20%',
                             left: '60%',
                             bottom: '20%',
                             right: '5%',
                             data: [tree2],
-                            symbolSize: 10,
+                            symbolSize: 25,
                             label: {
                                 normal: {
                                     position: 'left',
