@@ -99,7 +99,7 @@ var instance = new Vue({
         },
         confirmOption: {
             show: false,
-            message: "Are you sure you want to do this?",
+            message: "确定要这样做吗？",
             color: null,
             callback: null
         },
@@ -802,7 +802,7 @@ var instance = new Vue({
             if (newVal === false) {
                 this.confirmOption = {
                     show: false,
-                    message: "Are you sure you want to do this?",
+                    message: "确定要这样做吗？",
                     color: "success",
                     callback: null
                 }

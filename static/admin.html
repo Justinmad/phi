@@ -60,20 +60,20 @@
         <v-dialog v-model="newApiServerDialog" persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">New Api Server</span>
+                    <span class="headline">添加Api Server</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
                         <v-form v-model="formValid" ref="routerForm">
                             <v-layout wrap>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field :rules="formRules.string" label="Host" v-model="newRouter.hostkey"
+                                    <v-text-field :rules="formRules.string" label="主机名" v-model="newRouter.hostkey"
                                                   hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
                                 </v-flex>
                                 <v-flex xs12 sm6 md6>
                                     <v-select combobox clearable
                                               :rules="formRules.ups"
-                                              label="Default Server"
+                                              label="默认服务器"
                                               v-model="newRouter.data.default"
                                               :items="upstreams"
                                               required
@@ -101,10 +101,10 @@
                     v-model="limitTrafficTab.tabActive"
             >
                 <v-tab>
-                    Rate Limiting
+                    限流
                 </v-tab>
                 <v-tab>
-                    Degradation
+                    降级
                 </v-tab>
                 <v-tab-item>
                     <v-card flat>
@@ -134,8 +134,7 @@
                         <v-card-actions>
                             <v-btn flat disabled>{{node.name}}</v-btn>
                             <v-spacer></v-spacer>
-                            <v-btn color="blue darken-1" flat slot="activator" @click="newRateLimitingDialog = true">New
-                                Item
+                            <v-btn color="blue darken-1" flat slot="activator" @click="newRateLimitingDialog = true">Add
                             </v-btn>
                             <v-btn color="blue darken-1" flat @click.native="limitTrafficDialog = false">Close</v-btn>
                         </v-card-actions>
@@ -165,7 +164,7 @@
                                                    @click="enabledDegradationApi(node.name,props.item.uri,false)">
                                                 <v-icon color="red">mdi-wall</v-icon>
                                             </v-btn>
-                                            <span>请求正被拦截,点击放行</span>
+                                            <span>请求正被拦截，点击放行</span>
                                         </v-tooltip>
                                         <v-tooltip bottom v-else lazy>
                                             <v-btn flat icon slot="activator"
@@ -191,8 +190,7 @@
                         <v-card-actions>
                             <v-btn flat disabled>{{node.name}}</v-btn>
                             <v-spacer></v-spacer>
-                            <v-btn color="blue darken-1" flat slot="activator" @click="newDegradationDialog = true">New
-                                Item
+                            <v-btn color="blue darken-1" flat slot="activator" @click="newDegradationDialog = true">Add
                             </v-btn>
                             <v-btn color="blue darken-1" flat @click="limitTrafficDialog = false">Close</v-btn>
                         </v-card-actions>
@@ -203,21 +201,21 @@
         <v-dialog v-model="updatePolicyDialog" scrollable persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">Update Router Policy</span>
+                    <span class="headline">更新路由策略</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
                         <v-form v-model="formValid" ref="policyForm">
                             <v-layout wrap>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field :rules="formRules.string" label="Host"
+                                    <v-text-field :rules="formRules.string" label="主机名"
                                                   v-model="newRouter.hostkey"
                                                   hint="访问时使用的域名，如果是以IP访问，就输入ip:port" required></v-text-field>
                                 </v-flex>
                                 <v-flex xs12 sm6 md6>
                                     <v-select combobox clearable
                                               :rules="formRules.ups"
-                                              label="Default Server"
+                                              label="默认服务器"
                                               v-model="newRouter.data.default"
                                               :items="upstreams"
                                               required
@@ -231,7 +229,7 @@
                                     <v-flex xs11>
                                         <v-layout wrap>
                                             <v-flex xs12 sm3 md3>
-                                                <v-text-field :rules="formRules.number" label="Order"
+                                                <v-text-field :rules="formRules.number" label="排序"
                                                               type="number"
                                                               v-model="p.order"
                                                               hint="规则优先级，越大优先级越高" required></v-text-field>
@@ -241,14 +239,14 @@
                                                           required
                                                           dense
                                                           auto
-                                                          label="Policy"
+                                                          label="规则"
                                                           v-model="p.policy"
                                                           :items="policies"
                                                           hint="规则的计算类型"></v-select>
                                             </v-flex>
                                             <v-flex xs12 sm6 md6 v-if="typeof(p.mapper)==='string'">
                                                 <v-select :rules="formRules.string"
-                                                          label="Mapper"
+                                                          label="路由Key"
                                                           required
                                                           dense
                                                           auto
@@ -260,7 +258,7 @@
                                             </v-flex>
                                             <v-flex xs12 sm3 md3 v-if="typeof(p.mapper)==='object'">
                                                 <v-select :rules="formRules.string"
-                                                          label="Mapper"
+                                                          label="路由Key"
                                                           v-model="p.mapper.type"
                                                           required
                                                           dense
@@ -269,7 +267,7 @@
                                                           hint="提取请求特征的方式"></v-select>
                                             </v-flex>
                                             <v-flex xs12 sm3 md3 v-if="typeof(p.mapper)==='object'">
-                                                <v-text-field :rules="formRules.string" label="Tag"
+                                                <v-text-field :rules="formRules.string" label="路由Key名称"
                                                               v-model="p.mapper.tag"
                                                               append-icon="close"
                                                               :append-icon-cb="()=>p.mapper=p.mapper.type"
@@ -291,7 +289,7 @@
                                                 <v-flex xs6>
                                                     <v-select combobox clearable
                                                               :rules="formRules.ups"
-                                                              label="Router Result"
+                                                              label="路由表"
                                                               v-model="rp.result"
                                                               :items="upstreams"
                                                               required
@@ -320,7 +318,7 @@
                                                         <v-flex xs12>
                                                             <v-text-field
                                                                     :rules="formRules.string"
-                                                                    label="Router Condition"
+                                                                    label="匹配条件"
                                                                     v-model="rp.expression"
                                                                     required
                                                                     hint="路由匹配条件"></v-text-field>
@@ -340,7 +338,7 @@
                                         <v-btn block flat round small
                                                @click="p.routerTable.push({result:'',expression:[]})">
                                             <v-icon small>fa-plus</v-icon>
-                                            &nbsp;Add New Policy Item
+                                            &nbsp;添加新路由条目
                                         </v-btn>
                                     </v-layout>
                                 </v-card-text>
@@ -367,7 +365,7 @@
         <v-dialog v-model="newUpstreamDialog" scrollable persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">New Upstream</span>
+                    <span class="headline">新增Upstream</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
@@ -376,13 +374,13 @@
                                 <v-flex xs12>
                                     <v-layout wrap>
                                         <v-flex xs12 sm6 md6>
-                                            <v-text-field :rules="formRules.string" label="Upstream Name"
+                                            <v-text-field :rules="formRules.string" label="组名称"
                                                           v-model="newUpstream.upstreamName"
                                                           hint="Upstream组名称" required></v-text-field>
                                         </v-flex>
                                         <v-flex xs12 sm6 md6>
                                             <v-select required :rules="formRules.string"
-                                                      label="Load Balance Strategy"
+                                                      label="负载均衡方式"
                                                       v-model="newUpstream.strategy"
                                                       :items="balancers"
                                                       hint="负载均衡策略"></v-select>
@@ -390,7 +388,7 @@
                                         <v-flex xs12
                                                 v-if="newUpstream.strategy=='resty_chash' && typeof(newUpstream.mapper)==='string'">
                                             <v-select :rules="formRules.string"
-                                                      label="Mapper"
+                                                      label="负载均衡Key"
                                                       required
                                                       dense
                                                       auto
@@ -403,7 +401,7 @@
                                         <v-flex xs12 sm6 md6
                                                 v-if="newUpstream.strategy=='resty_chash' && typeof(newUpstream.mapper)==='object'">
                                             <v-select :rules="formRules.string"
-                                                      label="Mapper"
+                                                      label="负载均衡Key"
                                                       v-model="newUpstream.mapper.type"
                                                       required
                                                       dense
@@ -413,7 +411,7 @@
                                         </v-flex>
                                         <v-flex xs12 sm6 md6
                                                 v-if="newUpstream.strategy=='resty_chash' && typeof(newUpstream.mapper)==='object'">
-                                            <v-text-field :rules="formRules.string" label="Tag"
+                                            <v-text-field :rules="formRules.string" label="负载均衡Key名称"
                                                           v-model="newUpstream.mapper.tag"
                                                           append-icon="close"
                                                           :append-icon-cb="()=>newUpstream.mapper=newUpstream.mapper.type"
@@ -427,13 +425,13 @@
                                         <v-flex xs11>
                                             <v-layout row wrap>
                                                 <v-flex xs6>
-                                                    <v-text-field required :rules="formRules.ip" label="Server Name"
+                                                    <v-text-field required :rules="formRules.ip" label="地址"
                                                                   v-model="s.name"
                                                                   hint="主机ip:port,注意这里不支持域名解析！"></v-text-field>
                                                 </v-flex>
                                                 <v-flex xs6>
                                                     <v-text-field required :rules="formRules.string"
-                                                                  label="Server Weight"
+                                                                  label="权重"
                                                                   v-model="s.info.weight"
                                                                   type="number"
                                                                   hint="主机权重值，决定了负载均衡时的流量大小"></v-text-field>
@@ -443,7 +441,7 @@
                                         <v-flex xs1>
                                             <v-btn icon small
                                                    @click="newUpstream.servers.splice(s_idx,1)">
-                                                <v-icon small>fa-minus</v-icon>
+                                                <v-icon color="red" small>fa-minus</v-icon>
                                             </v-btn>
                                         </v-flex>
                                     </v-layout>
@@ -471,19 +469,19 @@
         <v-dialog v-model="newServerDialog" persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">Add Server To Upstream</span>
+                    <span class="headline">添加主机</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
                         <v-form v-model="formValid" ref="serverForm">
                             <v-layout wrap>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field required :rules="formRules.ip" label="Server Name"
+                                    <v-text-field required :rules="formRules.ip" label="地址"
                                                   v-model="newServer.name"
                                                   hint="主机ip:port,注意这里不支持域名解析！"></v-text-field>
                                 </v-flex>
                                 <v-flex xs12 sm6 md6>
-                                    <v-text-field required :rules="formRules.string" label="Server Weight"
+                                    <v-text-field required :rules="formRules.string" label="权重"
                                                   v-model="newServer.info.weight"
                                                   type="number"
                                                   hint="主机权重值，决定了负载均衡时的流量大小"></v-text-field>
@@ -505,7 +503,7 @@
         <v-dialog v-model="newRateLimitingDialog" persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">New Rate Limiting Item</span>
+                    <span class="headline">新增限流条目</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
@@ -515,7 +513,7 @@
                                     <v-flex xs12
                                             v-if="!newRateLimiting.mapper || typeof(newRateLimiting.mapper)==='string'">
                                         <v-select :rules="formRules.string"
-                                                  label="Mapper"
+                                                  label="限流Key"
                                                   required
                                                   dense
                                                   auto
@@ -528,7 +526,7 @@
                                     <v-layout v-if="typeof(newRateLimiting.mapper)==='object'">
                                         <v-flex xs6 v-if="typeof(newRateLimiting.mapper)==='object'">
                                             <v-select :rules="formRules.string"
-                                                      label="Mapper"
+                                                      label="限流Key"
                                                       v-model="newRateLimiting.mapper.type"
                                                       required
                                                       dense
@@ -537,7 +535,7 @@
                                                       hint="提取请求特征的方式"></v-select>
                                         </v-flex>
                                         <v-flex xs6 v-if="typeof(newRateLimiting.mapper)==='object'">
-                                            <v-text-field :rules="formRules.string" label="Tag"
+                                            <v-text-field :rules="formRules.string" label="限流Key名称"
                                                           v-model="newRateLimiting.mapper.tag"
                                                           append-icon="close"
                                                           :append-icon-cb="()=>newRateLimiting.mapper=newRateLimiting.mapper.type"
@@ -548,7 +546,7 @@
                                 <v-flex xs12>
                                     <v-select clearable
                                               :rules="formRules.string"
-                                              label="Limiter Type"
+                                              label="限流类型"
                                               v-model="newRateLimiting.type"
                                               :items="limiters"
                                               required
@@ -558,7 +556,7 @@
                                     <v-layout>
                                         <v-flex xs12 md6 sm6
                                                 v-if="newRateLimiting.type==='req'||newRateLimiting.type==='count'">
-                                            <v-text-field label="Rate"
+                                            <v-text-field label="速率"
                                                           :rules="formRules.number"
                                                           required
                                                           v-model="newRateLimiting.rate"
@@ -566,7 +564,7 @@
                                         </v-flex>
                                         <v-flex xs12 md6 sm6
                                                 v-if="newRateLimiting.type==='req'">
-                                            <v-text-field label="Burst"
+                                            <v-text-field label="突发请求"
                                                           :rules="formRules.number"
                                                           required
                                                           v-model="newRateLimiting.burst"
@@ -574,7 +572,7 @@
                                         </v-flex>
                                         <v-flex xs12 md4 sm4
                                                 v-if="newRateLimiting.type==='conn'">
-                                            <v-text-field label="Connections"
+                                            <v-text-field label="连接数"
                                                           :rules="formRules.number"
                                                           required
                                                           type="number"
@@ -583,7 +581,7 @@
                                         </v-flex>
                                         <v-flex xs12 md4 sm4
                                                 v-if="newRateLimiting.type==='conn'">
-                                            <v-text-field label="Burst Connections"
+                                            <v-text-field label="突发连接数"
                                                           :rules="formRules.number"
                                                           required
                                                           type="number"
@@ -591,7 +589,7 @@
                                                           hint="允许突发访问量（即允许超出Connections的突发量，超出Connections最大量的请求将会被delay）"></v-text-field>
                                         </v-flex>
                                         <v-flex xs12 md4 sm4 v-if="newRateLimiting.type==='conn'">
-                                            <v-text-field label="Delay"
+                                            <v-text-field label="延迟"
                                                           :rules="formRules.number"
                                                           required
                                                           type="number"
@@ -600,7 +598,7 @@
                                             </v-text-field>
                                         </v-flex>
                                         <v-flex xs12 md6 sm6 v-if="newRateLimiting.type==='count'">
-                                            <v-text-field label="Time Window"
+                                            <v-text-field label="单位时间窗口"
                                                           type="number"
                                                           :rules="formRules.number"
                                                           required
@@ -612,14 +610,14 @@
                                 <v-flex xs12>
                                     <v-select clearable
                                               :rules="formRules.string"
-                                              label="Reject Strategy"
+                                              label="拒绝方式"
                                               v-model="newRateLimiting.rejected"
                                               :items="rejectedStrategies"
                                               required
                                               hint="被限流后的拒绝策略：拒绝访问[rejected]、执行降级[degrade]"></v-select>
                                 </v-flex>
                                 <v-flex xs12>
-                                    <v-text-field label="Matched Uri"
+                                    <v-text-field label="匹配URI"
                                                   v-model="newRateLimiting.uri"
                                                   hint="指定匹配路径，支持Ant风格Path路径，可选，置空即全局限流，建议留空"></v-text-field>
                                 </v-flex>
@@ -639,14 +637,14 @@
         <v-dialog v-model="newDegradationDialog" persistent max-width="600px">
             <v-card>
                 <v-card-title>
-                    <span class="headline">New Degradation Item</span>
+                    <span class="headline">新增降级条目</span>
                 </v-card-title>
                 <v-card-text>
                     <v-container grid-list-md>
                         <v-form v-model="formValid" ref="degradationForm">
                             <v-layout wrap>
                                 <v-flex xs12>
-                                    <v-text-field label="Matched Uri"
+                                    <v-text-field label="URI"
                                                   :rules="formRules.string"
                                                   required
                                                   v-model="newDegradation.uri"
@@ -655,14 +653,14 @@
                                 <v-flex xs12>
                                     <v-select clearable
                                               :rules="formRules.string"
-                                              label="Degradation Type"
+                                              label="类型"
                                               v-model="newDegradation.info.type"
                                               :items="degradationStrategies"
                                               required
                                               hint="降级类型：重定向[redirect]、Fake数据[fake]"></v-select>
                                 </v-flex>
                                 <v-flex xs12>
-                                    <v-text-field label="Target"
+                                    <v-text-field label="目标数据"
                                                   multi-line
                                                   :rules="formRules.string"
                                                   required
@@ -673,7 +671,7 @@
                         </v-form>
                     </v-container>
                     <small class="red--text">* 表示必填</small>
-                    <v-tooltip right>
+                    <v-tooltip right v-if="newDegradation.info.type">
                         <span v-if="newDegradation.info.type==='redirect'">Redirect时，必须填写完整的URL，如https://www.sample.com</span>
                         <span v-if="newDegradation.info.type==='fake'">
 Fake数据格式：
@@ -718,7 +716,7 @@ plain text
         >
             <v-list dense>
                 <v-list-tile @click="newApiServerDialog=true">
-                    <v-list-tile-title>New Api Server</v-list-tile-title>
+                    <v-list-tile-title>新增Api Server</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -732,7 +730,7 @@ plain text
         >
             <v-list dense>
                 <v-list-tile @click="newUpstreamDialog=true">
-                    <v-list-tile-title>New Upstream</v-list-tile-title>
+                    <v-list-tile-title>新增Upstream</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -746,13 +744,13 @@ plain text
         >
             <v-list dense>
                 <v-list-tile @click="updatePolicy">
-                    <v-list-tile-title>Edit Route Policy</v-list-tile-title>
+                    <v-list-tile-title>编辑路由规则</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="delRouterApi(node.name)">
-                    <v-list-tile-title>Delete Api Server</v-list-tile-title>
+                    <v-list-tile-title>删除Api Server</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="limitTrafficDialog=true">
-                    <v-list-tile-title>Limit Traffic</v-list-tile-title>
+                    <v-list-tile-title>流量控制</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -766,13 +764,13 @@ plain text
         >
             <v-list dense>
                 <v-list-tile @click="updateUpstream" v-if="!node.stable">
-                    <v-list-tile-title>Edit Upstream</v-list-tile-title>
+                    <v-list-tile-title>编辑Upstream</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="delUpstreamApi(node.name)" v-if="!node.stable">
-                    <v-list-tile-title>Delete Upstream</v-list-tile-title>
+                    <v-list-tile-title>删除Upstream</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="newServerDialog=true" v-if="!node.stable">
-                    <v-list-tile-title>Add Server To Upstream</v-list-tile-title>
+                    <v-list-tile-title>新增主机</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -786,10 +784,10 @@ plain text
         >
             <v-list dense>
                 <v-list-tile @click="deleteServerFromUpsApi(node.ups)" v-if="!node.stable">
-                    <v-list-tile-title>Delete Server</v-list-tile-title>
+                    <v-list-tile-title>删除主机</v-list-tile-title>
                 </v-list-tile>
                 <v-list-tile @click="setPeerDown(node.ups)">
-                    <v-list-tile-title>Server Up/Down</v-list-tile-title>
+                    <v-list-tile-title>主机启/停</v-list-tile-title>
                 </v-list-tile>
             </v-list>
         </v-menu>
@@ -812,7 +810,7 @@ plain text
         </v-snackbar>
         <v-dialog v-model="confirmOption.show" max-width="290">
             <v-card>
-                <v-card-title dense :class="confirmOption.color">Confirm ?</v-card-title>
+                <v-card-title dense :class="confirmOption.color">确认?</v-card-title>
                 <v-card-text>
                     {{confirmOption.message}}
                 </v-card-text>
