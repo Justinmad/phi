@@ -43,6 +43,15 @@ function _M:init_worker(observer)
     self.observer = observer
     -- 注册关注事件handler到指定事件源
     observer.register(function(data, event, source, pid)
+        if event == "cluster" then
+            data = data.data
+            self.cache:delete(data.hostkey .. ":" .. data.uri)
+            self:getDegrader(data.hostkey, data.uri)
+            return self.observer.post(EVENTS.SOURCE, UPDATE, {
+                hostkey = data.hostkey,
+                uri = data.uri
+            })
+        end
         if worker_pid() == pid then
             LOGGER(NOTICE, "do not process the event send from self")
         else

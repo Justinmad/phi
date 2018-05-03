@@ -1,4 +1,5 @@
-var instance = new Vue({
+Vue.use(VueRouter);
+new Vue({
     el: '#app',
     data: {
         chart: {},
@@ -62,7 +63,7 @@ var instance = new Vue({
                 v => !!v || '非空字段，必须填写！',
                 v => {
                     let b = /^(\d{1,3}\.){3}\d{1,3}\:\d{1,5}$/.test(v);
-                    let c = (this.upstreams && this.upstreams.indexOf(v) !== -1) || (instance && instance.upstreams.indexOf(v) !== -1);
+                    let c = window.upstreams && window.upstreams.indexOf(v) !== -1;
                     return b || c || "输入ip:port或选择已存在的upstream"
                 }
             ]
@@ -553,7 +554,8 @@ var instance = new Vue({
         getUpstreamsApi() {
             this.$http.get("/upstream/getAllUpsInfo").then(resp => {
                 if (resp.body.status.success) {
-                    this.upstreams = Object.keys(resp.body.data)
+                    this.upstreams = Object.keys(resp.body.data);
+                    window.upstreams = Object.keys(resp.body.data);
                 } else {
                     this.alert(resp.body.status.message, "warning");
                 }
