@@ -96,7 +96,7 @@ var instance = new Vue({
             show: false,
             y: 'top',
             x: null,
-            mode: 'multi-line',
+            mode: 'single-line',
             timeout: 2000,
             color: "success",
             message: "Hello, I'm a alert!"
