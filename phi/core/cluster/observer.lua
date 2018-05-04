@@ -20,7 +20,8 @@ local MATCH = CACHE_KEY_PREFIX .. "*"
 local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
 local dict = ngx.shared[PHI_EVENTS]
 --- 节点ID、抓取数据周期、最大抓取数量、事件有效期、启动时间
-local node_id = "localhost"
+local UUID = require("resty.jit-uuid")
+local node_id = UUID()
 local delay = 1
 local max = 10
 local timeout = 1000
@@ -105,9 +106,12 @@ local function poll_event()
     end
 
     for i, item in ipairs(events) do
+        --log(item.id, "  item.id > get_current_event_serial() ====", get_current_event_serial(), "    ", item.id > get_current_event_serial())
+        --log(start_up_time, " ==start_up_time < item.timestamp ====.  ", item.timestamp, "    ", start_up_time < item.timestamp)
+        --log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
         -- 未处理且创建时间晚于节点启动时间的事件
-        if item.id > get_current_event_serial() and start_up_time < item.timestamp and node_id ~= events.node_id then
-        log(pretty_write(item))
+        if item.id > get_current_event_serial() and start_up_time < item.timestamp and node_id ~= item.node_id then
+            log(pretty_write(item))
             set_current_event_serial(item.id)
             ev.post(item.source, "cluster", {
                 event = item.event,
