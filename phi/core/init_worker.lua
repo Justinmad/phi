@@ -27,12 +27,20 @@ return function(phi)
         return
     end
 
-    phi.observer = ev
+    if phi.configuration.cluster_mode then
+        logger(ERR, "cluster mode enabled")
+        local ob = require("core.cluster.observer")
+        phi.observer = ob:new(phi.context["dataSource"], ev)
+        phi.observer:init_worker()
+    else
+        phi.observer = ev
+    end
+
     local context = phi.context
     log("begin to init bean worker")
     for _, bean in pairs(context) do
         if type(bean.init_worker) == "function" then
-            bean:init_worker(ev)
+            bean:init_worker(phi.observer)
         end
     end
 end

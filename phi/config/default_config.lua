@@ -30,6 +30,7 @@ return {
     redis_keepalive = 10000,
     enabled_admin = true,
     enabled_mio = false,
+    cluster_mode = true,
     -- enabled_policies = { "unique", "range", "prefix", "suffix", "composite", "modulo", "regex" },
     enabled_policies = { "unique", "range", "prefix", "suffix", "modulo", "regex" },
     enabled_mappers = { "header", "uri_args", "ip", "uri" },
