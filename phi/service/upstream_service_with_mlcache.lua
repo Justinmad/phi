@@ -101,10 +101,15 @@ function _M:init_worker(observer)
         end
         -- server 启停
         if clusterData.event == EVENTS.PEER_DOWN or clusterData.event == EVENTS.PEER_UP then
-            self.observer.post(EVENTS.SOURCE, event, data, clusterData.unique, true)
+            if type(data[4]) == "boolean" then
+                set_peer_down(data[1], data[2], data[3], data[4])
+            else
+                self:getUpstreamBalancer(data[1]).set(data[2], data[3])
+            end
+            self.observer.post(EVENTS.SOURCE, clusterData.event, data, clusterData.unique, true)
         end
         LOGGER(DEBUG, "received cluster event; source=", source,
-                ", event=", event,
+                ", event=", clusterData.event,
                 ", data=", pretty_write(data),
                 ", from process ", pid)
     end, EVENTS.SOURCE, "cluster")
