@@ -55,7 +55,7 @@ function _M:init_worker(observer)
                     ", from process ", pid)
         end
     end, EVENTS.SOURCE, UPDATE)
-    --集群处理
+    -- 集群处理
     observer.register(function(clusterData, event, source, pid)
         local data = clusterData.data
         self.cache:delete(data.hostkey .. ":" .. data.uri)
