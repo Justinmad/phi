@@ -109,7 +109,7 @@ local function poll_event()
     for i, item in ipairs(events) do
         --log(item.id, "  item.id > get_current_event_serial() ====", get_current_event_serial(), "    ", item.id > get_current_event_serial())
         --log(start_up_time, " ==start_up_time < item.timestamp ====.  ", item.timestamp, "    ", start_up_time < item.timestamp)
-        --log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
+        log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
         -- 未处理且创建时间晚于节点启动时间的事件
         if item.id > get_current_event_serial() and start_up_time < item.timestamp and node_id ~= item.node_id then
             log(pretty_write(item))
@@ -163,9 +163,12 @@ end
 
 function _M:init_worker()
     -- 只使用一个worker处理集群事件
-    if worker_id() ~= 0 then
+    local _id = worker_id()
+
+    if (_id == nil and dict.incr("cluster:event:init", 1, 0) == 1) or _id ~= 0 then
         return
     end
+
     log("start to poll cluster event")
     ngx_time_at(5, poll_event)
 end
