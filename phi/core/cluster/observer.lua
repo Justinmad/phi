@@ -165,7 +165,7 @@ function _M:init_worker()
     -- 只使用一个worker处理集群事件
     local _id = worker_id()
 
-    if (_id == nil and dict.incr("cluster:event:init", 1, 0) == 1) or _id ~= 0 then
+    if (_id == nil and dict:incr("cluster:event:init", 1, 0) == 1) or _id ~= 0 then
         return
     end
 
