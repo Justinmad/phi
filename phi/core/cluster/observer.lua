@@ -21,6 +21,7 @@ local PHI_EVENTS = require("core.constants").DICTS.PHI_EVENTS
 local dict = ngx.shared[PHI_EVENTS]
 --- 节点ID、抓取数据周期、最大抓取数量、事件有效期、启动时间
 local UUID = require("resty.jit-uuid")
+UUID.seed()
 local node_id = UUID()
 local delay = 1
 local max = 10
