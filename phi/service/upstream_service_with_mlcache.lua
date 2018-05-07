@@ -72,7 +72,7 @@ function _M:init_worker(observer)
             self.cache:update()
             self:getUpstreamBalancer(data)
         end
-    end, EVENTS.DYNAMIC_UPS_SOURCE)
+    end, EVENTS.DYNAMIC_UPS_SOURCE, EVENTS.DYNAMIC_UPS_UPDATE, EVENTS.DYNAMIC_UPS_DEL)
     -- 关注配置中的peer的启停
     observer.register(function(data, event, source, pid)
         LOGGER(DEBUG, "received event; source=", source,
@@ -88,7 +88,7 @@ function _M:init_worker(observer)
                 self:getUpstreamBalancer(data[1]).set(data[2], data[3])
             end
         end
-    end, EVENTS.SOURCE)
+    end, EVENTS.SOURCE, EVENTS.PEER_DOWN, EVENTS.PEER_UP)
 
     -- 集群处理
     observer.register(function(clusterData, event, source, pid)

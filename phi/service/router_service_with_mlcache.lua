@@ -57,7 +57,7 @@ function _M:init_worker(observer)
                     ", data=", pretty_write(data),
                     ", from process ", pid)
         end
-    end, EVENTS.SOURCE)
+    end, EVENTS.SOURCE, UPDATE)
 
     -- 集群处理
     observer.register(function(clusterData, event, source, pid)
