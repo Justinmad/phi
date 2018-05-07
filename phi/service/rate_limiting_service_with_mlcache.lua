@@ -99,7 +99,18 @@ function _M:init_worker(observer)
                     ", data=", pretty_write(data),
                     ", from process ", pid)
         end
-    end, EVENTS.SOURCE)
+    end, EVENTS.SOURCE, REBUILD, UPDATE)
+    -- 集群处理
+    observer.register(function(clusterData, event, source, pid)
+        local data = clusterData.data
+        self.cache:delete(data.hostkey)
+        self:getLimiter(data.hostkey)
+        self.observer.post(EVENTS.SOURCE, REBUILD, data, clusterData.unique, true) -- local event
+        LOGGER(DEBUG, "received cluster event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
+    end, EVENTS.SOURCE, "cluster")
 end
 
 function _M:updateEvent(updated, data)

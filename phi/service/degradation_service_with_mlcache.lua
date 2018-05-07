@@ -63,7 +63,11 @@ function _M:init_worker(observer)
         self.observer.post(EVENTS.SOURCE, UPDATE, {
             hostkey = data.hostkey,
             uri = data.uri
-        })
+        }, clusterData.unique, true) -- local event
+        LOGGER(DEBUG, "received cluster event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
     end, EVENTS.SOURCE, "cluster")
 end
 

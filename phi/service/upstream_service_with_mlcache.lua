@@ -25,6 +25,7 @@ local gsub = string.gsub
 local pairs = pairs
 local getn = table.getn
 local insert = table.insert
+local unpack = unpack
 local NIL_VALUE = { notExists = true }
 
 local _ok, new_tab = pcall(require, "table.new")
@@ -88,6 +89,25 @@ function _M:init_worker(observer)
             end
         end
     end, EVENTS.SOURCE)
+
+    -- 集群处理
+    observer.register(function(clusterData, event, source, pid)
+        local data = clusterData.data
+        -- server 更新
+        if clusterData.event == EVENTS.DYNAMIC_UPS_UPDATE or clusterData.event == EVENTS.DYNAMIC_UPS_DEL then
+            self.cache:delete(data.hostkey)
+            self:getLimiter(data.hostkey)
+            self.observer.post(EVENTS.SOURCE, EVENTS.DYNAMIC_UPS_UPDATE, data, clusterData.unique, true) -- local event
+        end
+        -- server 启停
+        if clusterData.event == EVENTS.PEER_DOWN or clusterData.event == EVENTS.PEER_UP then
+            self.observer.post(EVENTS.SOURCE, event, data, clusterData.unique, true)
+        end
+        LOGGER(DEBUG, "received cluster event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
+    end, EVENTS.SOURCE, "cluster")
 end
 
 -- 需要通知其他worker进程peer状态改变

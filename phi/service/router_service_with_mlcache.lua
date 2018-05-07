@@ -58,6 +58,18 @@ function _M:init_worker(observer)
                     ", from process ", pid)
         end
     end, EVENTS.SOURCE)
+
+    -- 集群处理
+    observer.register(function(clusterData, event, source, pid)
+        local data = clusterData.data
+        self.cache:delete(data.hostkey)
+        self:getRouter(data.hostkey)
+        self.observer.post(EVENTS.SOURCE, UPDATE, data, clusterData.unique, true) -- local event
+        LOGGER(DEBUG, "received cluster event; source=", source,
+                ", event=", event,
+                ", data=", pretty_write(data),
+                ", from process ", pid)
+    end, EVENTS.SOURCE, "cluster")
 end
 
 function _M:updateEvent(hostkey)
