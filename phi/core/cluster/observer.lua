@@ -9,6 +9,7 @@ local red = require("tools.redis")
 local ngx_time_at = ngx.timer.at
 local logger = ngx.log
 local CRIT = ngx.CRIT
+local ERR = ngx.ERR
 local ngx_now = ngx.now
 local ipairs = ipairs
 local cjson = require("cjson.safe")
@@ -40,6 +41,11 @@ end
 local log = function(...)
     logger(CRIT, ...)
 end
+
+local log_err = function(...)
+    logger(ERR, ...)
+end
+
 local _ok, new_tab = pcall(require, "table.new")
 if not _ok or type(new_tab) ~= "function" then
     new_tab = function()
@@ -63,7 +69,7 @@ local function fetchData()
                     if item then
                         result[i] = item
                     else
-                        log("查询事件内容失败！err:", e)
+                        log_err("查询事件内容失败！err:", e)
                         -- key数据无效，删除之
                         red:delete(keys[i])
                     end
@@ -109,7 +115,7 @@ local function poll_event()
     for i, item in ipairs(events) do
         --log(item.id, "  item.id > get_current_event_serial() ====", get_current_event_serial(), "    ", item.id > get_current_event_serial())
         --log(start_up_time, " ==start_up_time < item.timestamp ====.  ", item.timestamp, "    ", start_up_time < item.timestamp)
-        log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
+        --log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
         -- 未处理且创建时间晚于节点启动时间的事件
         if item.id > get_current_event_serial() and start_up_time < item.timestamp and node_id ~= item.node_id then
             log(pretty_write(item))
@@ -165,7 +171,7 @@ function _M:init_worker()
     -- 只使用一个worker处理集群事件
     local _id = worker_id()
 
-    if (_id == nil and dict:incr("cluster:event:init", 1, 0) == 1) or _id ~= 0 then
+    if (_id == nil and dict:incr("cluster:event:init", 1, 0) ~= 1) or (_id ~= nil and _id ~= 0) then
         return
     end
 
