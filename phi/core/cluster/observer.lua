@@ -117,7 +117,7 @@ local function poll_event()
         -- log(start_up_time, " ==start_up_time < item.timestamp ====.  ", item.timestamp, "    ", start_up_time < item.timestamp)
         -- log(node_id, "   node_id ~= item.node_id ====    ", item.node_id, "   ", node_id ~= item.node_id)
         -- 未处理且创建时间晚于节点启动时间的事件
-        if item.id > get_current_event_serial() and start_up_time < item.timestamp and node_id ~= item.node_id then
+        if item.id > get_current_event_serial() and ((start_up_time - 1000 * 60) < item.timestamp) and node_id ~= item.node_id then
             set_current_event_serial(item.id)
             ev.post(item.source, "cluster", {
                 event = item.event,
