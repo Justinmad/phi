@@ -43,7 +43,7 @@ local class = {}
 -- 降级维度：按照请求的URI地址进行处理
 -- 类型1、fake数据(接口级) 2、重定向(页面级)
 function class:new(info)
-    if info.skip then
+    if info.skip or info.enabled == false then
         return SKIP_INSTANCE
     end
 

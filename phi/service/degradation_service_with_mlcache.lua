@@ -60,6 +60,10 @@ function _M:init_worker(observer)
         local data = clusterData.data
         self.cache:delete(data.hostkey .. ":" .. data.uri)
         self:getDegrader(data.hostkey, data.uri)
+        print(pretty_write(self.cache:get(data.hostkey .. ":" .. data.uri, nil, function()
+            return "null"
+        end)))
+
         self.observer.post(EVENTS.SOURCE, UPDATE, {
             hostkey = data.hostkey,
             uri = data.uri
