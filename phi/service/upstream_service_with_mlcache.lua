@@ -84,7 +84,7 @@ function _M:init_worker(observer)
             if type(data[4]) == "boolean" then
                 set_peer_down(data[1], data[2], data[3], data[4])
             else
-                self:getUpstreamBalancer(data[1]).set(data[2], data[3])
+                self:getUpstreamBalancer(data[1]):set(data[2], data[3])
             end
         end
     end, EVENTS.SOURCE)
