@@ -85,7 +85,7 @@ function _M:init_worker(observer)
             if type(data[4]) == "boolean" then
                 set_peer_down(data[1], data[2], data[3], data[4])
             else
-                self:getUpstreamBalancer(data[1]).set(data[2], data[3])
+                self:getUpstreamBalancer(data[1]):set(data[2], data[3])
             end
         end
     end, EVENTS.SOURCE, EVENTS.PEER_DOWN, EVENTS.PEER_UP)
@@ -95,8 +95,8 @@ function _M:init_worker(observer)
         local data = clusterData.data
         -- server 更新
         if clusterData.event == EVENTS.DYNAMIC_UPS_UPDATE or clusterData.event == EVENTS.DYNAMIC_UPS_DEL then
-            self.cache:delete(data.hostkey)
-            self:getLimiter(data.hostkey)
+            self.cache:delete(data)
+            self:getUpstreamBalancer(data)
             self.observer.post(EVENTS.SOURCE, EVENTS.DYNAMIC_UPS_UPDATE, data, clusterData.unique, true) -- local event
         end
         -- server 启停
@@ -104,7 +104,7 @@ function _M:init_worker(observer)
             if type(data[4]) == "boolean" then
                 set_peer_down(data[1], data[2], data[3], data[4])
             else
-                self:getUpstreamBalancer(data[1]).set(data[2], data[3])
+                self:getUpstreamBalancer(data[1]):set(data[2], data[3])
             end
             self.observer.post(EVENTS.SOURCE, clusterData.event, data, clusterData.unique, true)
         end
